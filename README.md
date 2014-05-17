@@ -86,9 +86,7 @@ See QUnit example
 
 ## Links
 
-https://www.cs.helsinki.fi/u/ljlukkar/wot/
 http://hackaday.com/2014/04/14/fixing-apple-tvs-terrible-ui/
-https://www.cs.helsinki.fi/u/ljlukkar/appletv/
 
 ## Licence
 
