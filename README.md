@@ -88,6 +88,7 @@ See QUnit example
 
 ![Apple TV - 1](screenshots/apple-tv-ui-1-thub.png)
 ![Apple TV - 2](screenshots/apple-tv-ui-2-thub.png)
+
 ![RC Switch - 1](screenshots/rc-switch-ui-1-thub.png)
 ![RC Switch - 2](screenshots/rc-switch-ui-2-thub.png)
 
