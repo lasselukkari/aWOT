@@ -3,7 +3,6 @@
 #include <Ethernet.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>
-#include <SerialServerAdapter.h>
 #include <EthernetServerAdapter.h>
 #include <aJSON.h>
 #include <aJsonStore.h>

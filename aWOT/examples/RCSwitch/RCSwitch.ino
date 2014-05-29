@@ -1,8 +1,9 @@
 #include <SPI.h>
 #include <Ethernet.h>
+#include <SD.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>
-#include <SerialServerAdapter.h>
+#include <StreamServerAdapter.h>
 #include <EthernetServerAdapter.h>
 #include <aJSON.h>
 #include <aJsonStore.h>
@@ -12,7 +13,7 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 0, 20);
 EthernetServer server(80);
-SerialServerAdapter serialServerAdapter(&Serial);
+StreamServerAdapter serialServerAdapter(&Serial);
 EthernetServerAdapter ethernetServerAdapter(&server);
 
 HTTPServer httpServer("");

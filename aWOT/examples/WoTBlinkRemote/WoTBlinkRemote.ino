@@ -1,6 +1,9 @@
+#include <SPI.h>
+#include <Ethernet.h>
+#include <SD.h>
 #include <aJSON.h>
 #include <ClientInterface.h>
-#include <SerialClientAdapter.h>
+#include <StreamClientAdapter.h>
 #include <aJsonStore.h>
 #include <HTTPStore.h>
 
@@ -10,7 +13,7 @@
 // byte blinkServer[] = { 192, 168, 0, 11 };
 // HTTPStore httpStorage(&ethernetClientAdapter);
 
-SerialClientAdapter serialClientAdapter(&Serial);
+StreamClientAdapter serialClientAdapter(&Serial);
 HTTPStore httpStorage(&serialClientAdapter);
 aJsonObject* ledModel  = aJson.parse("{\"id\":\"led\", \"on\":true}");
 

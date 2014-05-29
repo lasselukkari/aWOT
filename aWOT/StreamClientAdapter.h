@@ -1,12 +1,12 @@
-#ifndef SERIALCLIENTADAPTER_H_
-#define SERIALCLIENTADAPTER_H_
+#ifndef StreamClientAdapter_H_
+#define StreamClientAdapter_H_
 
 #include <ClientInterface.h>
 #include <Arduino.h>
 
-class SerialClientAdapter: public ClientInterface {
+class StreamClientAdapter: public ClientInterface {
 public:
-	SerialClientAdapter(HardwareSerial *serial);
+	StreamClientAdapter(Stream *stream);
 	int connect(IPAddress ip, uint16_t port);
 	int connect(const char *host, uint16_t port);
 	size_t write(uint8_t b);
@@ -26,10 +26,10 @@ public:
 	int peek();
 
 private:
-	HardwareSerial *serialPointer;
-	virtual inline HardwareSerial *serial() {
-		return serialPointer;
+	Stream *streamPointer;
+	virtual inline Stream *stream() {
+		return streamPointer;
 	}
 };
 
-#endif /* SERIALCLIENTADAPTER_H_ */
+#endif /* StreamClientAdapter_H_ */

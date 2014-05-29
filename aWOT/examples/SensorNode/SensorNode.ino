@@ -1,17 +1,13 @@
+#include <SPI.h>
+#include <Ethernet.h>
+#include <SD.h>
 #include <aJSON.h>
 #include <ClientInterface.h>
-#include <SerialClientAdapter.h>
+#include <StreamClientAdapter.h>
 #include <aJsonStore.h>
 #include <HTTPStore.h>
 
-
-// EthernetClient client;
-// EthernetClientAdapter ethernetClientAdapter(client);
-// byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-// byte blinkServer[] = { 192, 168, 0, 11 };
-// HTTPStore httpStorage(&ethernetClientAdapter);
-
-SerialClientAdapter serialClientAdapter(&Serial);
+StreamClientAdapter serialClientAdapter(&Serial);
 HTTPStore httpStorage(&serialClientAdapter);
 aJsonObject* measurementModel  = aJson.parse("{\"name\":\"Sensor 1\", \"value\":0}");
 

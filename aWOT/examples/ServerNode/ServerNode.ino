@@ -1,17 +1,18 @@
 #include <SPI.h>
 #include <SD.h>
+#include <Ethernet.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>
 #include <aJsonStore.h>
 #include <SDStore.h>
-#include <SerialServerAdapter.h>
+#include <StreamServerAdapter.h>
 #include <aJSON.h>
 
 const int chipSelect = 53;
 const int slaveSelect = 4;
 
-SerialServerAdapter serialServerAdapter(&Serial);
-SerialServerAdapter serial1ServerAdapter(&Serial1);
+StreamServerAdapter serialServerAdapter(&Serial);
+StreamServerAdapter serial1ServerAdapter(&Serial1);
 HTTPServer httpServer("");
 SDStore sdStorage;
 
