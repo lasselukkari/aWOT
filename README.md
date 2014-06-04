@@ -15,11 +15,12 @@ The WoT concept can be taken a step further to allow the communications over oth
 
 ```cpp
 #include <SPI.h>
+#include <SD.h>
 #include <Ethernet.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>
 #include <EthernetServerAdapter.h>
-#include <SerialServerAdapter.h>
+#include <StreamServerAdapter.h>
 #include <aJSON.h>
 #include <aJsonStore.h>
 #include <MemoryStore.h>
@@ -29,7 +30,7 @@ EthernetServer server(80);
 
 // Server interface adapters
 EthernetServerAdapter ethernetServerAdapter(&server);
-SerialServerAdapter serialServerAdapter(&Serial);
+StreamServerAdapter serialServerAdapter(&Serial);
 
 HTTPServer webServer("");
 MemoryStore memoryStore;
@@ -76,6 +77,13 @@ void loop() {
   webServer.processConnection(&ethernetServerAdapter);
 }
 ```
+
+Open Serial Monitor and type GET /examples/4 
+
+OR 
+
+Point your browsers to http://deviceIP/examples/4
+
 ## Performance
 
 With Wiznet W5100 and Arduino Mega CRUD operations with memory store take ~100 ms and with Teensy 3.1 and W5200 ~40ms.  
