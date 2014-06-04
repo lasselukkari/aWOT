@@ -80,7 +80,7 @@ void loop() {
 
 Open Serial Monitor and type GET /examples/4 
 
-*OR* 
+**OR** 
 
 Point your browsers to http://deviceIP/examples/4
 
