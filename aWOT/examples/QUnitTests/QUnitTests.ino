@@ -1,5 +1,4 @@
 #include <SPI.h>
-#include <SD.h>
 #include <Ethernet.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>

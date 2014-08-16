@@ -1,6 +1,5 @@
 #include <SPI.h>
 #include <Ethernet.h>
-#include <SD.h>
 #include <HTTPServer.h>
 #include <ServerInterface.h>
 #include <StreamServerAdapter.h>

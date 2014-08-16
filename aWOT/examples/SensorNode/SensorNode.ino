@@ -1,6 +1,5 @@
 #include <SPI.h>
 #include <Ethernet.h>
-#include <SD.h>
 #include <aJSON.h>
 #include <ClientInterface.h>
 #include <StreamClientAdapter.h>
