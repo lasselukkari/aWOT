@@ -235,7 +235,7 @@ public:
     void addNumberToObject(aJsonObject* object, const char* name, double n);
 	void addStringToObject(aJsonObject* object, const char* name,
 					const char* s);
-	void setDictionary(char** dictionary);
+	void useDictionary(char** dictionary);
 
 protected:
 	friend class aJsonStream;

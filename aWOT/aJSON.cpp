@@ -1305,7 +1305,7 @@ aJsonClass::addStringToObject(aJsonObject* object, const char* name,
 }
 
 void
-aJsonClass::setDictionary(char** dictionary)
+aJsonClass::useDictionary(char** dictionary)
 {
   this->dictionary = dictionary;
   this->dictionaryLenght = -1;

@@ -103,7 +103,7 @@ void HTTPStore::removeModel(char * name){
 
 }
 
-void HTTPStore::streamModel(char * name, Stream * stream) {
+void HTTPStore::findModel(char * name, Stream * stream) {
 
 	if (connect()){
 
@@ -123,7 +123,7 @@ void HTTPStore::streamModel(char * name, Stream * stream) {
 	}
 }
 
-void HTTPStore::saveModelStream(char * name, Stream * stream, int contentLenght) {
+void HTTPStore::saveModel(char * name, Stream * stream, int contentLenght) {
 	if (connect()){
 		aJsonStream clientStream(stream);
 
@@ -196,7 +196,7 @@ void HTTPStore::removeCollection(char * name) {
 	}
 }
 
-void HTTPStore::streamCollection(char * name,  Stream * stream){
+void HTTPStore::findCollection(char * name,  Stream * stream){
 	if (connect()){
 		printP (httpMethodGet);
 		this->client()->print(name);
@@ -214,7 +214,7 @@ void HTTPStore::streamCollection(char * name,  Stream * stream){
 
 }
 
-void HTTPStore::saveModelToCollection(char * name, aJsonObject* model) {
+void HTTPStore::saveToCollection(char * name, aJsonObject* model) {
 	if (connect()){
 		char *body = aJson.print(model);
 
@@ -267,7 +267,7 @@ void HTTPStore::saveModelToCollection(char * name, aJsonObject* model) {
 
 }
 
-aJsonObject* HTTPStore::findModelFromCollection(char * name, int id) {
+aJsonObject* HTTPStore::findFromCollection(char * name, int id) {
 	if (connect()){
 
 		printP (httpMethodGet);
@@ -291,7 +291,7 @@ aJsonObject* HTTPStore::findModelFromCollection(char * name, int id) {
 
 }
 
-void HTTPStore::removeModelFromCollection(char * name, int id) {
+void HTTPStore::removeFromCollection(char * name, int id) {
 	if (connect()){
 
 		printP (httpMethodDelete);
@@ -312,7 +312,7 @@ void HTTPStore::removeModelFromCollection(char * name, int id) {
 	}
 }
 
-void HTTPStore::streamModelFromCollection(char * name, int id, Stream * stream) {
+void HTTPStore::findFromCollection(char * name, int id, Stream * stream) {
 	if (connect()){
 
 		printP (httpMethodGet);
@@ -335,7 +335,7 @@ void HTTPStore::streamModelFromCollection(char * name, int id, Stream * stream) 
 
 
 
-void HTTPStore::saveModelStreamToCollection(char * name, Stream * stream, int contentLenght){
+void HTTPStore::saveToCollection(char * name, Stream * stream, int contentLenght){
 
 }
 

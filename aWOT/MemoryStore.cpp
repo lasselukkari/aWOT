@@ -19,12 +19,12 @@ void MemoryStore::removeModel(char * name){
 	aJson.deleteItemFromObject(root, name);
 }
 
-void MemoryStore::streamModel(char * name, Stream * stream) {
+void MemoryStore::findModel(char * name, Stream * stream) {
 	aJsonStream aJsonStream(stream);
 	aJson.print(aJson.getObjectItem(root, name), &aJsonStream);
 }
 
-void MemoryStore::saveModelStream(char * name, Stream * stream, int contentLenght) {
+void MemoryStore::saveModel(char * name, Stream * stream, int contentLenght) {
 	aJsonStream aJsonStream(stream);
 	this->saveModel(name, aJson.parse(&aJsonStream));
 }
@@ -44,12 +44,12 @@ void MemoryStore::removeCollection(char * name) {
 	aJson.deleteItemFromObject(root, name);
 }
 
-void MemoryStore::streamCollection(char * name,  Stream * stream){
+void MemoryStore::findCollection(char * name,  Stream * stream){
 	aJsonStream aJsonStream(stream);
 	aJson.print(aJson.getObjectItem(root, name), &aJsonStream);
 }
 
-void MemoryStore::saveModelToCollection(char * name, aJsonObject* model) {
+void MemoryStore::saveToCollection(char * name, aJsonObject* model) {
 
 	aJsonObject *collection = aJson.getObjectItem(root, name);
 	aJsonObject* idItem = aJson.getObjectItem(model, "id");
@@ -79,7 +79,7 @@ void MemoryStore::saveModelToCollection(char * name, aJsonObject* model) {
 	}
 }
 
-aJsonObject* MemoryStore::findModelFromCollection(char * name, int id) {
+aJsonObject* MemoryStore::findFromCollection(char * name, int id) {
 
 	aJsonObject *collection = aJson.getObjectItem(root, name);
 
@@ -90,7 +90,7 @@ aJsonObject* MemoryStore::findModelFromCollection(char * name, int id) {
 	return model;
 }
 
-void MemoryStore::removeModelFromCollection(char * name, int id) {
+void MemoryStore::removeFromCollection(char * name, int id) {
 
 	aJsonObject *collection = aJson.getObjectItem(root, name);
 	int modelIndex = 0;
@@ -106,14 +106,14 @@ void MemoryStore::removeModelFromCollection(char * name, int id) {
 	aJson.deleteItemFromArray(collection, modelIndex);
 }
 
-void MemoryStore::streamModelFromCollection(char * name, int id, Stream * stream) {
+void MemoryStore::findFromCollection(char * name, int id, Stream * stream) {
 	aJsonStream aJsonStream(stream);
-	aJson.print(this->findModelFromCollection(name, id), &aJsonStream);
+	aJson.print(this->findFromCollection(name, id), &aJsonStream);
 }
 
 
 
-void MemoryStore::saveModelStreamToCollection(char * name, Stream * stream, int contentLenght){
+void MemoryStore::saveToCollection(char * name, Stream * stream, int contentLenght){
 	aJsonStream aJsonStream(stream);
 	this->saveModel(name, aJson.parse(&aJsonStream));
 }
