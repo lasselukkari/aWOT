@@ -7,7 +7,7 @@ It's a hack and under constant change. Prepare to get your hands dirty.
 
 ## WoT?
 
-Web Of Things, a sidekick of the IoT, is a consept where the current web development patterns and tools are recycled to integrate everyday objects to the existing World Wide Web.
+Web Of Things, a sidekick of the IoT, is a concept where the current web development patterns and tools are recycled to integrate everyday objects to the existing World Wide Web.
 
 In WoT the idea is to realize the IoT concept using the current web standards and practices. In order to do so WoT uses the REST architectural style implemented on top of the HTTP already in use all over the Internet.
 
