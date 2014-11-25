@@ -1,0 +1,11 @@
+{
+  "name": "WebToSerial",
+  "description": "HTTP over TCP to serial port connections",
+  "author": "Lasse Lukkari <lasse.lukkari@gmail.com>",
+  "dependencies": {
+    "chalk": "^0.5.1",
+    "express": "^4.10.1",
+    "prompt": "^0.2.14",
+    "serialport": "^1.4.6"
+  }
+}
