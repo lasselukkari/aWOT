@@ -10,6 +10,3 @@ Transparent when works, often doesn't.
 - Include jQuery
 - Include the btajax.js 
 - $.ajax.useBluetooth = true;
-
-##Example
-https://www.cs.helsinki.fi/u/ljlukkar/wot/
