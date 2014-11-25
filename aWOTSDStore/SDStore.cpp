@@ -50,7 +50,7 @@ void SDStore::removeModel(char * name) {
 
 }
 
-void SDStore::streamModel(char * name, Stream * stream) {
+void SDStore::findModel(char * name, Stream * stream) {
 	aJsonStream aJsonStream(stream);
 
 	char * modelFileName = this->getModelFileName(name);
@@ -65,7 +65,7 @@ void SDStore::streamModel(char * name, Stream * stream) {
 
 }
 
-void SDStore::saveModelStream(char * name, Stream * stream, int contentLenght) {
+void SDStore::saveModel(char * name, Stream * stream, int contentLenght) {
 	aJsonStream aJsonStream(stream);
 	aJsonObject* model = aJson.parse(&aJsonStream);
 	this->saveModel(name, model);
@@ -151,7 +151,7 @@ void SDStore::removeCollection(char * name) {
 
 }
 
-void SDStore::streamCollection(char * name, Stream * stream) {
+void SDStore::findCollection(char * name, Stream * stream) {
 	aJsonStream aJsonStream(stream);
 
 	char * collectionName = getCollectionFileName(name);
@@ -190,7 +190,7 @@ void SDStore::streamCollection(char * name, Stream * stream) {
 
 }
 
-void SDStore::saveModelToCollection(char * name, aJsonObject* model) {
+void SDStore::saveToCollection(char * name, aJsonObject* model) {
 
 	aJsonObject* idItem = aJson.getObjectItem(model, "id");
 
@@ -241,7 +241,7 @@ void SDStore::saveModelToCollection(char * name, aJsonObject* model) {
 	}
 }
 
-aJsonObject* SDStore::findModelFromCollection(char * name, int id) {
+aJsonObject* SDStore::findFromCollection(char * name, int id) {
 
 	char * collectionFileName = this->getCollectionFileName(name);
 	char * modelFileName = this->getModelFileName(id);
@@ -260,7 +260,7 @@ aJsonObject* SDStore::findModelFromCollection(char * name, int id) {
 
 }
 
-void SDStore::removeModelFromCollection(char * name, int id) {
+void SDStore::removeFromCollection(char * name, int id) {
 
 	char * collectionFileName = this->getCollectionFileName(name);
 
@@ -276,7 +276,7 @@ void SDStore::removeModelFromCollection(char * name, int id) {
 	}
 }
 
-void SDStore::streamModelFromCollection(char * name, int id, Stream * stream) {
+void SDStore::findFromCollection(char * name, int id, Stream * stream) {
 	aJsonStream aJsonStream(stream);
 
 	char * collectionFileName = this->getCollectionFileName(name);
@@ -293,11 +293,11 @@ void SDStore::streamModelFromCollection(char * name, int id, Stream * stream) {
 	modelFile.close();
 }
 
-void SDStore::saveModelStreamToCollection(char * name, Stream * stream,
+void SDStore::saveToCollection(char * name, Stream * stream,
 		int contentLenght) {
 	aJsonStream aJsonStream(stream);
 	aJsonObject* model = aJson.parse(&aJsonStream);
-	this->saveModelToCollection(name, model);
+	this->saveToCollection(name, model);
 	aJson.deleteItem(model);
 }
 
