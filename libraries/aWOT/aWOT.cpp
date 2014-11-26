@@ -253,157 +253,42 @@ char * Request::query() {
  * would return a char pointer to "word" */
 char * Request::query(char * key) {
 
-  char ch, hex[3];
-  char *s = m_query;
-  byte valueLen;
-  byte index;
-  bool keepScanning;
-  bool needValue;
-  valueLen = 51;
+int charsRead = 0;
 
-  while (*s != 0) {
+char *pos1 = strstr(m_query, key); 
 
-    keepScanning = true;
-    needValue = true;
-    memset(m_paramBuffer, 0, 51);
-    valueLen = 51;
-    index = 0;
+if (pos1) { 
 
-    while (keepScanning) {
+  pos1 += strlen(key); 
 
-      ch = *s++;
-      switch (ch) {
+  if (*pos1 == '=') { // Make sure there is an '=' where we expect it 
 
-      case 0: {
-        s--;
-      }
+    pos1++; 
 
-      case '&': {
-        keepScanning = false;
-        needValue = false;
-        break;
-      }
-
-      case '+': {
-        ch = ' ';
-        break;
-      }
-
-      case '%': {
-        if ((hex[0] = *s++) == 0) {
-          s--; // Back up to NUL
-          keepScanning = false;
-          needValue = false;
-        }
-
-        else {
-
-          if ((hex[1] = *s++) == 0) {
-            s--; // Back up to NUL
-            keepScanning = false;
-            needValue = false;
-          }
-
-          else {
-            hex[2] = 0;
-            ch = strtoul(hex, NULL, 16);
-          }
-
-        }
-
-        break;
-
-      }
-
-      case '=': {
-        keepScanning = false;
-        break;
-      }
-
-      }
-
-      if (keepScanning && (valueLen > 1)) {
-        m_paramBuffer[index++] = ch;
-        --valueLen;
-      }
-
+    while (*pos1 && *pos1 != '&' && charsRead < SERVER_PARAM_LENGTH) { 
+      if (*pos1 == '%') { // Convert it to a single ASCII character and store at our Valueination 
+        char hex[3] = { pos1[1], pos1[2], 0 };
+        m_paramBuffer[charsRead++] = strtoul(hex, NULL, 16);
+        pos1 += 3; 
+      } else if( *pos1=='+' ) { // If it's a '+', store a space at our Valueination 
+      m_paramBuffer[charsRead++] = ' '; 
+      pos1++; 
+      } else { 
+      m_paramBuffer[charsRead++] = *pos1++; // Otherwise, just store the character at our Valueination 
     }
 
-    if (needValue && (*s != 0) && strcmp(m_paramBuffer, key) == 0) {
+  } 
 
-      valueLen = 51;
-      memset(m_paramBuffer, 0, 51);
-      keepScanning = true;
-      index = 0;
+  m_paramBuffer[charsRead]= '\0';
 
-      while (keepScanning) {
+  return m_paramBuffer;
 
-        ch = *s++;
+  } 
 
-        switch (ch) {
+} 
 
-        case 0: {
-          s--;
-          keepScanning = false;
-          needValue = false;
-          break;
-        }
+return NULL;
 
-        case '&': {
-          s--;
-          keepScanning = false;
-          needValue = false;
-          break;
-        }
-
-        case '+': {
-          ch = ' ';
-          break;
-        }
-
-        case '%': {
-
-          if ((hex[0] = *s++) == 0) {
-
-            s--; // Back up to NUL
-            keepScanning = false;
-            needValue = false;
-
-          }
-
-          else {
-
-            if ((hex[1] = *s++) == 0) {
-              s--; // Back up to NUL
-              keepScanning = false;
-              needValue = false;
-            } else {
-              hex[2] = 0;
-              ch = strtoul(hex, NULL, 16);
-            }
-
-          }
-
-          break;
-
-        }
-
-        }
-
-        if (keepScanning && (valueLen > 1)) {
-          m_paramBuffer[index++] = ch;
-          --valueLen;
-        }
-
-      }
-
-      return m_paramBuffer;
-
-    }
-
-  }
-
-  return NULL;
 
 }
 
