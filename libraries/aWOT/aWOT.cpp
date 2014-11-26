@@ -235,7 +235,7 @@ char * Request::route(char *name) {
  * would return a char pointer to "users" */
 char * Request::route(int number) {
 
-  if (number < m_urlPathPartsCount){
+  if (number <= m_urlPathPartsCount){
       return m_urlPathParts[number];
   } else {
     return NULL;
@@ -343,6 +343,13 @@ char * Request::query(char * key) {
         switch (ch) {
 
         case 0: {
+          s--;
+          keepScanning = false;
+          needValue = false;
+          break;
+        }
+
+        case '&': {
           s--;
           keepScanning = false;
           needValue = false;
