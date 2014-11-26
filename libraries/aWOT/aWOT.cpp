@@ -253,42 +253,48 @@ char * Request::query() {
  * would return a char pointer to "word" */
 char * Request::query(char * key) {
 
-int charsRead = 0;
+  int charsRead = 0;
 
-char *pos1 = strstr(m_query, key); 
+  char *pos1 = strstr(m_query, key); 
 
-if (pos1) { 
+  if (pos1) { 
 
-  pos1 += strlen(key); 
+    pos1 += strlen(key); 
 
-  if (*pos1 == '=') { // Make sure there is an '=' where we expect it 
+    if (*pos1 == '=') { 
 
-    pos1++; 
-
-    while (*pos1 && *pos1 != '&' && charsRead < SERVER_PARAM_LENGTH) { 
-      if (*pos1 == '%') { // Convert it to a single ASCII character and store at our Valueination 
-        char hex[3] = { pos1[1], pos1[2], 0 };
-        m_paramBuffer[charsRead++] = strtoul(hex, NULL, 16);
-        pos1 += 3; 
-      } else if( *pos1=='+' ) { // If it's a '+', store a space at our Valueination 
-      m_paramBuffer[charsRead++] = ' '; 
       pos1++; 
-      } else { 
-      m_paramBuffer[charsRead++] = *pos1++; // Otherwise, just store the character at our Valueination 
-    }
+
+      while (*pos1 && *pos1 != '&' && charsRead < SERVER_PARAM_LENGTH) { 
+
+        if (*pos1 == '%') { 
+
+          char hex[3] = { pos1[1], pos1[2], 0 };
+          m_paramBuffer[charsRead++] = strtoul(hex, NULL, 16);
+          pos1 += 3; 
+
+        } else if( *pos1=='+' ) { 
+
+          m_paramBuffer[charsRead++] = ' '; 
+          pos1++; 
+
+        } else { 
+
+          m_paramBuffer[charsRead++] = *pos1++; 
+
+        }
+
+      } 
+
+      m_paramBuffer[charsRead]= '\0';
+
+      return m_paramBuffer;
+
+    } 
 
   } 
 
-  m_paramBuffer[charsRead]= '\0';
-
-  return m_paramBuffer;
-
-  } 
-
-} 
-
-return NULL;
-
+  return NULL;
 
 }
 
