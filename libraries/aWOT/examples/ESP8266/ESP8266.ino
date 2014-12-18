@@ -25,12 +25,12 @@ void indexCmd(Request &req, Response &res) {
     "</html>";
 
   res.success("text/html");
-  res.printP(index2);
+  res.printP(index1);
   res.print(" ip: ");
   res.print(esp.IP());
   res.print(" ap: ");
   res.print(esp.apIP());
-  res.printP(index1);
+  res.printP(index2);
 
 }
 
