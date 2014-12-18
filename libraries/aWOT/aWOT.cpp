@@ -794,17 +794,6 @@ void Response::serverError() {
 
 }
 
-/* Sends favicon.ico response. */
-void Response::favicon() {
-
-  set("Cache-Control", "max-age=31536000");
-  success("image/x-icon");
-
-  P (faviconIco) = SERVER_FAVICON_DATA;
-  writeP(faviconIco, sizeof(faviconIco));
-
-}
-
 void Response::reset() {
   m_headersCount = 0;
 }
@@ -1024,15 +1013,7 @@ void WebApp::process(ServerInterface *serverInterface, char *buff,
 
       if (!routeMatch) {
 
-        if (strcmp(m_request.urlPath(), "favicon.ico") == 0) {
-
-          m_response.favicon();
-
-        } else {
-
-          m_notFoundCommand(m_request, m_response);
-
-        }
+        m_notFoundCommand(m_request, m_response);
 
       }
 
