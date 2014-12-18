@@ -12,3 +12,5 @@ Please note that currently the stability of ESP8266 is really limited. Random re
 but the library will try to recover by resetting the connection if errors occur.
 
 Example tested with UNO, MEGA2560 and Due at 115200 serial baud rate.
+
+I have no idea about firmware license.
