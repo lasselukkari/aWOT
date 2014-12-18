@@ -1,4 +1,4 @@
-Uses a modiefied firmware that buffers the incoming requests to the ESP8622. Buffer size is 1024 chars/request.
+Uses a modified firmware that buffers the incoming requests to the ESP8622. Buffer size is 1024 chars/request.
 
 Firmware has a new AT-command AT+CIPREAD which makes the ESP to print one buffer at time to the serial port.
 
