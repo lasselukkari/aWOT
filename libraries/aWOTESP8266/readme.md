@@ -10,3 +10,5 @@ eg. ./esptool.py --port /dev/tty.usbmodem14221 write_flash 0x00000 0x00000.bin 0
 
 Please note that currently the stability of ESP8266 is really limited. Random resets under heavy loads are common, 
 but the library will try to recover by resetting the connection if errors occur.
+
+Example tested with UNO, MEGA2560 and Due at 115200 serial baud rate.
