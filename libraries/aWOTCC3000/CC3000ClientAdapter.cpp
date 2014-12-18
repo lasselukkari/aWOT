@@ -8,26 +8,6 @@ CC3000ClientAdapter::CC3000ClientAdapter(Adafruit_CC3000 * cc3000,
 
 }
 
-int CC3000ClientAdapter::connect(IPAddress ip, uint16_t port) {
-
-	this->cc3000->connectTCP(ip, port);
-	return -1;
-}
-
-int CC3000ClientAdapter::connect(const char *host, uint16_t port) {
-
-	uint32_t ip = 0;
-	byte attempts = 0;
-
-	while (ip == 0 && attempts++ < 5) {
-		this->cc3000->getHostByName((char *) host, &ip);
-		delay(500);
-	}
-
-	this->cc3000->connectTCP(ip, port);
-	return -1;
-}
-
 size_t CC3000ClientAdapter::write(uint8_t b) {
 	return this->client.write(b);
 }

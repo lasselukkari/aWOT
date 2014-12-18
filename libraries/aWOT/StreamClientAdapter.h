@@ -7,8 +7,6 @@
 class StreamClientAdapter: public ClientInterface {
 public:
 	StreamClientAdapter(Stream *stream);
-	int connect(IPAddress ip, uint16_t port);
-	int connect(const char *host, uint16_t port);
 	size_t write(uint8_t b);
 	size_t write(const char *str);
 	size_t write(const uint8_t *buf, size_t size);

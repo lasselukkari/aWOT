@@ -5,13 +5,6 @@ ESP8266ClientAdapter::ESP8266ClientAdapter(ESP8266 *esp) {
 	this->esp = esp;
 }
 
-int ESP8266ClientAdapter::connect(IPAddress ip, uint16_t port) {
-	return 1;
-}
-int ESP8266ClientAdapter::connect(const char *host, uint16_t port) {
-	return 1;
-}
-
 size_t ESP8266ClientAdapter::write(uint8_t b) {
 	return this->esp->write(b);
 

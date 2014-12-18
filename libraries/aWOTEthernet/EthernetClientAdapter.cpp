@@ -7,14 +7,6 @@ EthernetClientAdapter::EthernetClientAdapter(EthernetClient client) {
 	this->client = client;
 }
 
-int EthernetClientAdapter::connect(IPAddress ip, uint16_t port) {
-	return this->client.connect(ip, port);
-}
-
-int EthernetClientAdapter::connect(const char *host, uint16_t port) {
-	return this->client.connect(host, port);
-}
-
 size_t EthernetClientAdapter::write(uint8_t b) {
 	return this->client.write(b);
 }

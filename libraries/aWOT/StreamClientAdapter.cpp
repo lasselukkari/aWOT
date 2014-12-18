@@ -5,13 +5,6 @@ StreamClientAdapter::StreamClientAdapter(Stream *stream) {
 	this->streamPointer = stream;
 }
 
-int StreamClientAdapter::connect(IPAddress ip, uint16_t port) {
-	return 1;
-}
-int StreamClientAdapter::connect(const char *host, uint16_t port) {
-	return 1;
-}
-
 size_t StreamClientAdapter::write(uint8_t b) {
 	return stream()->write(b);
 
