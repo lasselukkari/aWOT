@@ -22,12 +22,9 @@ http://www.awot.net
 #include <SPI.h>
 #include <Ethernet.h>
 #include <aWOT.h>
-#include <ServerInterface.h>
-#include <EthernetServerAdapter.h>
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 EthernetServer server(80);
-EthernetServerAdapter ethernetServer(&server);
 
 WebApp app;
 
@@ -66,8 +63,10 @@ void setup() {
 }
 
 void loop(){
-  // process incoming connections
-  app.process(&ethernetServer);
+  EthernetClient client = server.available();
+  if (client){
+      app.process(&client);
+  }
 }
 ```
 
@@ -80,10 +79,6 @@ Based on
 Webduino,
 Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes
 Francisco M Cuenca-Acuna
-
-aJson,
-Copyright (c) 2010, Interactive Matter, Marcus Nowotny
-(Based on the cJSON Library, Copyright (C) 2009 Dave Gamble)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -26,11 +26,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <Arduino.h>
 
-#include <ClientInterface.h>
-#include <ServerInterface.h>
-
-#include "Stream.h"
+#include "Client.h"
 
 #define CRLF "\r\n"
 
@@ -114,7 +112,7 @@ public:
 
   Request();
 
-  void init(ClientInterface *clientInterface, char* buff, int bufflen);
+  void init(Client *client, char* buff, int bufflen);
 
   void processRequest();
   void processHeaders();
@@ -163,7 +161,7 @@ private:
   bool m_readInt(int &number);
   bool m_expect(const char *expectedStr);
 
-  ClientInterface * m_clientObject;
+  Client * m_clientObject;
   MethodType m_methodType;
   unsigned char m_pushback[32];
   char m_pushbackDepth;
@@ -196,7 +194,7 @@ public:
 
   Response();
 
-  void init(ClientInterface *clientInterface);
+  void init(Client *client);
 
   void printP(const unsigned char *str);
   void printP(const char *str) {printP((unsigned char*) str);}
@@ -230,7 +228,7 @@ private:
   void m_printCRLF();
   void m_printHeaders();
 
-  ClientInterface * m_clientObject;
+  Client * m_clientObject;
 
   struct Headers {
     const char* name;
@@ -282,8 +280,8 @@ public:
 
   WebApp();
 
-  void process(ServerInterface *serverInterface);
-  void process(ServerInterface *serverInterface, char* buff, int bufflen);
+  void process(Client *client);
+  void process(Client *client, char* buff, int bufflen);
 
   void failCommand(Router::Middleware* command);
   void notFoundCommand(Router::Middleware* command);
@@ -302,7 +300,7 @@ private:
   static void m_defaultFailCommand(Request &request, Response &response);
   static void m_defaultNotFoundCommand(Request &request, Response &response);
 
-  ClientInterface * m_clientObject;
+  Client * m_clientObject;
 
   Request m_request;
   Response m_response;

@@ -1,15 +1,12 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <aWOT.h>
-#include <ServerInterface.h>
-#include <EthernetServerAdapter.h>
-#include <StreamServerAdapter.h>
+#include <StreamClient.h>
 #include <aJSON.h>
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 EthernetServer server(80);
-StreamServerAdapter serialServerAdapter(&Serial); // change all references to USBSerial with Due
-EthernetServerAdapter ethernetServerAdapter(&server);
+StreamClient serialClient(Serial); 
 WebApp app;
 
 int ledPin = 2; // onboard led (13) can be used with serial but not with ethernet
@@ -82,6 +79,14 @@ void setup() {
 }
 
 void loop(){
-  app.process(&ethernetServerAdapter);
-  app.process(&serialServerAdapter);
+  
+  EthernetClient client = server.available();
+  if (client){
+    app.process(&client);
+  }
+  
+  if (serialClient.available()){
+    app.process(&serialClient);
+  }
+
 }

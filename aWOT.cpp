@@ -41,8 +41,9 @@ Request::Request() :
 }
 
 /* Initializes the request instance ready to process the incoming HTTP request. */
-void Request::init(ClientInterface *clientInterface, char* buff, int bufflen) {
-  m_clientObject = clientInterface;
+void Request::init(Client *client, char* buff, int bufflen) 
+{
+  m_clientObject = client;
   m_urlPath = buff;
   m_urlPathLength = bufflen - 1;
 }
@@ -241,7 +242,6 @@ char * Request::route(int number) {
     return NULL;
   } 
 
-
 }
 
 /* Return a char pointer to the request query placed after the ? character in the URL */
@@ -377,9 +377,7 @@ char * Request::cookie() {
 void Request::slicePath(int prefixLength) {
 
   m_urlPathPartsCount = 0;
-
   m_urlPathParts[m_urlPathPartsCount] = m_urlPath + prefixLength;
-
   m_urlPathPartsCount++;
 
   for (char * p = m_urlPath + prefixLength; p < m_urlPath + m_urlPathLength; p++) {
@@ -397,8 +395,6 @@ void Request::slicePath(int prefixLength) {
 
   }
 
-
-
 }
 
 void Request::unSlicePath(int prefixLength) {
@@ -410,7 +406,6 @@ void Request::unSlicePath(int prefixLength) {
     }
 
   }
-
 
 }
 
@@ -611,8 +606,8 @@ Response::Response() :
 }
 
 /* Initializes the request instance ready for outputting the HTTP response. */
-void Response::init(ClientInterface *clientInterface) {
-  m_clientObject = clientInterface;
+void Response::init(Client *client) {
+  m_clientObject = client;
 }
 
 void Response::writeP(const prog_uchar *data, size_t length) {
@@ -815,8 +810,8 @@ void Response::m_printHeaders() {
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
-    m_commandCount(0),
-        m_urlPrefix(urlPrefix) {
+  m_commandCount(0),
+  m_urlPrefix(urlPrefix) {
 }
 
 bool Router::dispatchCommands(Request& request, Response& response) {
@@ -834,7 +829,6 @@ bool Router::dispatchCommands(Request& request, Response& response) {
     }
 
     for (byte i = 0; i < m_commandCount && request.next(); ++i) {
-
       if (m_commands[i].type == request.method()
           || m_commands[i].type == Request::ALL
           || m_commands[i].type == Request::USE) {
@@ -848,24 +842,17 @@ bool Router::dispatchCommands(Request& request, Response& response) {
           }
 
           request.routeString(m_commands[i].urlPattern);
-
           request.slicePath(prefixLength);
-
           m_commands[i].command(request, response);
-
           request.unSlicePath(prefixLength);
 
 
         }
-
       }
-
     }
-
   }
 
   return routeFound;
-
 }
 
 /* Mounts a middleware command to the router which is executed when a HTTP request with method type GET matches the url pattern. */
@@ -928,7 +915,6 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
   while (pattern[i] && text[j]) {
 
     if (pattern[i] == ':') {
-
       while (pattern[i] && pattern[i] != '/') {
         i++;
       }
@@ -938,15 +924,12 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
       }
 
       match = true;
-
     }
 
     else if (pattern[i] == text[j]) {
-
       j++;
       i++;
       match = true;
-
     }
     else {
       match = false;
@@ -976,16 +959,16 @@ WebApp::WebApp() :
 }
 
 /* Processes an incoming connection with default request buffer length. */
-void WebApp::process(ServerInterface *serverInterface) {
+void WebApp::process(Client *client) {
   char request[SERVER_DEFAULT_REQUEST_LENGTH];
-  process(serverInterface, request, SERVER_DEFAULT_REQUEST_LENGTH);
+  process(client, request, SERVER_DEFAULT_REQUEST_LENGTH);
 }
 
 /* Processes an incoming connection with request buffer and length given as parameters. */
-void WebApp::process(ServerInterface *serverInterface, char *buff,
+void WebApp::process(Client *client, char *buff,
     int bufflen) {
 
-  m_clientObject = serverInterface->available();
+  m_clientObject = client;
 
   bool routeMatch = false;
 
@@ -993,13 +976,10 @@ void WebApp::process(ServerInterface *serverInterface, char *buff,
 
     m_request.init(m_clientObject, buff, bufflen);
     m_response.init(m_clientObject);
-
     m_request.processRequest();
 
     if (m_request.method() == Request::INVALID) {
-
       m_failureCommand(m_request, m_response);
-
     } else {
 
       m_request.processHeaders();
@@ -1008,13 +988,10 @@ void WebApp::process(ServerInterface *serverInterface, char *buff,
         if (m_routers[i]->dispatchCommands(m_request, m_response)) {
           routeMatch = true;
         }
-
       }
 
       if (!routeMatch) {
-
         m_notFoundCommand(m_request, m_response);
-
       }
 
     }
@@ -1074,11 +1051,9 @@ void WebApp::use(Router::Middleware *command) {
 /* Mounts a Router instance to the server. */
 
 void WebApp::use(Router * router) {
-
   if (m_routerCount < SERVER_ROUTERS_COUNT) {
     m_routers[m_routerCount++] = router;
   }
-
 }
 
 /* Executed when request is considered malformed. */
