@@ -105,7 +105,6 @@ extern "C" unsigned long millis(void);
 class Request: public Stream {
 
 public:
-
   enum MethodType {
     INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, ALL, USE
   };
@@ -156,7 +155,6 @@ public:
   void reset();
 
 private:
-
   void m_readHeader(char *value, int valueLen);
   bool m_readInt(int &number);
   bool m_expect(const char *expectedStr);
@@ -185,13 +183,12 @@ private:
   const char * m_route;
 
   bool m_next;
-
+  
 };
 
 class Response: public Stream {
 
 public:
-
   Response();
 
   void init(Client *client);
@@ -224,7 +221,6 @@ public:
   void flush() {return;}
 
 private:
-
   void m_printCRLF();
   void m_printHeaders();
 
@@ -242,7 +238,6 @@ private:
 class Router {
 
 public:
-
   typedef void Middleware(Request& request, Response& response);
 
   Router(const char * urlPrefix = "");
@@ -260,7 +255,6 @@ public:
       Middleware* command);
 
 private:
-
   struct CommandMap {
     const char* urlPattern;
     Middleware* command;
@@ -271,13 +265,11 @@ private:
   const char * m_urlPrefix;
   int m_commandCount;
 
-
-
 };
 
 class WebApp {
-public:
 
+public:
   WebApp();
 
   void process(Client *client);
@@ -296,7 +288,6 @@ public:
   void use(Router * router);
 
 private:
-
   static void m_defaultFailCommand(Request &request, Response &response);
   static void m_defaultNotFoundCommand(Request &request, Response &response);
 
@@ -311,6 +302,7 @@ private:
 
   Router::Middleware* m_failureCommand;
   Router::Middleware* m_notFoundCommand;
+
 };
 
 #endif
