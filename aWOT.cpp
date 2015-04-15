@@ -704,6 +704,9 @@ void Response::m_printHeaders() {
 Router::Router(const char * urlPrefix) :
   m_commandCount(0),
   m_urlPrefix(urlPrefix) {
+    if(m_urlPrefix[0]=='/'){
+      m_urlPrefix++;
+    }
 }
 
 bool Router::dispatchCommands(Request& request, Response& response) {
@@ -780,6 +783,9 @@ void Router::use(Middleware *command) {
 
 void Router::addCommand(Request::MethodType type, const char *urlPattern, Middleware *command) {
   if (m_commandCount < SERVER_COMMANDS_LENGTH) {
+    if(urlPattern[0]=='/'){
+      urlPattern++;
+    }
     m_commands[m_commandCount].urlPattern = urlPattern;
     m_commands[m_commandCount].command = command;
     m_commands[m_commandCount].type = type;
