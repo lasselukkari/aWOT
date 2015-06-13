@@ -48,7 +48,7 @@ void setup() {
   }
 
   // mount the handler to the default router
-  app.get("", &indexCmd);
+  app.get("/", &indexCmd);
 
 }
 
