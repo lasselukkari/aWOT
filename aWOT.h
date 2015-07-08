@@ -180,6 +180,8 @@ private:
   char * m_urlPathParts[SERVER_URL_PATH_COMMAND_LENGTH];
   int m_urlPathPartsCount;
 
+  int m_hexToInt(char *hex);
+
   const char * m_route;
 
   bool m_next;

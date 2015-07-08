@@ -244,7 +244,7 @@ char * Request::query(char * key) {
       while (*ch && *ch != '&' && charsRead < SERVER_PARAM_LENGTH) { 
         if (*ch == '%') { 
           char hex[3] = { ch[1], ch[2], 0 };
-          m_paramBuffer[charsRead++] = strtoul(hex, NULL, 16);
+          m_paramBuffer[charsRead++] = m_hexToInt(hex);
           ch += 3; 
         } else if( *ch=='+' ) { 
           m_paramBuffer[charsRead++] = ' '; 
@@ -303,7 +303,7 @@ bool Request::postParam(char *name, int nameLen, char *value, int valueLen) {
       }
 
       char hex[3] = { ch1, ch2, 0 };
-      ch = strtoul(hex, NULL, 16);
+      ch = m_hexToInt(hex);
 
     }
 
@@ -514,6 +514,31 @@ bool Request::m_readInt(int &number) {
   }
 
   return gotNumber;
+}
+
+int Request::m_hexToInt(char *hex) {
+  int converted = 0;
+
+  while(true) {
+    char c = *hex;
+
+    if (c >= '0' && c <= '9') {
+      converted *= 16;
+      converted += c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+      converted *= 16;
+      converted += (c - 'a') + 10;
+    } else if (c >= 'A' && c <= 'F') {
+      converted *= 16;
+      converted += (c - 'A') + 10;
+    }  else {
+      break;
+    }
+
+   hex++;
+  }
+
+  return converted;
 }
 
 /* Request class constructor. */
