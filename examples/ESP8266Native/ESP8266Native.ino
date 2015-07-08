@@ -21,7 +21,6 @@ void indexCmd(Request &req, Response &res) {
 
   res.success("text/html");
   res.printP(index);
-
 }
 
 void setup() {
@@ -33,6 +32,7 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
+
   Serial.println();
   Serial.println("WiFi connected");
   
@@ -49,20 +49,12 @@ void setup() {
 }
 
 void loop(){
-
-   // Check if a client has connected
   WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
   
-  // Wait until the client sends some data
-  while(!client.available()){
-    delay(1);
-  }
-  
-  if (client){
+  if (client.available()){
       app.process(&client);
   }
+
+  delay(5);
 }
 
