@@ -150,7 +150,7 @@ public:
   void flush();
 
   // dummy implementation to fulfill the Stream interface
-  size_t write(uint8_t ch) {return NULL;}
+  size_t write(uint8_t ch) {return 0;}
 
   void reset();
 
@@ -217,9 +217,9 @@ public:
   void reset();
 
   //dummy implementations to fulfill Stream interface
-  int available() {return NULL;}
-  int read() {return NULL;}
-  int peek() {return NULL;}
+  int available() {return 0;}
+  int read() {return -1;}
+  int peek() {return -1;}
   void flush() {return;}
 
 private:
