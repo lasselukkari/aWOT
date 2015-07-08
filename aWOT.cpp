@@ -527,7 +527,7 @@ void Response::init(Client *client) {
   m_clientObject = client;
 }
 
-void Response::writeP(const prog_uchar *data, size_t length) {
+void Response::writeP(const unsigned char *data, size_t length) {
   uint8_t buffer[32];
   size_t bufferEnd = 0;
 
@@ -545,7 +545,7 @@ void Response::writeP(const prog_uchar *data, size_t length) {
   }
 }
 
-void Response::printP(const prog_uchar *str) {
+void Response::printP(const unsigned char *str) {
   uint8_t buffer[32];
   size_t bufferEnd = 0;
 
