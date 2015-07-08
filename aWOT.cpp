@@ -37,7 +37,7 @@ Request::Request() :
   m_query(NULL),
   m_methodType(INVALID),
   m_pushbackDepth(0),
-  m_contentLeft(NULL) {
+  m_contentLeft(0) {
 }
 
 /* Initializes the request instance ready to process the incoming HTTP request. */
