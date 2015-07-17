@@ -295,8 +295,8 @@ bool Request::postParam(char *name, int nameLen, char *value, int valueLen) {
 
     else if (ch == '%') {
 
-      int ch1 = read();
-      int ch2 = read();
+      char ch1 = read();
+      char ch2 = read();
 
       if (ch1 == -1 || ch2 == -1) {
         return false;
