@@ -189,8 +189,6 @@ char * Request::route(char *name) {
   byte part = 0;
   byte i = 0;
 
-  bool found = true;
-
   while (m_route[i]) {
     if (m_route[i] == ':') {
       byte j = 0;
