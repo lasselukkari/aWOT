@@ -59,6 +59,13 @@ void loop(){
   }
 }
 ```
+## Related projects 
+
+* A more advanced example created with [AngularJS Arduino Generator]( https://github.com/lasselukkari/generator-angular-arduino) can be found [here]( https://github.com/lasselukkari/angular-arduino-demo).
+
+* To generate static asset file payloads use [grunt-awot](https://github.com/lasselukkari/grunt-awot)
+
+* For uploading Arduino projects you can use [grunt-arduino](https://github.com/lasselukkari/grunt-arduino)
 
 ## Licence
 
