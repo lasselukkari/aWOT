@@ -48,14 +48,6 @@
 #define SERVER_COOKIE_LENGTH 64
 #endif
 
-#ifndef SERVER_COMMANDS_LENGTH
-#define SERVER_COMMANDS_LENGTH 10
-#endif
-
-#ifndef SERVER_ROUTERS_COUNT
-#define SERVER_ROUTERS_COUNT 5
-#endif
-
 #ifndef SERVER_HEADERS_COUNT
 #define SERVER_HEADERS_COUNT 5
 #endif
@@ -253,19 +245,23 @@ public:
   void patch(const char* urlPattern, Middleware* command);
   void all(const char* urlPattern, Middleware* command);
   void use(Middleware* command);
-  void addCommand(Request::MethodType type, const char* urlPattern,
-      Middleware* command);
+  void addCommand(Request::MethodType type, const char* urlPattern,Middleware* command);
+  Router * getNext();
+  void setNext(Router * next);
 
 private:
-  struct CommandMap {
+  struct CommandNode {
     const char* urlPattern;
     Middleware* command;
     Request::MethodType type;
-  }m_commands[SERVER_COMMANDS_LENGTH];;
+    CommandNode* next;
+  };
+
+  CommandNode* m_tailCommand;
+  Router* m_next;
 
   bool m_routeMatch(const char *str, const char *pattern);
   const char * m_urlPrefix;
-  int m_commandCount;
 
 };
 
@@ -298,9 +294,8 @@ private:
   Request m_request;
   Response m_response;
 
-  Router * m_routers[SERVER_ROUTERS_COUNT];
+  Router * m_routerTail;
   Router m_defaultRouter;
-  byte m_routerCount;
 
   Router::Middleware* m_failureCommand;
   Router::Middleware* m_notFoundCommand;

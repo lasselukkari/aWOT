@@ -725,7 +725,6 @@ void Response::m_printHeaders() {
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
-  m_commandCount(0),
   m_urlPrefix(urlPrefix) {
     if(m_urlPrefix[0]=='/'){
       m_urlPrefix++;
@@ -744,25 +743,29 @@ bool Router::dispatchCommands(Request& request, Response& response) {
       prefixLength++;
     }
 
-    for (byte i = 0; i < m_commandCount && request.next(); ++i) {
-      if (m_commands[i].type == request.method()
-          || m_commands[i].type == Request::ALL
-          || m_commands[i].type == Request::USE) {
+    CommandNode * command = m_tailCommand;
 
-        if (m_commands[i].type == Request::USE
+    while (command != NULL && request.next()){
+     if (command->type == request.method()
+          || command->type == Request::ALL
+          || command->type == Request::USE) {
+
+        if (command->type == Request::USE
             || m_routeMatch(trimmedPath,
-                m_commands[i].urlPattern)) {
+                command->urlPattern)) {
 
-          if (m_commands[i].type != Request::USE) {
+          if (command->type != Request::USE) {
             routeFound = true;
           }
 
-          request.routeString(m_commands[i].urlPattern);
+          request.routeString(command->urlPattern);
           request.slicePath(prefixLength);
-          m_commands[i].command(request, response);
+          command->command(request, response);
           request.unSlicePath(prefixLength);
         }
       }
+
+      command = command->next;
     }
   }
 
@@ -805,15 +808,36 @@ void Router::use(Middleware *command) {
 }
 
 void Router::addCommand(Request::MethodType type, const char *urlPattern, Middleware *command) {
-  if (m_commandCount < SERVER_COMMANDS_LENGTH) {
-    if(urlPattern[0]=='/'){
-      urlPattern++;
-    }
-    m_commands[m_commandCount].urlPattern = urlPattern;
-    m_commands[m_commandCount].command = command;
-    m_commands[m_commandCount].type = type;
-    m_commandCount++;
+  CommandNode* newCommand = (CommandNode*) malloc(sizeof(CommandNode));
+
+  if(urlPattern[0]=='/'){
+    urlPattern++;
   }
+  
+  newCommand->urlPattern = urlPattern;
+  newCommand->command = command;
+  newCommand->type = type;
+  newCommand->next = NULL;
+
+  if(m_tailCommand == NULL ){
+     m_tailCommand = newCommand;
+  } else {
+    CommandNode * commandNode = m_tailCommand;
+
+    while(commandNode->next != NULL){
+      commandNode = commandNode->next;
+    }
+
+    commandNode->next = newCommand;
+  }
+}
+
+Router * Router::getNext() {
+  return m_next;
+}
+
+void Router::setNext(Router * next) {
+  m_next = next;
 }
 
 bool Router::m_routeMatch(const char *text, const char *pattern) {
@@ -858,10 +882,9 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
 /* Server class constructor. */
 WebApp::WebApp() :
   m_clientObject(NULL),
-  m_routerCount(1),
   m_failureCommand(&m_defaultFailCommand),
   m_notFoundCommand(&m_defaultNotFoundCommand) {
-  m_routers[0] = &m_defaultRouter;
+  m_routerTail = &m_defaultRouter;
 }
 
 /* Processes an incoming connection with default request buffer length. */
@@ -885,10 +908,14 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
     } else {
       m_request.processHeaders();
 
-      for (byte i = 0; i < m_routerCount; i++) {
-        if (m_routers[i]->dispatchCommands(m_request, m_response)) {
+      Router* routerNode = m_routerTail;
+
+      while(routerNode != NULL){
+        if (routerNode->dispatchCommands(m_request, m_response)) {
           routeMatch = true;
         }
+        
+        routerNode = routerNode->getNext();
       }
 
       if (!routeMatch) {
@@ -948,9 +975,14 @@ void WebApp::use(Router::Middleware *command) {
 
 /* Mounts a Router instance to the server. */
 void WebApp::use(Router * router) {
-  if (m_routerCount < SERVER_ROUTERS_COUNT) {
-    m_routers[m_routerCount++] = router;
+
+  Router * routerNode = m_routerTail;
+
+  while(routerNode->getNext() != NULL){
+    routerNode = routerNode->getNext();
   }
+
+  routerNode->setNext(router);
 }
 
 /* Executed when request is considered malformed. */
