@@ -116,9 +116,8 @@ void Request::processRequest() {
 }
 
 /* Processes the header fields of the request */
-void Request::processHeaders() {
-  m_basicAuth[0] = 0;
-  m_cookie[0] = 0;
+void Request::processHeaders(HeaderNode* headerTail) {
+  m_headerTail = headerTail;
 
   while (1) {
     if (m_expect("Content-Length:")) {
@@ -126,13 +125,26 @@ void Request::processHeaders() {
       continue;
     }
 
-    if (m_expect("Authorization:")) {
-      m_readHeader(m_basicAuth, 51);
-      continue;
+    bool match = false;
+    HeaderNode* headerNode = m_headerTail;
+
+    while(headerNode != NULL){
+      if (m_expect(headerNode->name) ){
+        char c = read();
+
+        if (c == ':'){
+          m_readHeader(headerNode->buffer, headerNode->size);
+          match = true;
+          break;
+        } else {
+          push(c);
+        }
+      }
+
+      headerNode = headerNode->next;
     }
 
-    if (m_expect("Cookie:")) {
-      m_readHeader(m_cookie, 51);
+    if (match) {
       continue;
     }
 
@@ -323,14 +335,32 @@ bool Request::postParam(char *name, int nameLen, char *value, int valueLen) {
   }
 }
 
-/* Returns a pointer to the  "Authorization" header value */
-char * Request::basicAuth() {
-  return m_basicAuth;
-}
+/* Returns a pointer to a header value */
+char * Request::header(char * name) {
+  HeaderNode* headerNode = m_headerTail;
 
-/* Returns a pointer to the  "Cookie" header value */
-char * Request::cookie() {
-  return m_cookie;
+  while(headerNode != NULL){
+    int i = 0;
+    bool match = false;
+    const char * nodeName = headerNode->name;
+
+    while (tolower(*nodeName) == tolower(*name)) {
+      if (*nodeName == '\0' || *name == '\0'){
+        break;
+      }
+
+      nodeName++;
+      name++;
+    }
+
+    if (*nodeName == '\0' && *name == '\0') {
+      return headerNode->buffer;
+    }
+
+    headerNode = headerNode->next;
+  }
+
+  return NULL;
 }
 
 void Request::slicePath(int prefixLength) {
@@ -906,7 +936,7 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
     if (m_request.method() == Request::INVALID) {
       m_failureCommand(m_request, m_response);
     } else {
-      m_request.processHeaders();
+      m_request.processHeaders(m_headerTail);
 
       Router* routerNode = m_routerTail;
 
@@ -983,6 +1013,27 @@ void WebApp::use(Router * router) {
   }
 
   routerNode->setNext(router);
+}
+
+void WebApp::readHeader(const char* name, char* buffer, int bufflen) {
+  Request::HeaderNode* newNode = (Request::HeaderNode*) malloc(sizeof(Request::HeaderNode));
+
+  newNode->name = name;
+  newNode->buffer = buffer;
+  newNode->size = bufflen;
+  newNode->next = NULL;
+
+  if(m_headerTail == NULL ){
+    m_headerTail = newNode;
+  } else {
+    Request::HeaderNode * headerNode = m_headerTail;
+
+    while(headerNode->next != NULL){
+      headerNode = headerNode->next;
+    }
+
+    headerNode->next = newNode;
+  }
 }
 
 /* Executed when request is considered malformed. */

@@ -36,16 +36,8 @@
 #define SERVER_DEFAULT_REQUEST_LENGTH 64
 #endif
 
-#ifndef SERVER_AUTH_CREDENTIALS_LENGTH
-#define SERVER_AUTH_CREDENTIALS_LENGTH 64
-#endif
-
 #ifndef SERVER_PARAM_LENGTH
 #define SERVER_PARAM_LENGTH 64
-#endif
-
-#ifndef SERVER_COOKIE_LENGTH
-#define SERVER_COOKIE_LENGTH 64
 #endif
 
 #ifndef SERVER_HEADERS_COUNT
@@ -101,12 +93,19 @@ public:
     INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, ALL, USE
   };
 
+  struct HeaderNode {
+    const char* name;
+    char* buffer;
+    int size;
+    HeaderNode* next;
+  };
+
   Request();
 
   void init(Client *client, char* buff, int bufflen);
 
   void processRequest();
-  void processHeaders();
+  void processHeaders(HeaderNode* headerTail);
 
   MethodType method();
   int contentLeft();
@@ -129,8 +128,7 @@ public:
 
   bool postParam(char *name, int nameLen, char *value, int valueLen);
 
-  char * basicAuth();
-  char * cookie();
+  char * header(char *name);
 
   void slicePath(int prefixLength);
   void unSlicePath(int prefixLength);
@@ -157,11 +155,11 @@ private:
   char m_pushbackDepth;
   bool m_readingContent;
 
-  char m_basicAuth[SERVER_AUTH_CREDENTIALS_LENGTH];
-  char m_cookie[SERVER_COOKIE_LENGTH];
   char m_paramBuffer[SERVER_PARAM_LENGTH];
 
   int m_contentLeft;
+
+  HeaderNode* m_headerTail;
 
   char * m_query;
   bool m_queryComplete;
@@ -284,8 +282,10 @@ public:
   void all(const char* urlPattern, Router::Middleware* command);
   void use(Router::Middleware* command);
   void use(Router * router);
+  void readHeader(const char* name, char* buffer, int bufflen);
 
 private:
+
   static void m_defaultFailCommand(Request &request, Response &response);
   static void m_defaultNotFoundCommand(Request &request, Response &response);
 
@@ -299,6 +299,8 @@ private:
 
   Router::Middleware* m_failureCommand;
   Router::Middleware* m_notFoundCommand;
+
+  Request::HeaderNode* m_headerTail;
 
 };
 
