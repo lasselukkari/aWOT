@@ -90,7 +90,7 @@ class Request: public Stream {
 
 public:
   enum MethodType {
-    INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, ALL, USE
+    INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE
   };
 
   struct HeaderNode {
@@ -128,7 +128,7 @@ public:
 
   bool postParam(char *name, int nameLen, char *value, int valueLen);
 
-  char * header(char *name);
+  char * header(const char *name);
 
   void slicePath(int prefixLength);
   void unSlicePath(int prefixLength);
@@ -241,6 +241,7 @@ public:
   void put(const char* urlPattern, Middleware* command);
   void del(const char* urlPattern, Middleware* command);
   void patch(const char* urlPattern, Middleware* command);
+  void options(const char* urlPattern, Middleware* command);
   void all(const char* urlPattern, Middleware* command);
   void use(Middleware* command);
   void addCommand(Request::MethodType type, const char* urlPattern,Middleware* command);
@@ -279,6 +280,7 @@ public:
   void put(const char* urlPattern, Router::Middleware* command);
   void del(const char* urlPattern, Router::Middleware* command);
   void patch(const char* urlPattern, Router::Middleware* command);
+  void options(const char* urlPattern, Router::Middleware* command);
   void all(const char* urlPattern, Router::Middleware* command);
   void use(Router::Middleware* command);
   void use(Router * router);

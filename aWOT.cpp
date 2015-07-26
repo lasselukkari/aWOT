@@ -79,6 +79,10 @@ void Request::processRequest() {
     m_methodType = PATCH;
   }
 
+  else if (m_expect("OPTIONS ")) {
+    m_methodType = OPTIONS;
+  }
+
   else {
     return;
   }
@@ -336,7 +340,7 @@ bool Request::postParam(char *name, int nameLen, char *value, int valueLen) {
 }
 
 /* Returns a pointer to a header value */
-char * Request::header(char * name) {
+char * Request::header(const char *name) {
   HeaderNode* headerNode = m_headerTail;
 
   while(headerNode != NULL){
@@ -827,6 +831,11 @@ void Router::patch(const char *urlPattern, Middleware *command) {
   addCommand(Request::PATCH, urlPattern, command);
 }
 
+/* Mounts a middleware command to the router which is executed when a HTTP request with method type OPTIONS matches the url pattern. */
+void Router::options(const char *urlPattern, Middleware *command) {
+  addCommand(Request::OPTIONS, urlPattern, command);
+}
+
 /* Mounts a middleware command to the router which is executed when a HTTP request regardless of method type matches the url pattern. */
 void Router::all(const char *urlPattern, Middleware *command) {
   addCommand(Request::ALL, urlPattern, command);
@@ -988,9 +997,14 @@ void WebApp::del(const char *urlPattern, Router::Middleware *command) {
   m_defaultRouter.addCommand(Request::DELETE, urlPattern, command);
 }
 
-/* Mounts a middleware command to the default router which is executed when a HTTP request with method type POST matches the url pattern. */
+/* Mounts a middleware command to the default router which is executed when a HTTP request with method type PATCH matches the url pattern. */
 void WebApp::patch(const char *urlPattern, Router::Middleware *command) {
   m_defaultRouter.addCommand(Request::PATCH, urlPattern, command);
+}
+
+/* Mounts a middleware command to the default router which is executed when a HTTP request with method type OPTIONS matches the url pattern. */
+void WebApp::options(const char *urlPattern, Router::Middleware *command) {
+  m_defaultRouter.addCommand(Request::OPTIONS, urlPattern, command);
 }
 
 /* Mounts a middleware command to the default router which is executed when a HTTP request regardless of method type matches the url pattern. */
