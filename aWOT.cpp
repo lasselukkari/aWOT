@@ -201,7 +201,7 @@ char ** Request::route() {
 }
 
 /* Returns a single route parameter by name. For example with route users/:userId and request to URL /users/123 request.route("userId") would return a char pointer to "123" */
-char * Request::route(char *name) {
+char * Request::route(const char *name) {
   byte part = 0;
   byte i = 0;
 
@@ -244,7 +244,7 @@ char * Request::query() {
 
 /* Returns a single query parameter by name. For example with  request to URL /search?query=word request.query("query")
  * would return a char pointer to "word" */
-char * Request::query(char * key) {
+char * Request::query(const char * key) {
   int charsRead = 0;
 
   char *ch = strstr(m_query, key); 
@@ -624,7 +624,7 @@ size_t Response::write(uint8_t ch) {
 }
 
 /* Sets a header name and value pair to the response. */
-void Response::set(char *name, char *value) {
+void Response::set(const char *name, const char *value) {
   if (m_headersCount < SIZE(m_headers)) {
     m_headers[m_headersCount].name = name;
     m_headers[m_headersCount].value = value;

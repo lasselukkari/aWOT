@@ -119,11 +119,11 @@ public:
   void routeString(const char * routeString);
 
   char ** route();
-  char * route(char* name);
+  char * route(const char* name);
   char * route(int number);
 
   char * query();
-  char * query(char *key);
+  char * query(const char *key);
   bool queryComplete();
 
   bool postParam(char *name, int nameLen, char *value, int valueLen);
@@ -190,7 +190,7 @@ public:
   void writeP(const unsigned char *data, size_t length);
   size_t write(uint8_t ch);
 
-  void set(char* name, char* value);
+  void set(const char* name, const char* value);
 
   void success(const char *contentType = "application/json; charset=utf-8");
   void created(const char *contentType = "application/json; charset=utf-8");
