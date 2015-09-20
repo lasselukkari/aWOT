@@ -1,7 +1,16 @@
 aWOT
 ==========
 
-A web of things. Arduino family compatible web application framework.
+Arduino web server framework.
+
+## Tested with
+* Arduino Uno
+* Arduino Leonardo
+* Arduino Mega 2560
+* Arduino Due
+* Teensy 3
+* Generic ESP8266
+* NodeMCU 1.0
 
 ## Documentation
 http://www.awot.net
