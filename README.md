@@ -1,7 +1,7 @@
 aWOT
 ==========
 
-Arduino web server framework.
+Arduino web server library.
 
 ## Tested with
 * Arduino Uno
