@@ -21,7 +21,6 @@
  THE SOFTWARE.
  */
 
-#include <arduino.h>
 #include <aWOT.h>
 
 /* Request constructor. */
