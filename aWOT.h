@@ -74,11 +74,7 @@
 
 extern "C" unsigned long millis(void);
 
-#ifdef __AVR__
 #define P(name)   static const unsigned char name[] PROGMEM
-#else
-#define P(name)   static const unsigned char name[]
-#endif
 
 #define SIZE(array) (sizeof(array) / sizeof(*array))
 
