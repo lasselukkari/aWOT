@@ -848,7 +848,7 @@ void Router::use(Middleware *command) {
 void Router::addCommand(Request::MethodType type, const char *urlPattern, Middleware *command) {
   CommandNode* newCommand = (CommandNode*) malloc(sizeof(CommandNode));
 
-  if(urlPattern[0]=='/'){
+  if(urlPattern && urlPattern[0]=='/'){
     urlPattern++;
   }
   
