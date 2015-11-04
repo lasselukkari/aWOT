@@ -56,33 +56,19 @@ void Request::processRequest() {
   // store the HTTP method line of the request
   if (m_expect("GET ")) {
     m_methodType = GET;
-  }
-
-  else if (m_expect("HEAD ")) {
+  } else if (m_expect("HEAD ")) {
     m_methodType = HEAD;
-  }
-
-  else if (m_expect("POST ")) {
+  } else if (m_expect("POST ")) {
     m_methodType = POST;
-  }
-
-  else if (m_expect("PUT ")) {
+  } else if (m_expect("PUT ")) {
     m_methodType = PUT;
-  }
-
-  else if (m_expect("DELETE ")) {
+  } else if (m_expect("DELETE ")) {
     m_methodType = DELETE;
-  }
-
-  else if (m_expect("PATCH ")) {
+  } else if (m_expect("PATCH ")) {
     m_methodType = PATCH;
-  }
-
-  else if (m_expect("OPTIONS ")) {
+  } else if (m_expect("OPTIONS ")) {
     m_methodType = OPTIONS;
-  }
-
-  else {
+  } else {
     return;
   }
 
@@ -122,7 +108,7 @@ void Request::processRequest() {
 void Request::processHeaders(HeaderNode* headerTail) {
   m_headerTail = headerTail;
 
-  while (1) {
+  while (true) {
     if (m_expect("Content-Length:")) {
       m_readInt(m_contentLeft);
       continue;
