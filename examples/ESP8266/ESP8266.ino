@@ -55,6 +55,6 @@ void loop(){
       app.process(&client);
   }
 
-  delay(5);
+  delay(20);
 }
 
