@@ -12,9 +12,6 @@ Arduino web server library.
 * Generic ESP8266
 * NodeMCU 1.0
 
-## Documentation
-http://www.awot.net
-
 ## Usage
 
 ### Full example using Arduino Ehternet
