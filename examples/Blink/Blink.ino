@@ -67,8 +67,7 @@ void setup() {
 
   if (Ethernet.begin(mac)) {
     Serial.println(Ethernet.localIP());
-  }
-  else{
+  } else {
     Serial.println("Ethernet failed");
   }
 
