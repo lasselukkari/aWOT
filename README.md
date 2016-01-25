@@ -136,7 +136,7 @@ void setup() {
 
 ## Licence
 
-Copyright (c) 2014, Lasse Lukkari 
+Copyright, Lasse Lukkari 
 
 Based on 
 
