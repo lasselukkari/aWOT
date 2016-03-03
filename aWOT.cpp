@@ -1,5 +1,5 @@
 /*
- aWOT, Express.js inspired  microcontreller web framework for the Web of Things
+ Web server library for Arduino, Teensy and ESP8266
  Copyright 2014 Lasse Lukkari
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
