@@ -608,6 +608,10 @@ size_t Response::write(uint8_t ch) {
   return m_clientObject->write(ch);
 }
 
+size_t Response::write(uint8_t* ch, size_t size) {
+  return m_clientObject->write(ch, size);
+}
+
 /* Sets a header name and value pair to the response. */
 void Response::set(const char *name, const char *value) {
   if (m_headersCount < SIZE(m_headers)) {
