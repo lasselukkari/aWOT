@@ -185,6 +185,7 @@ public:
   void printP(const char *str) {printP((unsigned char*) str);}
   void writeP(const unsigned char *data, size_t length);
   size_t write(uint8_t ch);
+  size_t write(uint8_t *ch, size_t size);
 
   void set(const char* name, const char* value);
 
