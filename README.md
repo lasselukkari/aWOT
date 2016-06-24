@@ -11,6 +11,7 @@ Arduino web server library.
 * Teensy 3
 * Generic ESP8266
 * NodeMCU 1.0
+* Adafruit Feather M0 + ATWINC1500
 
 ## Usage
 
