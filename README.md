@@ -97,8 +97,7 @@ void routeParams(Request &req, Response &res) {
 }
 
 void setup() {
-
-  // other setup ...
+  // other setup
 
   app.get("/cats/:catId", &routeParams);
 }
@@ -118,22 +117,46 @@ void headers(Request &req, Response &res) {
 }
 
 void setup() {
-
   // other setup
 
   app.readHeader("User-Agent", userAgentBuffer, 200);
   app.get("/useragent", &headers);
-
 }
 ```
 
-## Related projects 
+### Routers
+```cpp
+WebApp app;
+Router cats("/cats");
 
-* A more advanced example created with [AngularJS Arduino Generator]( https://github.com/lasselukkari/generator-angular-arduino) can be found [here](https://github.com/lasselukkari/MaterialSwitch).
+void looooong(Request &req, Response &res) {
+  res.success("text/html");
+  res.print("looooong cat is long!");
+}
 
-* To generate static asset file payloads use [grunt-awot](https://github.com/lasselukkari/grunt-awot)
+void ceiling(Request &req, Response &res) {
+  res.success("text/html");
+  res.print("ceiling cat is watching you debug!");
+}
 
-* For uploading Arduino projects you can use [grunt-arduino](https://github.com/lasselukkari/grunt-arduino)
+void nyannyan(Request &req, Response &res) {
+  res.success("text/html");
+
+  for (int i = 0; i < 100; i++) {
+      res.print("nyan ");
+  }
+}
+
+void setup() {
+  // other setup
+
+  cats.get("/long", &looooong);
+  cats.get("/ceiling", &ceiling);
+  cats.get("/nyan", &nyannyan);
+
+  app.use(&cats);
+}
+```
 
 ## Licence
 
