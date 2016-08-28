@@ -36,7 +36,8 @@ Request::Request() :
   m_query(NULL),
   m_methodType(INVALID),
   m_pushbackDepth(0),
-  m_contentLeft(0) {
+  m_contentLeft(0),
+  m_headerTail(NULL) {
 }
 
 /* Initializes the request instance ready to process the incoming HTTP request. */
@@ -748,7 +749,9 @@ void Response::m_printHeaders() {
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
-  m_urlPrefix(urlPrefix) {
+  m_urlPrefix(urlPrefix),
+  m_tailCommand(NULL),
+  m_next(NULL) {
     if(m_urlPrefix[0]=='/'){
       m_urlPrefix++;
     }
