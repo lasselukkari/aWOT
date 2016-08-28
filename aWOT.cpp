@@ -25,19 +25,19 @@
 
 /* Request constructor. */
 Request::Request() :
-  m_queryComplete(false),
-  m_readingContent(false),
-  m_next(true),
-  m_urlPathPartsCount(0),
-  m_urlPathLength(0),
-  m_route(NULL),
   m_clientObject(NULL),
-  m_urlPath(NULL),
-  m_query(NULL),
   m_methodType(INVALID),
   m_pushbackDepth(0),
+  m_readingContent(false),
   m_contentLeft(0),
-  m_headerTail(NULL) {
+  m_headerTail(NULL), 
+  m_query(NULL),
+  m_queryComplete(false),
+  m_urlPath(NULL),
+  m_urlPathLength(0),
+  m_urlPathPartsCount(0),
+  m_route(NULL),
+  m_next(true) {
 }
 
 /* Initializes the request instance ready to process the incoming HTTP request. */
@@ -330,8 +330,6 @@ char * Request::header(const char *name) {
   HeaderNode* headerNode = m_headerTail;
 
   while(headerNode != NULL){
-    int i = 0;
-    bool match = false;
     const char * nodeName = headerNode->name;
 
     while (tolower(*nodeName) == tolower(*name)) {
@@ -580,7 +578,7 @@ void Response::writeP(const unsigned char *data, size_t length) {
       bufferEnd = 0;
     }
 
-    buffer[bufferEnd++] = pgm_read_byte(data++);
+    (buffer[bufferEnd++] = pgm_read_byte(data++));
   }
 
   if (bufferEnd > 0) {
@@ -592,7 +590,7 @@ void Response::printP(const unsigned char *str) {
   uint8_t buffer[32];
   size_t bufferEnd = 0;
 
-  while (buffer[bufferEnd++] = pgm_read_byte(str++)) {
+  while ((buffer[bufferEnd++] = pgm_read_byte(str++))) {
     if (bufferEnd == 32) {
       m_clientObject->write(buffer, 32);
       bufferEnd = 0;
@@ -749,9 +747,10 @@ void Response::m_printHeaders() {
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
-  m_urlPrefix(urlPrefix),
+
   m_tailCommand(NULL),
-  m_next(NULL) {
+  m_next(NULL),
+  m_urlPrefix(urlPrefix) {
     if(m_urlPrefix[0]=='/'){
       m_urlPrefix++;
     }

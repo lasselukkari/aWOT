@@ -148,7 +148,7 @@ private:
   Client * m_clientObject;
   MethodType m_methodType;
   unsigned char m_pushback[32];
-  char m_pushbackDepth;
+  int m_pushbackDepth;
   bool m_readingContent;
 
   char m_paramBuffer[SERVER_PARAM_LENGTH];
@@ -220,7 +220,7 @@ private:
     const char* value;
   } m_headers[SERVER_HEADERS_COUNT];
 
-  char m_headersCount;
+  unsigned int m_headersCount;
 
 };
 
