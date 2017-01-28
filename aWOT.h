@@ -74,7 +74,7 @@
 
 extern "C" unsigned long millis(void);
 
-#define P(name)   static const unsigned char name[] PROGMEM
+#define P(name) static const unsigned char name[] PROGMEM
 
 #define SIZE(array) (sizeof(array) / sizeof(*array))
 

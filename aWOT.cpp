@@ -911,10 +911,10 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
 
 /* Server class constructor. */
 WebApp::WebApp() :
-  m_headerTail(NULL), 
   m_clientObject(NULL),
   m_failureCommand(&m_defaultFailCommand),
-  m_notFoundCommand(&m_defaultNotFoundCommand) {
+  m_notFoundCommand(&m_defaultNotFoundCommand),
+  m_headerTail(NULL) {
   m_routerTail = &m_defaultRouter;
 }
 
