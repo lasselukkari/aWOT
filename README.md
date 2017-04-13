@@ -12,6 +12,7 @@ Arduino web server library.
 * Generic ESP8266
 * NodeMCU 1.0
 * Adafruit Feather M0 + ATWINC1500
+* ESP32
 
 ## Usage
 
