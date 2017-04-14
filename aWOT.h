@@ -257,8 +257,8 @@ private:
     CommandNode* next;
   };
 
-  CommandNode* m_tailCommand;
-  Router* m_next;
+  static CommandNode* m_tailCommand;
+  static Router* m_next;
 
   bool m_routeMatch(const char *str, const char *pattern);
   const char * m_urlPrefix;
@@ -303,7 +303,7 @@ private:
   Router::Middleware* m_failureCommand;
   Router::Middleware* m_notFoundCommand;
 
-  Request::HeaderNode* m_headerTail;
+  static Request::HeaderNode* m_headerTail;
 
 };
 

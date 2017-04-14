@@ -23,6 +23,8 @@
 
 #include <aWOT.h>
 
+Request::HeaderNode* WebApp::m_headerTail = NULL;
+
 /* Request constructor. */
 Request::Request() :
   m_clientObject(NULL),
@@ -744,6 +746,9 @@ void Response::m_printHeaders() {
     m_printCRLF();
   }
 }
+
+Router::CommandNode* Router::m_tailCommand = NULL;
+Router* Router::m_next = NULL;
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
