@@ -30,6 +30,7 @@ Request::Request() :
   m_pushbackDepth(0),
   m_readingContent(false),
   m_contentLeft(0),
+  m_bytesRead(0),
   m_headerTail(NULL), 
   m_query(NULL),
   m_queryComplete(false),
@@ -43,6 +44,7 @@ Request::Request() :
 /* Initializes the request instance ready to process the incoming HTTP request. */
 void Request::init(Client *client, char* buff, int bufflen) {
   m_clientObject = client;
+  m_bytesRead = 0;
   m_urlPath = buff;
   m_urlPathLength = bufflen - 1;
 }
@@ -400,6 +402,8 @@ int Request::read() {
       int ch = m_clientObject->read();
 
       if (ch != -1) {
+        m_bytesRead++;
+
         if (m_readingContent) {
           --m_contentLeft;
         }
@@ -421,6 +425,10 @@ int Request::read() {
   } else {
     return m_pushback[--m_pushbackDepth];
   }
+}
+
+int Request::bytesRead() {
+  return m_bytesRead;
 }
 
 int Request::peek() {
@@ -560,12 +568,14 @@ int Request::m_hexToInt(char *hex) {
 /* Request class constructor. */
 Response::Response() :
   m_clientObject(NULL),
-  m_headersCount(0) {
+  m_headersCount(0),
+  m_bytesSent(0) {
 }
 
 /* Initializes the request instance ready for outputting the HTTP response. */
 void Response::init(Client *client) {
   m_clientObject = client;
+  m_bytesSent = 0;
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
@@ -574,7 +584,7 @@ void Response::writeP(const unsigned char *data, size_t length) {
 
   while (length--) {
     if (bufferEnd == 32) {
-      m_clientObject->write(buffer, 32);
+      write(buffer, 32);
       bufferEnd = 0;
     }
 
@@ -582,7 +592,7 @@ void Response::writeP(const unsigned char *data, size_t length) {
   }
 
   if (bufferEnd > 0) {
-    m_clientObject->write(buffer, bufferEnd);
+    write(buffer, bufferEnd);
   }
 }
 
@@ -592,23 +602,31 @@ void Response::printP(const unsigned char *str) {
 
   while ((buffer[bufferEnd++] = pgm_read_byte(str++))) {
     if (bufferEnd == 32) {
-      m_clientObject->write(buffer, 32);
+      write(buffer, 32);
       bufferEnd = 0;
     }
   }
 
   // write out everything left but trailing NUL
   if (bufferEnd > 1) {
-    m_clientObject->write(buffer, bufferEnd - 1);
+    write(buffer, bufferEnd - 1);
   }
 }
 
 size_t Response::write(uint8_t ch) {
-  return m_clientObject->write(ch);
+  size_t bytesSent = m_clientObject->write(ch);
+  m_bytesSent += bytesSent;
+  return bytesSent;
 }
 
 size_t Response::write(uint8_t* ch, size_t size) {
-  return m_clientObject->write(ch, size);
+  size_t bytesSent = m_clientObject->write(ch, size);
+  m_bytesSent += bytesSent;
+  return bytesSent;
+}
+
+int Response::bytesSent() {
+  return m_bytesSent;
 }
 
 /* Sets a header name and value pair to the response. */
@@ -733,7 +751,7 @@ void Response::reset() {
 }
 
 void Response::m_printCRLF() {
-  m_clientObject->write((const uint8_t *) "\r\n", 2);
+  write((unsigned char*) "\r\n", 2);
 }
 
 void Response::m_printHeaders() {

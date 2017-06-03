@@ -135,6 +135,7 @@ public:
 
   int available();
   int read();
+  int bytesRead();
   int peek();
   void push(int ch);
   void flush();
@@ -158,6 +159,7 @@ private:
   char m_paramBuffer[SERVER_PARAM_LENGTH];
 
   int m_contentLeft;
+  int m_bytesRead;
 
   HeaderNode* m_headerTail;
 
@@ -190,6 +192,7 @@ public:
   void writeP(const unsigned char *data, size_t length);
   size_t write(uint8_t ch);
   size_t write(uint8_t *ch, size_t size);
+  int bytesSent();
 
   void set(const char* name, const char* value);
 
@@ -225,7 +228,7 @@ private:
   } m_headers[SERVER_HEADERS_COUNT];
 
   unsigned int m_headersCount;
-
+  int m_bytesSent;
 };
 
 class Router {
