@@ -196,8 +196,8 @@ public:
 
   void set(const char* name, const char* value);
 
-  void success(const char *contentType = "application/json; charset=utf-8");
-  void created(const char *contentType = "application/json; charset=utf-8");
+  void success(const char *contentType);
+  void created(const char *contentType);
   void noContent();
 
   void seeOther(const char *otherURL);
