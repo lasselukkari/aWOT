@@ -642,7 +642,6 @@ void Response::set(const char *name, const char *value) {
 void Response::success(const char *contentType) {
   P(successMsg1) =
   "HTTP/1.0 200 OK" CRLF
-  "Access-Control-Allow-Origin: *" CRLF
   "Content-Type: ";
 
   printP(successMsg1);
@@ -656,7 +655,6 @@ void Response::success(const char *contentType) {
 void Response::created(const char *contentType) {
   P(successMsg1) =
   "HTTP/1.0 201 Created" CRLF
-  "Access-Control-Allow-Origin: *" CRLF
   "Content-Type: ";
 
   printP (successMsg1);
