@@ -72,12 +72,6 @@
 #define SERVER_SERVER_ERROR_MESSAGE "<h1>500 Internal Server Error</h1>"
 #endif
 
-#ifdef ESP32
-extern "C" uint32_t millis(void);
-#else 
-extern "C" unsigned long millis(void);
-#endif
-
 #define P(name) static const unsigned char name[] PROGMEM
 
 #define SIZE(array) (sizeof(array) / sizeof(*array))
