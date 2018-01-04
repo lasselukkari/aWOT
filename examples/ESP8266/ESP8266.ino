@@ -51,10 +51,8 @@ void setup() {
 void loop(){
   WiFiClient client = server.available();
   
-  if (client.available()){
-      app.process(&client);
+  if (client.connected()) {
+    app.process(&client);
   }
-
-  delay(20);
 }
 
