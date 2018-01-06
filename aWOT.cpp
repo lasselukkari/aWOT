@@ -495,7 +495,7 @@ void Request::m_readHeader(char *value, int valueLen) {
   } while (ch == ' ' || ch == '\t');
 
   do {
-    if (valueLen > 1) {
+    if (valueLen > 0) {
       *value++ = ch;
       --valueLen;
     }
