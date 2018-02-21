@@ -46,12 +46,6 @@ void Request::init(Client *client, char* buff, int bufflen) {
   m_bytesRead = 0;
   m_urlPath = buff;
   m_urlPathLength = bufflen - 1;
-  HeaderNode* headerNode = m_headerTail;
-  while (headerNode != NULL) {
-    headerNode->buffer[0] = '\0';
-    headerNode = headerNode->next;
-  }
-
   m_pushbackDepth = 0;
   m_contentLeft = 0;
   m_readingContent = false;
@@ -477,6 +471,12 @@ bool Request::m_expect(const char *str) {
 void Request::reset() {
   m_clientObject->flush();
   m_clientObject->stop();
+
+  HeaderNode* headerNode = m_headerTail;
+  while (headerNode != NULL) {
+    headerNode->buffer[0] = '\0';
+    headerNode = headerNode->next;
+  }
 }
 
 void Request::m_readHeader(char *value, int valueLen) {
