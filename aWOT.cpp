@@ -37,8 +37,7 @@ Request::Request() :
   m_urlPath(NULL),
   m_urlPathLength(0),
   m_urlPathPartsCount(0),
-  m_route(NULL),
-  m_next(true) {
+  m_route(NULL) {
 }
 
 /* Initializes the request instance ready to process the incoming HTTP request. */
@@ -47,6 +46,16 @@ void Request::init(Client *client, char* buff, int bufflen) {
   m_bytesRead = 0;
   m_urlPath = buff;
   m_urlPathLength = bufflen - 1;
+  HeaderNode* headerNode = m_headerTail;
+  while (headerNode != NULL) {
+    headerNode->buffer[0] = '\0';
+    headerNode = headerNode->next;
+  }
+
+  m_pushbackDepth = 0;
+  m_contentLeft = 0;
+  m_readingContent = false;
+  m_methodType = INVALID;
 }
 
 /* Processes the first line of the HTTP request to parse method, verb and query. */
@@ -160,15 +169,6 @@ Request::MethodType Request::method() {
 /*Returns the number of bytes available for reading.*/
 int Request::contentLeft() {
   return m_contentLeft;
-}
-
-bool Request::next() {
-  return m_next;
-}
-
-/* Prevents any remaining Middleware commands to be executed after calling the method */
-void Request::discontinue() {
-  m_next = false;
 }
 
 char * Request::urlPath() {
@@ -477,18 +477,6 @@ bool Request::m_expect(const char *str) {
 void Request::reset() {
   m_clientObject->flush();
   m_clientObject->stop();
-
-  HeaderNode* headerNode = m_headerTail;
-  while (headerNode != NULL) {
-    headerNode->buffer[0] = '\0';
-    headerNode = headerNode->next;
-  }
-
-  m_pushbackDepth = 0;
-  m_contentLeft = 0;
-  m_readingContent = false;
-  m_methodType = INVALID;
-  m_next = true;
 }
 
 void Request::m_readHeader(char *value, int valueLen) {
@@ -575,13 +563,16 @@ int Request::m_hexToInt(char *hex) {
 Response::Response() :
   m_clientObject(NULL),
   m_headersCount(0),
-  m_bytesSent(0) {
+  m_bytesSent(0),
+  m_ended(false) {
 }
 
 /* Initializes the request instance ready for outputting the HTTP response. */
 void Response::init(Client *client) {
   m_clientObject = client;
   m_bytesSent = 0;
+  m_headersCount = 0;
+  m_ended = false;
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
@@ -633,6 +624,14 @@ size_t Response::write(uint8_t* ch, size_t size) {
 
 int Response::bytesSent() {
   return m_bytesSent;
+}
+
+void Response::end() {
+  m_ended = true;
+}
+
+bool Response::ended() {
+  return m_ended;
 }
 
 /* Sets a header name and value pair to the response. */
@@ -687,6 +686,14 @@ void Response::seeOther(const char *otherURL) {
 
   printP (seeOtherMsg);
   print(otherURL);
+  m_printHeaders();
+  m_printCRLF();
+}
+
+void Response::notModified() {
+  P(noContentMsg) = "HTTP/1.0 304 Not Modified" CRLF;
+
+  printP(noContentMsg);
   m_printHeaders();
   m_printCRLF();
 }
@@ -750,10 +757,6 @@ void Response::serverError() {
   printP(failMsg2);
 }
 
-void Response::reset() {
-  m_headersCount = 0;
-}
-
 void Response::m_printCRLF() {
   write((unsigned char*) "\r\n", 2);
 }
@@ -769,7 +772,6 @@ void Response::m_printHeaders() {
 
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
-
   m_tailCommand(NULL),
   m_next(NULL),
   m_urlPrefix(urlPrefix) {
@@ -792,7 +794,7 @@ bool Router::dispatchCommands(Request& request, Response& response) {
 
     CommandNode * command = m_tailCommand;
 
-    while (command != NULL && request.next()){
+    while (command != NULL && !response.ended()){
      if (command->type == request.method()
           || command->type == Request::ALL
           || command->type == Request::USE) {
@@ -963,7 +965,7 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
 
       Router* routerNode = m_routerTail;
 
-      while(routerNode != NULL){
+      while(routerNode != NULL && !m_response.ended()){
         if (routerNode->dispatchCommands(m_request, m_response)) {
           routeMatch = true;
         }
@@ -971,13 +973,12 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
         routerNode = routerNode->getNext();
       }
 
-      if (!routeMatch) {
+      if (!routeMatch && !m_response.ended()) {
         m_notFoundCommand(m_request, m_response);
       }
     }
 
     m_request.reset();
-    m_response.reset();
   }
 }
 
