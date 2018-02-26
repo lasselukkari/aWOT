@@ -1,8 +1,9 @@
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <aWOT.h>
 
 const char* ssid = "wifi";
 const char* password = "pass";
+
 WiFiServer server(80);
 WebApp app;
 char authBuffer[200];
@@ -13,7 +14,7 @@ void auth(Request &req, Response &res) {
   if (strcmp(authHeader, "Basic c3VwZXI6YWRtaW4=") != 0) { // super:admin in base64
     res.set("WWW-Authenticate", "Basic realm=\"Secret Area\"");
     res.unauthorized();
-    req.discontinue();
+    res.end();
   }
 }
 
