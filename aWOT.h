@@ -36,10 +36,6 @@
 #define SERVER_DEFAULT_REQUEST_LENGTH 64
 #endif
 
-#ifndef SERVER_PARAM_LENGTH
-#define SERVER_PARAM_LENGTH 64
-#endif
-
 #ifndef SERVER_HEADERS_COUNT
 #define SERVER_HEADERS_COUNT 5
 #endif
@@ -114,7 +110,7 @@ public:
   char * route(int number);
 
   char * query();
-  char * query(const char *key);
+  bool query(const char *key, char *paramBuffer, int paramBufferLen);
   bool queryComplete();
 
   bool postParam(char *name, int nameLen, char *value, int valueLen);
@@ -146,8 +142,6 @@ private:
   unsigned char m_pushback[32];
   int m_pushbackDepth;
   bool m_readingContent;
-
-  char m_paramBuffer[SERVER_PARAM_LENGTH];
 
   int m_contentLeft;
   int m_bytesRead;
