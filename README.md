@@ -105,6 +105,28 @@ void setup() {
 }
 ```
 
+### Post parameters
+```cpp
+void postParams(Request &req, Response &res) {
+  char name[10];
+  char value[64];
+
+  res.success("text/plain");
+  while (req.contentLeft()) {
+    req.postParam(name, 10, value, 64);
+    res.print(name);
+    res.print(": ");
+    res.println(value);
+  }
+}
+
+void setup() {
+  // other setup
+
+  app.post("/form", &postParams);
+}
+```
+
 ### Reading and writing headers
 ```cpp
 char userAgentBuffer[200];
