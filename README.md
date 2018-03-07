@@ -73,10 +73,11 @@ void loop(){
 ```cpp
 // HTTP GET /cats?type=lolcat
 void queryParams(Request &req, Response &res) {
-  char * type = req.query("type"); // "lolcat"
+  char type[64];
+  req.query("type", type, 64);
 
   res.success("text/plain");
-  res.print(type);
+  res.print(type); // "lolcat"
 }
 
 void setup() {

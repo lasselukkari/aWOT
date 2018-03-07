@@ -226,7 +226,8 @@ char * Request::query() {
 
 /* Returns a single query parameter by name. For example with  request to URL /search?query=word request.query("query")
  * would return a char pointer to "word" */
-char * Request::query(const char * key) {
+bool Request::query(const char * key, char *paramBuffer, int paramBufferLen) {
+  memset(paramBuffer, 0, paramBufferLen);
   int charsRead = 0;
 
   char *ch = strstr(m_query, key); 
@@ -237,26 +238,24 @@ char * Request::query(const char * key) {
     if (*ch == '=') { 
       ch++; 
 
-      while (*ch && *ch != '&' && charsRead < SERVER_PARAM_LENGTH) { 
+      while (*ch && *ch != '&' && charsRead < paramBufferLen) { 
         if (*ch == '%') { 
           char hex[3] = { ch[1], ch[2], 0 };
-          m_paramBuffer[charsRead++] = m_hexToInt(hex);
+          paramBuffer[charsRead++] = m_hexToInt(hex);
           ch += 3; 
         } else if( *ch=='+' ) { 
-          m_paramBuffer[charsRead++] = ' '; 
+          paramBuffer[charsRead++] = ' '; 
           ch++; 
         } else { 
-          m_paramBuffer[charsRead++] = *ch++; 
+          paramBuffer[charsRead++] = *ch++; 
         }
-      } 
+      }
 
-      m_paramBuffer[charsRead]= '\0';
-
-      return m_paramBuffer;
+      return true;
     } 
-  } 
+  }
 
-  return NULL;
+  return false;
 }
 
 /* Returns a boolean value indicating if the query was parsed completely or didn't it fit to the  buffer */
