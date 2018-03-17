@@ -24,7 +24,6 @@ Arduino web server library.
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 EthernetServer server(80);
-
 WebApp app;
 
 // define a handler function
@@ -43,11 +42,9 @@ void indexCmd(Request &req, Response &res) {
 
   res.success("text/html");
   res.printP(index);
-
 }
 
 void setup() {
-
   Serial.begin(115200);
 
   if (Ethernet.begin(mac)) {
@@ -58,7 +55,6 @@ void setup() {
 
   // mount the handler to the default router
   app.get("/", &indexCmd);
-
 }
 
 void loop(){
@@ -81,7 +77,6 @@ void queryParams(Request &req, Response &res) {
 }
 
 void setup() {
-
   // other setup ...
 
   app.get("/cats", &queryParams);
@@ -182,30 +177,8 @@ void setup() {
 }
 ```
 
+## Acknowledgements
+Based on Webduino, Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes, Francisco M Cuenca-Acuna
+
 ## Licence
-
-Copyright, Lasse Lukkari 
-
-Based on 
-
-Webduino,
-Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes
-Francisco M Cuenca-Acuna
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+MIT
