@@ -325,18 +325,7 @@ char * Request::header(const char *name) {
   HeaderNode* headerNode = m_headerTail;
 
   while(headerNode != NULL){
-    const char * nodeName = headerNode->name;
-
-    while (tolower(*nodeName) == tolower(*name)) {
-      if (*nodeName == '\0' || *name == '\0'){
-        break;
-      }
-
-      nodeName++;
-      name++;
-    }
-
-    if (*nodeName == '\0' && *name == '\0') {
+    if (strcmp(headerNode->name, name) == 0) {
       return headerNode->buffer;
     }
 

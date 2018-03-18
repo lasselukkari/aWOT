@@ -138,7 +138,8 @@ void headers(Request &req, Response &res) {
 void setup() {
   // other setup
 
-  app.readHeader("User-Agent", userAgentBuffer, 200);
+  // header names are case insensitive but lookup must use the same case
+  app.readHeader("User-Agent", userAgentBuffer, 200); 
   app.get("/useragent", &headers);
 }
 ```
