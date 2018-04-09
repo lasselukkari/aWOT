@@ -177,46 +177,51 @@ void Request::routeString(const char * routeString) {
   m_route = routeString;
 }
 
-/* Returns the URL path as an array of strings sliced in parts by "/". */
-char ** Request::route() {
-  return m_urlPathParts;
-}
-
-/* Returns a single route parameter by name. For example with route users/:userId and request to URL /users/123 request.route("userId") would return a char pointer to "123" */
-char * Request::route(const char *name) {
-  byte part = 0;
-  byte i = 0;
+bool Request::route(const char * name, char *paramBuffer, int paramBufferLen) {
+  int part = 0;
+  int i = 0;
 
   while (m_route[i]) {
-    if (m_route[i] == ':') {
-      byte j = 0;
-      i++; //skip to the next char after :
-
-      while ((m_route[i] && name[j]) && m_route[i++] == name[j++])
-
-      if (!name[j] && (m_route[i] == '/' || !m_route[i])) {
-        return m_urlPathParts[part];
-      }
-    }
-
     if (m_route[i] == '/') {
       part++;
     }
 
-    i++;
+    if (m_route[i++] == ':') {
+      int j = 0;
+
+      while ((m_route[i] && name[j]) && m_route[i++] == name[j++])
+
+      if (!name[j] && (m_route[i] == '/' || !m_route[i])) {
+        return route(part, paramBuffer, paramBufferLen);
+      }
+    }
   }
 
-  return NULL;
+  return false;
 }
 
-/* Returns a single route parameter by positions in the path. For example with  request to URL users/123 request.route(0)
- * would return a char pointer to "users" */
-char * Request::route(int number) {
-  if (number <= m_urlPathPartsCount){
-      return m_urlPathParts[number];
-  } else {
-    return NULL;
-  } 
+bool Request::route(int number, char *paramBuffer, int paramBufferLen) {
+  memset(paramBuffer, 0, paramBufferLen);
+  int part = 0;
+  int i = 0;
+  int read = 0;
+  char * routeStart = m_urlPath + m_prefixLength;
+
+  while(routeStart[i]){
+    if (routeStart[i++] == '/'){
+      part++;
+
+      if (part == number){
+        while(routeStart[i] != '/' && read < paramBufferLen){
+          paramBuffer[read++] = routeStart[i++];
+        }
+
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /* Return a char pointer to the request query placed after the ? character in the URL */
@@ -335,30 +340,8 @@ char * Request::header(const char *name) {
   return NULL;
 }
 
-void Request::slicePath(int prefixLength) {
-  m_urlPathPartsCount = 0;
-  m_urlPathParts[m_urlPathPartsCount] = m_urlPath + prefixLength;
-  m_urlPathPartsCount++;
-
-  for (char * p = m_urlPath + prefixLength; p < m_urlPath + m_urlPathLength; p++) {
-    if (*p == '/') {
-
-      *p = 0;
-      m_urlPathParts[m_urlPathPartsCount++] = p + 1;
-
-      if (m_urlPathPartsCount == SERVER_URL_PATH_COMMAND_LENGTH) {
-        break;
-      }
-    }
-  }
-}
-
-void Request::unSlicePath(int prefixLength) {
-  for (char * p = m_urlPath + prefixLength; p < m_urlPath + m_urlPathLength-prefixLength; p++) {
-    if (*p == 0) {
-      *p = '/';
-    }
-  }
+void Request::setPrefixLength(int prefixLength) {
+  m_prefixLength = prefixLength;
 }
 
 /*Returns the number of bytes available for reading.*/
@@ -770,7 +753,7 @@ Router::Router(const char * urlPrefix) :
 
 bool Router::dispatchCommands(Request& request, Response& response) {
   bool routeFound = false;
-  byte prefixLength = strlen(m_urlPrefix);
+  int prefixLength = strlen(m_urlPrefix);
 
   if (strncmp(m_urlPrefix, request.urlPath(), prefixLength) == 0) {
     char * trimmedPath = request.urlPath() + prefixLength;
@@ -795,10 +778,9 @@ bool Router::dispatchCommands(Request& request, Response& response) {
             routeFound = true;
           }
 
+          request.setPrefixLength(prefixLength);
           request.routeString(command->urlPattern);
-          request.slicePath(prefixLength);
           command->command(request, response);
-          request.unSlicePath(prefixLength);
         }
       }
 

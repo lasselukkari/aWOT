@@ -87,7 +87,8 @@ void setup() {
 ```cpp
 // HTTP GET /cats/lolcat
 void routeParams(Request &req, Response &res) {
-  char * catId = req.route("catId"); // "lolcat"
+  char catId[64];
+  char * catId = req.route("catId", catId, 64); // "lolcat"
 
   res.success("text/plain");
   res.print(catId);

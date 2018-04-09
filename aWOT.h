@@ -105,9 +105,8 @@ public:
 
   void routeString(const char * routeString);
 
-  char ** route();
-  char * route(const char* name);
-  char * route(int number);
+  bool route(const char *key, char *paramBuffer, int paramBufferLen);
+  bool route(int number, char *paramBuffer, int paramBufferLen);
 
   char * query();
   bool query(const char *key, char *paramBuffer, int paramBufferLen);
@@ -116,9 +115,7 @@ public:
   bool postParam(char *name, int nameLen, char *value, int valueLen);
 
   char * header(const char *name);
-
-  void slicePath(int prefixLength);
-  void unSlicePath(int prefixLength);
+  void setPrefixLength(int prefixLength);
 
   int available();
   int read();
@@ -153,6 +150,7 @@ private:
 
   char * m_urlPath;
   int m_urlPathLength;
+  int m_prefixLength;
 
   char * m_urlPathParts[SERVER_URL_PATH_COMMAND_LENGTH];
   int m_urlPathPartsCount;
