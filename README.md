@@ -88,7 +88,7 @@ void setup() {
 // HTTP GET /cats/lolcat
 void routeParams(Request &req, Response &res) {
   char catId[64];
-  char * catId = req.route("catId", catId, 64); // "lolcat"
+  req.route("catId", catId, 64);
 
   res.success("text/plain");
   res.print(catId);

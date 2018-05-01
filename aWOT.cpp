@@ -36,7 +36,6 @@ Request::Request() :
   m_queryComplete(false),
   m_urlPath(NULL),
   m_urlPathLength(0),
-  m_urlPathPartsCount(0),
   m_route(NULL) {
 }
 

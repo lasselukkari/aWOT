@@ -44,10 +44,6 @@
 #define SERVER_READ_TIMEOUT_IN_MS 1000
 #endif
 
-#ifndef SERVER_URL_PATH_COMMAND_LENGTH
-#define SERVER_URL_PATH_COMMAND_LENGTH 8
-#endif
-
 #ifndef SERVER_FAIL_MESSAGE
 #define SERVER_FAIL_MESSAGE "<h1>400 Bad Request</h1>"
 #endif
@@ -151,9 +147,6 @@ private:
   char * m_urlPath;
   int m_urlPathLength;
   int m_prefixLength;
-
-  char * m_urlPathParts[SERVER_URL_PATH_COMMAND_LENGTH];
-  int m_urlPathPartsCount;
 
   int m_hexToInt(char *hex);
 
