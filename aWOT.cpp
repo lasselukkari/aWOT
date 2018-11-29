@@ -414,10 +414,6 @@ void Request::push(int ch) {
   }
 }
 
-void Request::flush() {
-  m_clientObject->flush();
-}
-
 bool Request::m_expect(const char *str) {
   const char *curr = str;
 
@@ -439,9 +435,6 @@ bool Request::m_expect(const char *str) {
 }
 
 void Request::reset() {
-  m_clientObject->flush();
-  m_clientObject->stop();
-
   HeaderNode* headerNode = m_headerTail;
   while (headerNode != NULL) {
     headerNode->buffer[0] = '\0';
@@ -534,7 +527,8 @@ Response::Response() :
   m_clientObject(NULL),
   m_headersCount(0),
   m_bytesSent(0),
-  m_ended(false) {
+  m_ended(false),
+  m_bufFill(0) {
 }
 
 /* Initializes the request instance ready for outputting the HTTP response. */
@@ -546,50 +540,40 @@ void Response::init(Client *client) {
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
-  uint8_t buffer[32];
-  size_t bufferEnd = 0;
-
   while (length--) {
-    if (bufferEnd == 32) {
-      write(buffer, 32);
-      bufferEnd = 0;
-    }
-
-    (buffer[bufferEnd++] = pgm_read_byte(data++));
-  }
-
-  if (bufferEnd > 0) {
-    write(buffer, bufferEnd);
+    write(pgm_read_byte(data++));
   }
 }
 
 void Response::printP(const unsigned char *str) {
-  uint8_t buffer[32];
-  size_t bufferEnd = 0;
-
-  while ((buffer[bufferEnd++] = pgm_read_byte(str++))) {
-    if (bufferEnd == 32) {
-      write(buffer, 32);
-      bufferEnd = 0;
-    }
-  }
-
-  // write out everything left but trailing NUL
-  if (bufferEnd > 1) {
-    write(buffer, bufferEnd - 1);
+  while (uint8_t value = pgm_read_byte(str++)) {
+    write(value);
   }
 }
 
 size_t Response::write(uint8_t ch) {
-  size_t bytesSent = m_clientObject->write(ch);
+  m_buffer[m_bufFill++] = ch;
+
+  if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
+    m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    m_bufFill = 0;
+  }
+
+  size_t bytesSent = sizeof(ch);
   m_bytesSent += bytesSent;
   return bytesSent;
 }
 
-size_t Response::write(uint8_t* ch, size_t size) {
-  size_t bytesSent = m_clientObject->write(ch, size);
-  m_bytesSent += bytesSent;
-  return bytesSent;
+size_t Response::write(uint8_t* buffer, size_t size) {
+  m_flushBuf();
+  m_clientObject->write(buffer, size);
+  m_bytesSent += size;
+  return size;
+}
+
+void Response::flush() {
+  m_flushBuf();
+  m_clientObject->flush();
 }
 
 int Response::bytesSent() {
@@ -727,8 +711,13 @@ void Response::serverError() {
   printP(failMsg2);
 }
 
+void Response::reset() {
+  flush();
+  m_clientObject->stop();
+}
+
 void Response::m_printCRLF() {
-  write((unsigned char*) "\r\n", 2);
+  print(CRLF);
 }
 
 void Response::m_printHeaders() {
@@ -738,6 +727,13 @@ void Response::m_printHeaders() {
     print(m_headers[i].value);
     m_printCRLF();
   }
+}
+
+void Response::m_flushBuf() {
+  if (m_bufFill > 0) {
+    m_clientObject->write(m_buffer, m_bufFill);
+    m_bufFill = 0;
+  };
 }
 
 /* Router class constructor with an optional URL prefix parameter */
@@ -948,6 +944,7 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
     }
 
     m_request.reset();
+    m_response.reset();
   }
 }
 

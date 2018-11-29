@@ -36,6 +36,14 @@
 #define SERVER_DEFAULT_REQUEST_LENGTH 64
 #endif
 
+#ifndef SERVER_OUTPUT_BUFFER_SIZE
+#if defined(ESP8266) || defined (ESP32)
+#define SERVER_OUTPUT_BUFFER_SIZE 1024
+#else
+#define SERVER_OUTPUT_BUFFER_SIZE 32
+#endif
+#endif
+
 #ifndef SERVER_HEADERS_COUNT
 #define SERVER_HEADERS_COUNT 5
 #endif
@@ -118,11 +126,13 @@ class Request: public Stream {
     int bytesRead();
     int peek();
     void push(int ch);
-    void flush();
 
     // dummy implementation to fulfill the Stream interface
     size_t write(uint8_t ch) {
       return 0;
+    }
+    void flush() {
+      return;
     }
 
     void reset();
@@ -172,6 +182,7 @@ class Response: public Stream {
     void writeP(const unsigned char *data, size_t length);
     size_t write(uint8_t ch);
     size_t write(uint8_t *ch, size_t size);
+    void flush();
     int bytesSent();
 
     void end();
@@ -192,6 +203,7 @@ class Response: public Stream {
     void notFound();
     void serverError();
 
+    void reset();
     //dummy implementations to fulfill Stream interface
     int available() {
       return 0;
@@ -202,13 +214,11 @@ class Response: public Stream {
     int peek() {
       return -1;
     }
-    void flush() {
-      return;
-    }
 
   private:
     void m_printCRLF();
     void m_printHeaders();
+    void m_flushBuf();
 
     Client * m_clientObject;
 
@@ -220,6 +230,8 @@ class Response: public Stream {
     unsigned int m_headersCount;
     int m_bytesSent;
     bool m_ended;
+    uint8_t m_buffer[SERVER_OUTPUT_BUFFER_SIZE];
+    int m_bufFill;
 };
 
 class Router {
