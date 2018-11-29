@@ -1,25 +1,25 @@
 /*
- Web server library for Arduino, Teensy and ESP8266
- Copyright 2014 Lasse Lukkari
+  Web server library for Arduino, Teensy and ESP8266
+  Copyright 2014 Lasse Lukkari
 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- */
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+*/
 
 #include "aWOT.h"
 
@@ -31,7 +31,7 @@ Request::Request() :
   m_readingContent(false),
   m_contentLeft(0),
   m_bytesRead(0),
-  m_headerTail(NULL), 
+  m_headerTail(NULL),
   m_query(NULL),
   m_queryComplete(false),
   m_urlPath(NULL),
@@ -100,7 +100,7 @@ void Request::processRequest() {
     qmOffset = (qmLocation == NULL) ? 0 : 1;
 
     m_urlPathLength =
-        (qmLocation == NULL) ? strlen(m_urlPath) : (qmLocation - m_urlPath);
+      (qmLocation == NULL) ? strlen(m_urlPath) : (qmLocation - m_urlPath);
     m_query = m_urlPath + m_urlPathLength + qmOffset;
 
     if (qmOffset) {
@@ -122,11 +122,11 @@ void Request::processHeaders(HeaderNode* headerTail) {
     bool match = false;
     HeaderNode* headerNode = m_headerTail;
 
-    while(headerNode != NULL){
-      if (m_expect(headerNode->name) ){
+    while (headerNode != NULL) {
+      if (m_expect(headerNode->name) ) {
         char c = read();
 
-        if (c == ':'){
+        if (c == ':') {
           m_readHeader(headerNode->buffer, headerNode->size);
           match = true;
           break;
@@ -190,9 +190,9 @@ bool Request::route(const char * name, char *paramBuffer, int paramBufferLen) {
 
       while ((m_route[i] && name[j]) && m_route[i++] == name[j++])
 
-      if (!name[j] && (m_route[i] == '/' || !m_route[i])) {
-        return route(part, paramBuffer, paramBufferLen);
-      }
+        if (!name[j] && (m_route[i] == '/' || !m_route[i])) {
+          return route(part, paramBuffer, paramBufferLen);
+        }
     }
   }
 
@@ -206,12 +206,12 @@ bool Request::route(int number, char *paramBuffer, int paramBufferLen) {
   int read = 0;
   char * routeStart = m_urlPath + m_prefixLength;
 
-  while(routeStart[i]){
-    if (routeStart[i++] == '/'){
+  while (routeStart[i]) {
+    if (routeStart[i++] == '/') {
       part++;
 
-      if (part == number){
-        while(routeStart[i] != '/' && read < paramBufferLen){
+      if (part == number) {
+        while (routeStart[i] != '/' && read < paramBufferLen) {
           paramBuffer[read++] = routeStart[i++];
         }
 
@@ -229,34 +229,34 @@ char * Request::query() {
 }
 
 /* Returns a single query parameter by name. For example with  request to URL /search?query=word request.query("query")
- * would return a char pointer to "word" */
+   would return a char pointer to "word" */
 bool Request::query(const char * key, char *paramBuffer, int paramBufferLen) {
   memset(paramBuffer, 0, paramBufferLen);
   int charsRead = 0;
 
-  char *ch = strstr(m_query, key); 
+  char *ch = strstr(m_query, key);
 
-  if (ch) { 
-    ch += strlen(key); 
+  if (ch) {
+    ch += strlen(key);
 
-    if (*ch == '=') { 
-      ch++; 
+    if (*ch == '=') {
+      ch++;
 
-      while (*ch && *ch != '&' && charsRead < paramBufferLen) { 
-        if (*ch == '%') { 
+      while (*ch && *ch != '&' && charsRead < paramBufferLen) {
+        if (*ch == '%') {
           char hex[3] = { ch[1], ch[2], 0 };
           paramBuffer[charsRead++] = m_hexToInt(hex);
-          ch += 3; 
-        } else if( *ch=='+' ) { 
-          paramBuffer[charsRead++] = ' '; 
-          ch++; 
-        } else { 
-          paramBuffer[charsRead++] = *ch++; 
+          ch += 3;
+        } else if ( *ch == '+' ) {
+          paramBuffer[charsRead++] = ' ';
+          ch++;
+        } else {
+          paramBuffer[charsRead++] = *ch++;
         }
       }
 
       return true;
-    } 
+    }
   }
 
   return false;
@@ -328,7 +328,7 @@ bool Request::postParam(char *name, int nameLen, char *value, int valueLen) {
 char * Request::header(const char *name) {
   HeaderNode* headerNode = m_headerTail;
 
-  while(headerNode != NULL){
+  while (headerNode != NULL) {
     if (strcmp(headerNode->name, name) == 0) {
       return headerNode->buffer;
     }
@@ -414,10 +414,6 @@ void Request::push(int ch) {
   }
 }
 
-void Request::flush() {
-  m_clientObject->flush();
-}
-
 bool Request::m_expect(const char *str) {
   const char *curr = str;
 
@@ -439,9 +435,6 @@ bool Request::m_expect(const char *str) {
 }
 
 void Request::reset() {
-  m_clientObject->flush();
-  m_clientObject->stop();
-
   HeaderNode* headerNode = m_headerTail;
   while (headerNode != NULL) {
     headerNode->buffer[0] = '\0';
@@ -507,7 +500,7 @@ bool Request::m_readInt(int &number) {
 int Request::m_hexToInt(char *hex) {
   int converted = 0;
 
-  while(true) {
+  while (true) {
     char c = *hex;
 
     if (c >= '0' && c <= '9') {
@@ -523,7 +516,7 @@ int Request::m_hexToInt(char *hex) {
       break;
     }
 
-   hex++;
+    hex++;
   }
 
   return converted;
@@ -534,7 +527,8 @@ Response::Response() :
   m_clientObject(NULL),
   m_headersCount(0),
   m_bytesSent(0),
-  m_ended(false) {
+  m_ended(false),
+  m_bufFill(0) {
 }
 
 /* Initializes the request instance ready for outputting the HTTP response. */
@@ -546,50 +540,40 @@ void Response::init(Client *client) {
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
-  uint8_t buffer[32];
-  size_t bufferEnd = 0;
-
   while (length--) {
-    if (bufferEnd == 32) {
-      write(buffer, 32);
-      bufferEnd = 0;
-    }
-
-    (buffer[bufferEnd++] = pgm_read_byte(data++));
-  }
-
-  if (bufferEnd > 0) {
-    write(buffer, bufferEnd);
+    write(pgm_read_byte(data++));
   }
 }
 
 void Response::printP(const unsigned char *str) {
-  uint8_t buffer[32];
-  size_t bufferEnd = 0;
-
-  while ((buffer[bufferEnd++] = pgm_read_byte(str++))) {
-    if (bufferEnd == 32) {
-      write(buffer, 32);
-      bufferEnd = 0;
-    }
-  }
-
-  // write out everything left but trailing NUL
-  if (bufferEnd > 1) {
-    write(buffer, bufferEnd - 1);
+  while (uint8_t value = pgm_read_byte(str++)) {
+    write(value);
   }
 }
 
 size_t Response::write(uint8_t ch) {
-  size_t bytesSent = m_clientObject->write(ch);
+  m_buffer[m_bufFill++] = ch;
+
+  if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
+    m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    m_bufFill = 0;
+  }
+
+  size_t bytesSent = sizeof(ch);
   m_bytesSent += bytesSent;
   return bytesSent;
 }
 
-size_t Response::write(uint8_t* ch, size_t size) {
-  size_t bytesSent = m_clientObject->write(ch, size);
-  m_bytesSent += bytesSent;
-  return bytesSent;
+size_t Response::write(uint8_t* buffer, size_t size) {
+  m_flushBuf();
+  m_clientObject->write(buffer, size);
+  m_bytesSent += size;
+  return size;
+}
+
+void Response::flush() {
+  m_flushBuf();
+  m_clientObject->flush();
 }
 
 int Response::bytesSent() {
@@ -616,8 +600,8 @@ void Response::set(const char *name, const char *value) {
 /* Sends default status and headers indicating a successful request. */
 void Response::success(const char *contentType) {
   P(successMsg1) =
-  "HTTP/1.0 200 OK" CRLF
-  "Content-Type: ";
+    "HTTP/1.0 200 OK" CRLF
+    "Content-Type: ";
 
   printP(successMsg1);
   print(contentType);
@@ -629,8 +613,8 @@ void Response::success(const char *contentType) {
 /* Sends default status and headers indicating a creation of an resource. */
 void Response::created(const char *contentType) {
   P(successMsg1) =
-  "HTTP/1.0 201 Created" CRLF
-  "Content-Type: ";
+    "HTTP/1.0 201 Created" CRLF
+    "Content-Type: ";
 
   printP (successMsg1);
   print(contentType);
@@ -651,8 +635,8 @@ void Response::noContent() {
 /* Sends redirection response. */
 void Response::seeOther(const char *otherURL) {
   P(seeOtherMsg) =
-  "HTTP/1.0 303 See Other" CRLF
-  "Location: ";
+    "HTTP/1.0 303 See Other" CRLF
+    "Location: ";
 
   printP (seeOtherMsg);
   print(otherURL);
@@ -672,7 +656,7 @@ void Response::notModified() {
 void Response::fail() {
   P(failMsg1) = "HTTP/1.0 400 Bad Request" CRLF;
   P(failMsg2) = "Content-Type: text/html" CRLF
-  CRLF SERVER_FAIL_MESSAGE;
+                CRLF SERVER_FAIL_MESSAGE;
 
   printP(failMsg1);
   m_printHeaders();
@@ -682,8 +666,8 @@ void Response::fail() {
 /* Sends a default error response for a unauthorized request. */
 void Response::unauthorized() {
   P(failMsg1) =
-  "HTTP/1.0 401 Unauthorized" CRLF
-  "Content-Type: text/html" CRLF;
+    "HTTP/1.0 401 Unauthorized" CRLF
+    "Content-Type: text/html" CRLF;
   P(failMsg2) = CRLF SERVER_AUTH_MESSAGE;
 
   printP(failMsg1);
@@ -694,8 +678,8 @@ void Response::unauthorized() {
 /* Sends a default error response for a unauthorized request. */
 void Response::forbidden() {
   P(failMsg1) =
-  "HTTP/1.0 403 Forbidden" CRLF
-  "Content-Type: text/html" CRLF;
+    "HTTP/1.0 403 Forbidden" CRLF
+    "Content-Type: text/html" CRLF;
   P(failMsg2) = CRLF SERVER_FORBIDDEN_MESSAGE;
 
   printP(failMsg1);
@@ -706,8 +690,8 @@ void Response::forbidden() {
 /* Sends a default error response for request targeted to an nonexistent resource. */
 void Response::notFound() {
   P(failMsg1) =
-  "HTTP/1.0 404 Not Found" CRLF
-  "Content-Type: text/html" CRLF;
+    "HTTP/1.0 404 Not Found" CRLF
+    "Content-Type: text/html" CRLF;
   P(failMsg2) = CRLF SERVER_NOT_FOUND_MESSAGE;
 
   printP(failMsg1);
@@ -718,8 +702,8 @@ void Response::notFound() {
 /* Sends a default default error response for a failed request handling. */
 void Response::serverError() {
   P(failMsg1) =
-  "HTTP/1.0 500 Internal Server Error" CRLF
-  "Content-Type: text/html" CRLF;
+    "HTTP/1.0 500 Internal Server Error" CRLF
+    "Content-Type: text/html" CRLF;
   P(failMsg2) = CRLF SERVER_SERVER_ERROR_MESSAGE;
 
   printP(failMsg1);
@@ -727,8 +711,13 @@ void Response::serverError() {
   printP(failMsg2);
 }
 
+void Response::reset() {
+  flush();
+  m_clientObject->stop();
+}
+
 void Response::m_printCRLF() {
-  write((unsigned char*) "\r\n", 2);
+  print(CRLF);
 }
 
 void Response::m_printHeaders() {
@@ -740,14 +729,21 @@ void Response::m_printHeaders() {
   }
 }
 
+void Response::m_flushBuf() {
+  if (m_bufFill > 0) {
+    m_clientObject->write(m_buffer, m_bufFill);
+    m_bufFill = 0;
+  };
+}
+
 /* Router class constructor with an optional URL prefix parameter */
 Router::Router(const char * urlPrefix) :
   m_tailCommand(NULL),
   m_next(NULL),
   m_urlPrefix(urlPrefix) {
-    if(m_urlPrefix[0]=='/'){
-      m_urlPrefix++;
-    }
+  if (m_urlPrefix[0] == '/') {
+    m_urlPrefix++;
+  }
 }
 
 bool Router::dispatchCommands(Request& request, Response& response) {
@@ -757,21 +753,21 @@ bool Router::dispatchCommands(Request& request, Response& response) {
   if (strncmp(m_urlPrefix, request.urlPath(), prefixLength) == 0) {
     char * trimmedPath = request.urlPath() + prefixLength;
 
-    if (trimmedPath[0]=='/'){
+    if (trimmedPath[0] == '/') {
       trimmedPath++;
       prefixLength++;
     }
 
     CommandNode * command = m_tailCommand;
 
-    while (command != NULL && !response.ended()){
-     if (command->type == request.method()
+    while (command != NULL && !response.ended()) {
+      if (command->type == request.method()
           || command->type == Request::ALL
           || command->type == Request::USE) {
 
         if (command->type == Request::USE
             || m_routeMatch(trimmedPath,
-                command->urlPattern)) {
+                            command->urlPattern)) {
 
           if (command->type != Request::USE) {
             routeFound = true;
@@ -833,21 +829,21 @@ void Router::use(Middleware *command) {
 void Router::addCommand(Request::MethodType type, const char *urlPattern, Middleware *command) {
   CommandNode* newCommand = (CommandNode*) malloc(sizeof(CommandNode));
 
-  if(urlPattern && urlPattern[0]=='/'){
+  if (urlPattern && urlPattern[0] == '/') {
     urlPattern++;
   }
-  
+
   newCommand->urlPattern = urlPattern;
   newCommand->command = command;
   newCommand->type = type;
   newCommand->next = NULL;
 
-  if(m_tailCommand == NULL ){
-     m_tailCommand = newCommand;
+  if (m_tailCommand == NULL ) {
+    m_tailCommand = newCommand;
   } else {
     CommandNode * commandNode = m_tailCommand;
 
-    while(commandNode->next != NULL){
+    while (commandNode->next != NULL) {
       commandNode = commandNode->next;
     }
 
@@ -934,11 +930,11 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
 
       Router* routerNode = m_routerTail;
 
-      while(routerNode != NULL && !m_response.ended()){
+      while (routerNode != NULL && !m_response.ended()) {
         if (routerNode->dispatchCommands(m_request, m_response)) {
           routeMatch = true;
         }
-        
+
         routerNode = routerNode->getNext();
       }
 
@@ -948,6 +944,7 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
     }
 
     m_request.reset();
+    m_response.reset();
   }
 }
 
@@ -1006,7 +1003,7 @@ void WebApp::use(Router * router) {
 
   Router * routerNode = m_routerTail;
 
-  while(routerNode->getNext() != NULL){
+  while (routerNode->getNext() != NULL) {
     routerNode = routerNode->getNext();
   }
 
@@ -1021,12 +1018,12 @@ void WebApp::readHeader(const char* name, char* buffer, int bufflen) {
   newNode->size = bufflen;
   newNode->next = NULL;
 
-  if(m_headerTail == NULL ){
+  if (m_headerTail == NULL ) {
     m_headerTail = newNode;
   } else {
     Request::HeaderNode * headerNode = m_headerTail;
 
-    while(headerNode->next != NULL){
+    while (headerNode->next != NULL) {
       headerNode = headerNode->next;
     }
 

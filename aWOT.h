@@ -1,25 +1,25 @@
 /*
- aWOT, Express.js inspired  microcontreller web framework for the Web of Things
- Copyright 2014 Lasse Lukkari
+  aWOT, Express.js inspired  microcontreller web framework for the Web of Things
+  Copyright 2014 Lasse Lukkari
 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- */
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+*/
 
 #ifndef HTTPSERVER_H_
 #define HTTPSERVER_H_
@@ -34,6 +34,14 @@
 
 #ifndef SERVER_DEFAULT_REQUEST_LENGTH
 #define SERVER_DEFAULT_REQUEST_LENGTH 64
+#endif
+
+#ifndef SERVER_OUTPUT_BUFFER_SIZE
+#if defined(ESP8266) || defined (ESP32)
+#define SERVER_OUTPUT_BUFFER_SIZE 1024
+#else
+#define SERVER_OUTPUT_BUFFER_SIZE 32
+#endif
 #endif
 
 #ifndef SERVER_HEADERS_COUNT
@@ -74,218 +82,234 @@
 
 class Request: public Stream {
 
-public:
-  enum MethodType {
-    INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE
-  };
+  public:
+    enum MethodType {
+      INVALID, GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE
+    };
 
-  struct HeaderNode {
-    const char* name;
-    char* buffer;
-    int size;
-    HeaderNode* next;
-  };
+    struct HeaderNode {
+      const char* name;
+      char* buffer;
+      int size;
+      HeaderNode* next;
+    };
 
-  Request();
+    Request();
 
-  void init(Client *client, char* buff, int bufflen);
+    void init(Client *client, char* buff, int bufflen);
 
-  void processRequest();
-  void processHeaders(HeaderNode* headerTail);
+    void processRequest();
+    void processHeaders(HeaderNode* headerTail);
 
-  MethodType method();
-  int contentLeft();
+    MethodType method();
+    int contentLeft();
 
-  char * urlPath();
-  int urlPathLength();
+    char * urlPath();
+    int urlPathLength();
 
-  void routeString(const char * routeString);
+    void routeString(const char * routeString);
 
-  bool route(const char *key, char *paramBuffer, int paramBufferLen);
-  bool route(int number, char *paramBuffer, int paramBufferLen);
+    bool route(const char *key, char *paramBuffer, int paramBufferLen);
+    bool route(int number, char *paramBuffer, int paramBufferLen);
 
-  char * query();
-  bool query(const char *key, char *paramBuffer, int paramBufferLen);
-  bool queryComplete();
+    char * query();
+    bool query(const char *key, char *paramBuffer, int paramBufferLen);
+    bool queryComplete();
 
-  bool postParam(char *name, int nameLen, char *value, int valueLen);
+    bool postParam(char *name, int nameLen, char *value, int valueLen);
 
-  char * header(const char *name);
-  void setPrefixLength(int prefixLength);
+    char * header(const char *name);
+    void setPrefixLength(int prefixLength);
 
-  int available();
-  int read();
-  int bytesRead();
-  int peek();
-  void push(int ch);
-  void flush();
+    int available();
+    int read();
+    int bytesRead();
+    int peek();
+    void push(int ch);
 
-  // dummy implementation to fulfill the Stream interface
-  size_t write(uint8_t ch) {return 0;}
+    // dummy implementation to fulfill the Stream interface
+    size_t write(uint8_t ch) {
+      return 0;
+    }
+    void flush() {
+      return;
+    }
 
-  void reset();
+    void reset();
 
-private:
-  void m_readHeader(char *value, int valueLen);
-  bool m_readInt(int &number);
-  bool m_expect(const char *expectedStr);
+  private:
+    void m_readHeader(char *value, int valueLen);
+    bool m_readInt(int &number);
+    bool m_expect(const char *expectedStr);
 
-  Client * m_clientObject;
-  MethodType m_methodType;
-  unsigned char m_pushback[32];
-  int m_pushbackDepth;
-  bool m_readingContent;
+    Client * m_clientObject;
+    MethodType m_methodType;
+    unsigned char m_pushback[32];
+    int m_pushbackDepth;
+    bool m_readingContent;
 
-  int m_contentLeft;
-  int m_bytesRead;
+    int m_contentLeft;
+    int m_bytesRead;
 
-  HeaderNode* m_headerTail;
+    HeaderNode* m_headerTail;
 
-  char * m_query;
-  bool m_queryComplete;
+    char * m_query;
+    bool m_queryComplete;
 
-  char * m_urlPath;
-  int m_urlPathLength;
-  int m_prefixLength;
+    char * m_urlPath;
+    int m_urlPathLength;
+    int m_prefixLength;
 
-  int m_hexToInt(char *hex);
+    int m_hexToInt(char *hex);
 
-  const char * m_route;
+    const char * m_route;
 
-  bool m_next;
-  
+    bool m_next;
+
 };
 
 class Response: public Stream {
 
-public:
-  Response();
+  public:
+    Response();
 
-  void init(Client *client);
+    void init(Client *client);
 
-  void printP(const unsigned char *str);
-  void printP(const char *str) {printP((unsigned char*) str);}
-  void writeP(const unsigned char *data, size_t length);
-  size_t write(uint8_t ch);
-  size_t write(uint8_t *ch, size_t size);
-  int bytesSent();
+    void printP(const unsigned char *str);
+    void printP(const char *str) {
+      printP((unsigned char*) str);
+    }
+    void writeP(const unsigned char *data, size_t length);
+    size_t write(uint8_t ch);
+    size_t write(uint8_t *ch, size_t size);
+    void flush();
+    int bytesSent();
 
-  void end();
-  bool ended();
+    void end();
+    bool ended();
 
-  void set(const char* name, const char* value);
+    void set(const char* name, const char* value);
 
-  void success(const char *contentType);
-  void created(const char *contentType);
-  void noContent();
+    void success(const char *contentType);
+    void created(const char *contentType);
+    void noContent();
 
-  void seeOther(const char *otherURL);
-  void notModified();
+    void seeOther(const char *otherURL);
+    void notModified();
 
-  void fail();
-  void unauthorized();
-  void forbidden();
-  void notFound();
-  void serverError();
+    void fail();
+    void unauthorized();
+    void forbidden();
+    void notFound();
+    void serverError();
 
-  //dummy implementations to fulfill Stream interface
-  int available() {return 0;}
-  int read() {return -1;}
-  int peek() {return -1;}
-  void flush() {return;}
+    void reset();
+    //dummy implementations to fulfill Stream interface
+    int available() {
+      return 0;
+    }
+    int read() {
+      return -1;
+    }
+    int peek() {
+      return -1;
+    }
 
-private:
-  void m_printCRLF();
-  void m_printHeaders();
+  private:
+    void m_printCRLF();
+    void m_printHeaders();
+    void m_flushBuf();
 
-  Client * m_clientObject;
+    Client * m_clientObject;
 
-  struct Headers {
-    const char* name;
-    const char* value;
-  } m_headers[SERVER_HEADERS_COUNT];
+    struct Headers {
+      const char* name;
+      const char* value;
+    } m_headers[SERVER_HEADERS_COUNT];
 
-  unsigned int m_headersCount;
-  int m_bytesSent;
-  bool m_ended;
+    unsigned int m_headersCount;
+    int m_bytesSent;
+    bool m_ended;
+    uint8_t m_buffer[SERVER_OUTPUT_BUFFER_SIZE];
+    int m_bufFill;
 };
 
 class Router {
 
-public:
-  typedef void Middleware(Request& request, Response& response);
+  public:
+    typedef void Middleware(Request& request, Response& response);
 
-  Router(const char * urlPrefix = "");
+    Router(const char * urlPrefix = "");
 
-  bool dispatchCommands(Request& request, Response& response);
+    bool dispatchCommands(Request& request, Response& response);
 
-  void get(const char* urlPattern, Middleware* command);
-  void post(const char* urlPattern, Middleware* command);
-  void put(const char* urlPattern, Middleware* command);
-  void del(const char* urlPattern, Middleware* command);
-  void patch(const char* urlPattern, Middleware* command);
-  void options(const char* urlPattern, Middleware* command);
-  void all(const char* urlPattern, Middleware* command);
-  void use(Middleware* command);
-  void addCommand(Request::MethodType type, const char* urlPattern,Middleware* command);
-  Router * getNext();
-  void setNext(Router * next);
+    void get(const char* urlPattern, Middleware* command);
+    void post(const char* urlPattern, Middleware* command);
+    void put(const char* urlPattern, Middleware* command);
+    void del(const char* urlPattern, Middleware* command);
+    void patch(const char* urlPattern, Middleware* command);
+    void options(const char* urlPattern, Middleware* command);
+    void all(const char* urlPattern, Middleware* command);
+    void use(Middleware* command);
+    void addCommand(Request::MethodType type, const char* urlPattern, Middleware* command);
+    Router * getNext();
+    void setNext(Router * next);
 
-private:
-  struct CommandNode {
-    const char* urlPattern;
-    Middleware* command;
-    Request::MethodType type;
-    CommandNode* next;
-  };
+  private:
+    struct CommandNode {
+      const char* urlPattern;
+      Middleware* command;
+      Request::MethodType type;
+      CommandNode* next;
+    };
 
-  CommandNode* m_tailCommand;
-  Router* m_next;
+    CommandNode* m_tailCommand;
+    Router* m_next;
 
-  bool m_routeMatch(const char *str, const char *pattern);
-  const char * m_urlPrefix;
+    bool m_routeMatch(const char *str, const char *pattern);
+    const char * m_urlPrefix;
 
 };
 
 class WebApp {
 
-public:
-  WebApp();
+  public:
+    WebApp();
 
-  void process(Client *client);
-  void process(Client *client, char* buff, int bufflen);
+    void process(Client *client);
+    void process(Client *client, char* buff, int bufflen);
 
-  void failCommand(Router::Middleware* command);
-  void notFoundCommand(Router::Middleware* command);
+    void failCommand(Router::Middleware* command);
+    void notFoundCommand(Router::Middleware* command);
 
-  void get(const char* urlPattern, Router::Middleware* command);
-  void post(const char* urlPattern, Router::Middleware* command);
-  void put(const char* urlPattern, Router::Middleware* command);
-  void del(const char* urlPattern, Router::Middleware* command);
-  void patch(const char* urlPattern, Router::Middleware* command);
-  void options(const char* urlPattern, Router::Middleware* command);
-  void all(const char* urlPattern, Router::Middleware* command);
-  void use(Router::Middleware* command);
-  void use(Router * router);
-  void readHeader(const char* name, char* buffer, int bufflen);
+    void get(const char* urlPattern, Router::Middleware* command);
+    void post(const char* urlPattern, Router::Middleware* command);
+    void put(const char* urlPattern, Router::Middleware* command);
+    void del(const char* urlPattern, Router::Middleware* command);
+    void patch(const char* urlPattern, Router::Middleware* command);
+    void options(const char* urlPattern, Router::Middleware* command);
+    void all(const char* urlPattern, Router::Middleware* command);
+    void use(Router::Middleware* command);
+    void use(Router * router);
+    void readHeader(const char* name, char* buffer, int bufflen);
 
-private:
+  private:
 
-  static void m_defaultFailCommand(Request &request, Response &response);
-  static void m_defaultNotFoundCommand(Request &request, Response &response);
+    static void m_defaultFailCommand(Request &request, Response &response);
+    static void m_defaultNotFoundCommand(Request &request, Response &response);
 
-  Client * m_clientObject;
+    Client * m_clientObject;
 
-  Request m_request;
-  Response m_response;
+    Request m_request;
+    Response m_response;
 
-  Router * m_routerTail;
-  Router m_defaultRouter;
+    Router * m_routerTail;
+    Router m_defaultRouter;
 
-  Router::Middleware* m_failureCommand;
-  Router::Middleware* m_notFoundCommand;
+    Router::Middleware* m_failureCommand;
+    Router::Middleware* m_notFoundCommand;
 
-  Request::HeaderNode* m_headerTail;
+    Request::HeaderNode* m_headerTail;
 
 };
 
