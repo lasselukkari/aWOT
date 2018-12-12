@@ -4,14 +4,10 @@ aWOT
 Arduino web server library.
 
 ## Tested with
-* Arduino Uno
-* Arduino Leonardo
-* Arduino Mega 2560
-* Arduino Due
-* Teensy 3
-* Generic ESP8266
-* NodeMCU 1.0
+* Arduino Uno, Leonardo, Mega and Due + ethernet shield
+* Teensy 3 + ethernet shield
 * Adafruit Feather M0 + ATWINC1500
+* ESP8266
 * ESP32
 
 ## Usage
