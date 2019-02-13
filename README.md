@@ -12,9 +12,8 @@ Arduino web server library.
 
 ## Usage
 
-Tutorial: [Deploying a React app on the ESP32](https://lasselukkari.github.io/led-blink/)
-
-Project: [CO2, temperature and humidity data logger](https://github.com/lasselukkari/AirMonitor)
+* Tutorial: [Deploying a React app on the ESP32](https://lasselukkari.github.io/led-blink/)
+* Project: [CO2, temperature and humidity data logger](https://github.com/lasselukkari/AirMonitor)
 
 ### Full example using Arduino Ehternet
 ```cpp
