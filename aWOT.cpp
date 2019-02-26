@@ -52,9 +52,7 @@ void Request::init(Client *client, char* buff, int bufflen) {
 }
 
 /* Processes the first line of the HTTP request to parse method, verb and query. */
-void Request::processRequest() {
-  char * qmLocation;
-  int qmOffset;
+void Request::processRequestLine() {
   char * request = m_urlPath;
   int bufferLeft = m_urlPathLength;
 
@@ -78,7 +76,6 @@ void Request::processRequest() {
   }
 
   int ch;
-
   while ((ch = read()) != -1) {
     if (ch == ' ' || ch == '\n' || ch == '\r') {
       break;
@@ -89,24 +86,57 @@ void Request::processRequest() {
       request++;
     }
   }
-
   *request = 0;
 
-  if (m_urlPath[0] == '/') {
-    m_urlPath++;
-    m_queryComplete = (bufferLeft);
+  m_queryComplete = bufferLeft;
+}
 
-    qmLocation = strchr(m_urlPath, '?');
-    qmOffset = (qmLocation == NULL) ? 0 : 1;
+void Request::processURL() {
+  char * qmLocation = strchr(m_urlPath, '?');
+  int qmOffset = (qmLocation == NULL) ? 0 : 1;
 
-    m_urlPathLength =
-      (qmLocation == NULL) ? strlen(m_urlPath) : (qmLocation - m_urlPath);
-    m_query = m_urlPath + m_urlPathLength + qmOffset;
+  m_urlPathLength =
+    (qmLocation == NULL) ? strlen(m_urlPath) : (qmLocation - m_urlPath);
+  m_query = m_urlPath + m_urlPathLength + qmOffset;
 
-    if (qmOffset) {
-      *qmLocation = 0;
-    }
+  if (qmOffset) {
+    *qmLocation = 0;
   }
+}
+
+void Request::decodeURL() {
+  char *leader = m_urlPath;
+  char *follower = leader;
+
+  while (*leader) {
+    if (*leader == '%') {
+      leader++;
+      char high = *leader;
+      leader++;
+      char low = *leader;
+
+      if (high > 0x39) {
+        high -= 7;
+      }
+
+      high &= 0x0f;
+
+      if (low > 0x39) {
+        low -= 7;
+      }
+
+      low &= 0x0f;
+
+      *follower = (high << 4) | low;
+    } else {
+      *follower = *leader;
+    }
+
+    leader++;
+    follower++;
+  }
+
+  *follower = 0;
 }
 
 /* Processes the header fields of the request */
@@ -172,13 +202,9 @@ int Request::urlPathLength() {
   return m_urlPathLength;
 }
 
-void Request::routeString(const char * routeString) {
-  m_route = routeString;
-}
-
 bool Request::route(const char * name, char *paramBuffer, int paramBufferLen) {
   int part = 0;
-  int i = 0;
+  int i = 1;
 
   while (m_route[i]) {
     if (m_route[i] == '/') {
@@ -202,7 +228,7 @@ bool Request::route(const char * name, char *paramBuffer, int paramBufferLen) {
 bool Request::route(int number, char *paramBuffer, int paramBufferLen) {
   memset(paramBuffer, 0, paramBufferLen);
   int part = 0;
-  int i = 0;
+  int i = 1;
   int read = 0;
   char * routeStart = m_urlPath + m_prefixLength;
 
@@ -243,16 +269,7 @@ bool Request::query(const char * key, char *paramBuffer, int paramBufferLen) {
       ch++;
 
       while (*ch && *ch != '&' && charsRead < paramBufferLen) {
-        if (*ch == '%') {
-          char hex[3] = { ch[1], ch[2], 0 };
-          paramBuffer[charsRead++] = m_hexToInt(hex);
-          ch += 3;
-        } else if ( *ch == '+' ) {
-          paramBuffer[charsRead++] = ' ';
-          ch++;
-        } else {
-          paramBuffer[charsRead++] = *ch++;
-        }
+        paramBuffer[charsRead++] = *ch++;
       }
 
       return true;
@@ -339,8 +356,9 @@ char * Request::header(const char *name) {
   return NULL;
 }
 
-void Request::setPrefixLength(int prefixLength) {
+void Request::setRoute(int prefixLength, const char * routeString) {
   m_prefixLength = prefixLength;
+  m_route = routeString;
 }
 
 /*Returns the number of bytes available for reading.*/
@@ -741,9 +759,6 @@ Router::Router(const char * urlPrefix) :
   m_tailCommand(NULL),
   m_next(NULL),
   m_urlPrefix(urlPrefix) {
-  if (m_urlPrefix[0] == '/') {
-    m_urlPrefix++;
-  }
 }
 
 bool Router::dispatchCommands(Request& request, Response& response) {
@@ -752,11 +767,6 @@ bool Router::dispatchCommands(Request& request, Response& response) {
 
   if (strncmp(m_urlPrefix, request.urlPath(), prefixLength) == 0) {
     char * trimmedPath = request.urlPath() + prefixLength;
-
-    if (trimmedPath[0] == '/') {
-      trimmedPath++;
-      prefixLength++;
-    }
 
     CommandNode * command = m_tailCommand;
 
@@ -773,8 +783,7 @@ bool Router::dispatchCommands(Request& request, Response& response) {
             routeFound = true;
           }
 
-          request.setPrefixLength(prefixLength);
-          request.routeString(command->urlPattern);
+          request.setRoute(prefixLength, command->urlPattern);
           command->command(request, response);
         }
       }
@@ -828,10 +837,6 @@ void Router::use(Middleware *command) {
 
 void Router::addCommand(Request::MethodType type, const char *urlPattern, Middleware *command) {
   CommandNode* newCommand = (CommandNode*) malloc(sizeof(CommandNode));
-
-  if (urlPattern && urlPattern[0] == '/') {
-    urlPattern++;
-  }
 
   newCommand->urlPattern = urlPattern;
   newCommand->command = command;
@@ -918,34 +923,38 @@ void WebApp::process(Client *client, char *buff, int bufflen) {
   m_clientObject = client;
   bool routeMatch = false;
 
-  if (m_clientObject != NULL) {
-    m_request.init(m_clientObject, buff, bufflen);
-    m_response.init(m_clientObject);
-    m_request.processRequest();
+  if (m_clientObject == NULL) {
+    return;
+  }
 
-    if (m_request.method() == Request::INVALID) {
-      m_failureCommand(m_request, m_response);
-    } else {
-      m_request.processHeaders(m_headerTail);
+  m_request.init(m_clientObject, buff, bufflen);
+  m_response.init(m_clientObject);
+  m_request.processRequestLine();
 
-      Router* routerNode = m_routerTail;
+  if (m_request.method() == Request::INVALID) {
+    m_failureCommand(m_request, m_response);
+  } else {
+    m_request.decodeURL();
+    m_request.processURL();
+    m_request.processHeaders(m_headerTail);
 
-      while (routerNode != NULL && !m_response.ended()) {
-        if (routerNode->dispatchCommands(m_request, m_response)) {
-          routeMatch = true;
-        }
+    Router* routerNode = m_routerTail;
 
-        routerNode = routerNode->getNext();
+    while (routerNode != NULL && !m_response.ended()) {
+      if (routerNode->dispatchCommands(m_request, m_response)) {
+        routeMatch = true;
       }
 
-      if (!routeMatch && !m_response.ended()) {
-        m_notFoundCommand(m_request, m_response);
-      }
+      routerNode = routerNode->getNext();
     }
 
-    m_request.reset();
-    m_response.reset();
+    if (!routeMatch && !m_response.ended()) {
+      m_notFoundCommand(m_request, m_response);
+    }
   }
+
+  m_request.reset();
+  m_response.reset();
 }
 
 /* Sets the default failure command for the server. Executed whem request is considered malformed. */

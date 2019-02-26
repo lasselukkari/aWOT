@@ -98,7 +98,9 @@ class Request: public Stream {
 
     void init(Client *client, char* buff, int bufflen);
 
-    void processRequest();
+    void processRequestLine();
+    void processURL();
+    void decodeURL();
     void processHeaders(HeaderNode* headerTail);
 
     MethodType method();
@@ -107,7 +109,7 @@ class Request: public Stream {
     char * urlPath();
     int urlPathLength();
 
-    void routeString(const char * routeString);
+    void setRoute(int prefixLength, const char * routeString);
 
     bool route(const char *key, char *paramBuffer, int paramBufferLen);
     bool route(int number, char *paramBuffer, int paramBufferLen);
@@ -119,7 +121,6 @@ class Request: public Stream {
     bool postParam(char *name, int nameLen, char *value, int valueLen);
 
     char * header(const char *name);
-    void setPrefixLength(int prefixLength);
 
     int available();
     int read();
