@@ -81,6 +81,8 @@
 #endif
 
 class Request: public Stream {
+    friend class WebApp;
+    friend class Router;
 
   public:
     enum MethodType {
@@ -96,20 +98,10 @@ class Request: public Stream {
 
     Request();
 
-    void init(Client *client, char* buff, int bufflen);
-
-    void processRequestLine();
-    void processURL();
-    void decodeURL();
-    void processHeaders(HeaderNode* headerTail);
-
     MethodType method();
     int contentLeft();
 
     char * urlPath();
-    int urlPathLength();
-
-    void setRoute(int prefixLength, const char * routeString);
 
     bool route(const char *key, char *paramBuffer, int paramBufferLen);
     bool route(int number, char *paramBuffer, int paramBufferLen);
@@ -136,9 +128,16 @@ class Request: public Stream {
       return;
     }
 
-    void reset();
-
   private:
+    void m_init(Client *client, char* buff, int bufflen);
+    void m_processRequestLine();
+    void m_processURL();
+    void m_decodeURL();
+    void m_processHeaders(HeaderNode* headerTail);
+    void m_setRoute(int prefixLength, const char * routeString);
+    int m_getUrlPathLength();
+    void m_reset();
+
     void m_readHeader(char *value, int valueLen);
     bool m_readInt(int &number);
     bool m_expect(const char *expectedStr);
@@ -170,11 +169,11 @@ class Request: public Stream {
 };
 
 class Response: public Stream {
+    friend class WebApp;
+    friend class Router;
 
   public:
     Response();
-
-    void init(Client *client);
 
     void printP(const unsigned char *str);
     void printP(const char *str) {
@@ -204,7 +203,6 @@ class Response: public Stream {
     void notFound();
     void serverError();
 
-    void reset();
     //dummy implementations to fulfill Stream interface
     int available() {
       return 0;
@@ -217,6 +215,9 @@ class Response: public Stream {
     }
 
   private:
+
+    void m_init(Client *client);
+    void m_reset();
     void m_printCRLF();
     void m_printHeaders();
     void m_flushBuf();
@@ -236,13 +237,12 @@ class Response: public Stream {
 };
 
 class Router {
+    friend class WebApp;
 
   public:
     typedef void Middleware(Request& request, Response& response);
 
     Router(const char * urlPrefix = "");
-
-    bool dispatchCommands(Request& request, Response& response);
 
     void get(const char* urlPattern, Middleware* command);
     void post(const char* urlPattern, Middleware* command);
@@ -252,9 +252,6 @@ class Router {
     void options(const char* urlPattern, Middleware* command);
     void all(const char* urlPattern, Middleware* command);
     void use(Middleware* command);
-    void addCommand(Request::MethodType type, const char* urlPattern, Middleware* command);
-    Router * getNext();
-    void setNext(Router * next);
 
   private:
     struct CommandNode {
@@ -264,10 +261,14 @@ class Router {
       CommandNode* next;
     };
 
+    bool m_dispatchCommands(Request& request, Response& response);
+    bool m_routeMatch(const char *str, const char *pattern);
+    void m_addCommand(Request::MethodType type, const char* urlPattern, Middleware* command);
+    Router * m_getNext();
+    void m_setNext(Router * next);
+
     CommandNode* m_tailCommand;
     Router* m_next;
-
-    bool m_routeMatch(const char *str, const char *pattern);
     const char * m_urlPrefix;
 
 };
