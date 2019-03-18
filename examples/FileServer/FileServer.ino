@@ -8,7 +8,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-WebApp app;
+Application app;
 
 const char * indexFile = "/index.htm";
 
@@ -17,7 +17,7 @@ void fileServer(Request &req, Response &res) {
     return;
   }
 
-  const char * = req.urlPath();
+  const char * = req.path();
 
   if(strcmp(path, "/") == 0){
     path = indexFile;
@@ -34,7 +34,7 @@ void fileServer(Request &req, Response &res) {
   }
 
   const char * mimeType = MimeTypes::getType(file.name());
-  res.success(mimeType);
+  res.set("Content-Type", mimeType);
 
   while (file.available()) {
     res.write(file.read());

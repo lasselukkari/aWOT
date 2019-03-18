@@ -3,63 +3,40 @@ aWOT
 
 Arduino web server library.
 
-## Tested with
-* Arduino Uno, Leonardo, Mega and Due + ethernet shield
-* Teensy 3 + ethernet shield
-* Adafruit Feather M0 + ATWINC1500
-* ESP8266
-* ESP32
+## Documentation
+[awot.net](https://awot.net)
 
-## Usage
-
-* Tutorial: [Deploying a React app on the ESP32](https://lasselukkari.github.io/led-blink/)
-* Project: [CO2, temperature and humidity data logger](https://github.com/lasselukkari/AirMonitor)
-
-### Full example using Arduino Ehternet
+## Hello World Example
 ```cpp
-#include <SPI.h>
-#include <Ethernet.h>
+#include <WiFi.h>
 #include <aWOT.h>
 
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-EthernetServer server(80);
-WebApp app;
+WiFiServer server(80);
+Application app;
 
-// define a handler function
-void indexCmd(Request &req, Response &res) {
-
-  // P macro for printing strings from program memory
-  P(index) =
-    "<html>\n"
-    "<head>\n"
-    "<title>Hello World!</title>\n"
-    "</head>\n"
-    "<body>\n"
-    "<h1>Greetings middle earth!</h1>\n"
-    "</body>\n"
-    "</html>";
-
-  res.success("text/html");
-  res.printP(index);
+void index(Request &req, Response &res) {
+  res.print("Hello World!");
 }
 
 void setup() {
   Serial.begin(115200);
 
-  if (Ethernet.begin(mac)) {
-    Serial.println(Ethernet.localIP());
-  } else{
-    Serial.println("Ethernet failed");
+  WiFi.begin("ssid", "password");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
+  Serial.println(WiFi.localIP());
 
-  // mount the handler to the default router
-  app.get("/", &indexCmd);
+  app.get("/", &index);
+  server.begin();
 }
 
-void loop(){
-  EthernetClient client = server.available();
+void loop() {  
+  WiFiClient client = server.available();
+
   if (client.connected()) {
-      app.process(&client);
+    app.process(&client);
   }
 }
 ```
@@ -71,13 +48,11 @@ void queryParams(Request &req, Response &res) {
   char type[64];
   req.query("type", type, 64);
 
-  res.success("text/plain");
   res.print(type); // "lolcat"
 }
 
 void setup() {
   // other setup ...
-
   app.get("/cats", &queryParams);
 }
 ```
@@ -89,13 +64,11 @@ void routeParams(Request &req, Response &res) {
   char catId[64];
   req.route("catId", catId, 64);
 
-  res.success("text/plain");
   res.print(catId);
 }
 
 void setup() {
   // other setup
-
   app.get("/cats/:catId", &routeParams);
 }
 ```
@@ -106,7 +79,6 @@ void postParams(Request &req, Response &res) {
   char name[10];
   char value[64];
 
-  res.success("text/plain");
   while (req.contentLeft()) {
     req.postParam(name, 10, value, 64);
     res.print(name);
@@ -128,25 +100,24 @@ char userAgentBuffer[200];
 
 // HTTP GET /headers
 void headers(Request &req, Response &res) {
-  char * userAgent = req.header("User-Agent"); // "Mozilla/5.0 (Macintosh; Inte ...."
+  char * userAgent = req.get("User-Agent"); // "Mozilla/5.0 (Macintosh; Inte ...."
 
   res.set("Cookie", "lolcat"); // will set Cookie header value to "lolcat"
-  res.success("text/plain");
   res.print(userAgent);
 }
 
 void setup() {
   // other setup
 
-  // header names are case insensitive but lookup must use the same case
-  app.readHeader("User-Agent", userAgentBuffer, 200); 
+  // header names are handled case insensitive
+  app.header("User-Agent", userAgentBuffer, 200); 
   app.get("/useragent", &headers);
 }
 ```
 
 ### Routers
 ```cpp
-WebApp app;
+Application app;
 Router cats("/cats");
 
 void looooong(Request &req, Response &res) {
@@ -174,7 +145,7 @@ void setup() {
   cats.get("/ceiling", &ceiling);
   cats.get("/nyan", &nyannyan);
 
-  app.use(&cats);
+  app.route(&cats);
 }
 ```
 

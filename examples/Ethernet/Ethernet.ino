@@ -5,7 +5,7 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 EthernetServer server(80);
 
-WebApp app;
+Application app;
 
 // define a handler function
 void indexCmd(Request &req, Response &res) {
@@ -21,7 +21,7 @@ void indexCmd(Request &req, Response &res) {
     "</body>\n"
     "</html>";
 
-  res.success("text/html");
+  res.set("Content-Type", "text/html");
   res.printP(index);
 
 }
@@ -37,8 +37,7 @@ void setup() {
   }
 
   // mount the handler to the default router
-  app.get("", &indexCmd);
-
+  app.get("/", &indexCmd);
 }
 
 void loop(){

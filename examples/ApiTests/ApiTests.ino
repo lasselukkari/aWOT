@@ -5,7 +5,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-WebApp app;
+Application app;
 Router router("/router");
 Router useRouter("/routeruse");
 
@@ -15,127 +15,146 @@ void cors(Request &req, Response &res) {
   res.set("Access-Control-Allow-Headers", "Content-Type, Test1, Test2");
 
   if (req.method() == Request::OPTIONS) {
-    res.noContent();
+    res.status(204);
     res.end();
   }
 }
 
 void index(Request &req, Response &res) {
-  res.success("text/plain");
+  while (req.left() && !req.timeout()) {
+    res.write(req.read());
+  }
+  res.set("Content-Type", "text/plain");
   res.print("/");
 }
 
 void use(Request &req, Response &res) {
-  res.noContent();
+  res.status(204);
   res.end();
 }
 
 void noContent(Request &req, Response &res) {
-  res.noContent();
+  res.status(204);
 }
 
 void queryParams(Request &req, Response &res) {
-  char test1[64];
-  char test2[64];
+  char test1[10];
+  char test2[10];
 
-  req.query("test1", test1, 64);
-  req.query("test2", test2, 64);
+  if (!req.query("test1", test1, 10)) {
+    return res.sendStatus(400);
+  }
 
-  res.success("text/plain");
+  if (!req.query("test2", test2, 10)) {
+    return res.sendStatus(400);
+  }
+
+  res.set("Content-Type", "text/plain");
   res.print(test1);
   res.print(" ");
   res.print(test2);
 }
 
 void routeNameParams(Request &req, Response &res) {
-  char test1[64];
-  char test2[64];
-  req.route("test1", test1, 64);
-  req.route("test2", test2, 64);
+  char test1[10];
+  char test2[10];
+  if (!req.route("test1", test1, 10)) {
+    return res.sendStatus(400);
+  }
 
-  res.success("text/plain");
+  if (!req.route("test2", test2, 10)) {
+    return res.sendStatus(400);
+  }
+
+  res.set("Content-Type", "text/plain");
   res.print(test1);
   res.print(" ");
   res.print(test2);
 }
 
 void routeNumberParams(Request &req, Response &res) {
-  char test1[64];
-  char test2[64];
-  req.route(2, test1, 64);
-  req.route(4, test2, 64);
+  char test1[10];
+  char test2[10];
+  if (!req.route(2, test1, 10)) {
+    return res.sendStatus(400);
+  }
 
-  res.success("text/plain");
+  if (!req.route(4, test2, 10)) {
+    return res.sendStatus(400);
+  }
+
+  res.set("Content-Type", "text/plain");
   res.print(test1);
   res.print(" ");
   res.print(test2);
 }
 
 
-void postParams(Request &req, Response &res) {
+void forms(Request &req, Response &res) {
   char name[10];
-  char value[64];
+  char value[10];
 
-  res.success("text/plain");
-  while (req.contentLeft()) {
-    req.postParam(name, 10, value, 64);
+  res.set("Content-Type", "text/plain");
+  while (req.left()) {
+    if (!req.form(name, 10, value, 10)) {
+      return res.sendStatus(400);
+    }
+
     res.print(name);
     res.print(":");
     res.print(value);
-    if (req.contentLeft()) {
+    if (req.left()) {
       res.print(" ");
     }
   }
 }
 
-char test1Header[200];
-char test2Header[200];
+char test1Header[10];
+char test2Header[10];
 void headers(Request &req, Response &res) {
-  char * test1 = req.header("Test1");
-  char * test2 = req.header("Test2");
+  char * test1 = req.get("Test1");
+  char * test2 = req.get("Test2");
 
-  res.success("text/plain");
+  res.set("Content-Type", "text/plain");
   res.print(test1);
   res.print(" ");
   res.print(test2);
 }
 
 void urlEscaping(Request &req, Response &res) {
-  res.success("text/plain");
-  res.print(req.urlPath());
+  res.set("Content-Type", "text/plain");
+  res.print(req.path());
   res.print(" ");
   res.print(req.query());
 }
 
 void fail(Request &req, Response &res) {
-  res.fail();
+  res.sendStatus(400);
 }
 
 void unauthorized(Request &req, Response &res) {
-  res.unauthorized();
+  res.sendStatus(401);
 }
 
 void forbidden(Request &req, Response &res) {
-  res.forbidden();
+  res.sendStatus(403);
 }
 
 void notFound(Request &req, Response &res) {
-  res.notFound();
+  res.sendStatus(404);
 }
 
 void serverError(Request &req, Response &res) {
-  res.serverError();
+  res.sendStatus(500);
 }
 
-uint8_t readWriteBuffer[10000];
+byte readWriteBuffer[1001];
 void readWrite(Request &req, Response &res) {
-
-  int i = 0;
-  while (req.contentLeft() && i < 10000) {
-    readWriteBuffer[i++] = req.read();
+  if (!req.body(readWriteBuffer, 1001)) {
+    return res.sendStatus(400);
   }
-  res.success("application/binary");
-  res.write(readWriteBuffer, i);
+  res.set("Content-Type", "application/binary");
+  res.write(readWriteBuffer, 1000);
 }
 
 void setup() {
@@ -146,7 +165,6 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
-
   Serial.println(WiFi.localIP());
 
   app.use(&cors);
@@ -162,16 +180,16 @@ void setup() {
   app.get("/query", &queryParams);
   app.get("/route/name/:test1/params/:test2", &routeNameParams);
   app.get("/route/number/test1/params/test2", &routeNumberParams);
-  app.post("/postparams", &postParams);
+  app.post("/postparams", &forms);
 
   router.get("/get", &noContent);
   router.get("/query", &queryParams);
   router.get("/route/name/:test1/params/:test2", &routeNameParams);
   router.get("/route/number/test1/params/test2", &routeNumberParams);
-  app.use(&router);
+  app.route(&router);
 
-  app.readHeader("Test1", test1Header, 200);
-  app.readHeader("Test2", test2Header, 200);
+  app.header("Test1", test1Header, 10);
+  app.header("Test2", test2Header, 10);
   app.get("/headers", &headers);
 
   app.get("/url escaping", &urlEscaping);
@@ -183,7 +201,7 @@ void setup() {
   app.get("/servererror", &serverError);
 
   useRouter.use(&use);
-  app.use(&useRouter);
+  app.route(&useRouter);
 
   app.post("/readwrite", &readWrite);
 
