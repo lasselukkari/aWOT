@@ -12,9 +12,10 @@
   <script src="https://unpkg.com/chai@4.2.0/chai.js"></script>
   <script src="https://unpkg.com/mocha@6.0.2/mocha.js"></script>
   <script>
-    const baseUrl = 'http://192.168.1.227'; // replace this with your esp32 ip
+    const baseUrl = 'http://192.168.1.140'; // replace this with your esp32 ip
     const { expect } = chai;
-    const successStatus = { status: 204, ok: true, statusText: 'No Content' }
+    const successStatus = { status: 204, ok: true, statusText: 'No Content' };
+    const badRequestStatus = { status: 400, ok: false, statusText: 'Bad Request' };
     const expectedResponse = 'test1 test2';
 
     mocha.setup('bdd');
@@ -22,8 +23,8 @@
     describe('Root path', () => {
       describe('/', () => {
         it('responds to get', async () => {
-          const reposene = await fetch(baseUrl + '/');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/');
+          const text = await response.text();
           expect(text).to.equal('/');
         });
       });
@@ -32,82 +33,89 @@
     describe('HTTP Methods', () => {
       describe('/get', () => {
         it('responds to get', async () => {
-          const reposene = await fetch(baseUrl + '/get');
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/get');
+          expect(response).to.include(successStatus);
         });
       });
 
       describe('/post', () => {
         it('responds to post', async () => {
-          const reposene = await fetch(baseUrl + '/post', { method: 'POST' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/post', { method: 'POST' });
+          expect(response).to.include(successStatus);
         });
       });
 
 
       describe('/put', () => {
         it('responds to put', async () => {
-          const reposene = await fetch(baseUrl + '/put', { method: 'PUT' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/put', { method: 'PUT' });
+          expect(response).to.include(successStatus);
         });
       });
 
 
       describe('/patch', () => {
         it('responds patch', async () => {
-          const reposene = await fetch(baseUrl + '/patch', { method: 'PATCH' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/patch', { method: 'PATCH' });
+          expect(response).to.include(successStatus);
         });
       });
 
       describe('/delete', () => {
         it('responds to delete', async () => {
-          const reposene = await fetch(baseUrl + '/delete', { method: 'DELETE' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/delete', { method: 'DELETE' });
+          expect(response).to.include(successStatus);
         });
       });
 
       describe('/all', () => {
         it('reponds to get', async () => {
-          const reposene = await fetch(baseUrl + '/all');
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/all');
+          expect(response).to.include(successStatus);
         });
 
         it('reponds to post', async () => {
-          const reposene = await fetch(baseUrl + '/all', { method: 'POST' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/all', { method: 'POST' });
+          expect(response).to.include(successStatus);
         });
 
         it('reponds to put', async () => {
-          const reposene = await fetch(baseUrl + '/all', { method: 'PUT' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/all', { method: 'PUT' });
+          expect(response).to.include(successStatus);
         });
 
         it('reponds to patch', async () => {
-          const reposene = await fetch(baseUrl + '/all', { method: 'PATCH' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/all', { method: 'PATCH' });
+          expect(response).to.include(successStatus);
         });
 
         it('reponds to delete', async () => {
-          const reposene = await fetch(baseUrl + '/all', { method: 'DELETE' });
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/all', { method: 'DELETE' });
+          expect(response).to.include(successStatus);
         });
       });
     });
 
     describe('Query parameters', () => {
-      describe('/query?test1=test1&test2=test2', () => {
+      describe('/query?test1test1=badtest1&test1=test1&test2=test2', () => {
         it('responds with the sent query parameters', async () => {
-          const reposene = await fetch(baseUrl + '/query?test1=test1&test2=test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/query?test1test1=badtest1&test1=test1&test2=test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
 
-      describe('/router/query?test1=test1&test2=test2', () => {
+      describe('/query?test1=0123456789&test2=test2', () => {
+        it('responds bad request status if the query parameter is too long', async () => {
+          const response = await fetch(baseUrl + '/query?test1=0123456789&test2=test2');
+          expect(response).to.include(badRequestStatus);
+        });
+      });
+
+      describe('/router/query?test1test=badtest1&test1=test1&test2=test2', () => {
         it('responds with the send query parameters', async () => {
-          const reposene = await fetch(baseUrl + '/router/query?test1=test1&test2=test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/router/query?test1=test1&test2=test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
@@ -116,32 +124,47 @@
     describe('Route parameters', () => {
       describe('/route/name/test1/params/test2', () => {
         it('responds with the route parameters by name', async () => {
-          const reposene = await fetch(baseUrl + '/route/name/test1/params/test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/route/name/test1/params/test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
+        });
+      });
+
+      describe('/route/name/test1/params/test2', () => {
+        it('responds with the route parameters by name', async () => {
+          const response = await fetch(baseUrl + '/route/name/test1/params/test2');
+          const text = await response.text();
+          expect(text).to.equal(expectedResponse);
+        });
+      });
+
+      describe('/route/name/0123456789/params/test2', () => {
+        it('responds with the route parameters by name', async () => {
+          const response = await fetch(baseUrl + '/route/name/0123456789/params/test2');
+          expect(response).to.include(badRequestStatus);
         });
       });
 
       describe('/route/number/test1/params/test2', () => {
         it('responds with the route parameters by number', async () => {
-          const reposene = await fetch(baseUrl + '/route/number/test1/params/test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/route/number/test1/params/test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
 
       describe('/router/route/name/test1/params/test2', () => {
         it('responds with the route parameters by name', async () => {
-          const reposene = await fetch(baseUrl + '/router/route/name/test1/params/test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/router/route/name/test1/params/test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
 
       describe('/router/route/number/test1/params/test2', () => {
         it('responds with the route parameters by number', async () => {
-          const reposene = await fetch(baseUrl + '/router/route/number/test1/params/test2');
-          const text = await reposene.text();
+          const response = await fetch(baseUrl + '/router/route/number/test1/params/test2');
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
@@ -150,15 +173,38 @@
     describe('Form body', () => {
       describe('/postparams', () => {
         it('responds with the sent post parameters', async () => {
-          const reposene = await fetch(baseUrl + '/postparams', {
+          const response = await fetch(baseUrl + '/postparams', {
             method: 'POST',
-            body: "test1=test1&&test2=test2",
+            body: "test1=test1&test2=test2",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
           });
-          const text = await reposene.text();
-          expect(text).to.equal('test1:test1 : test2:test2');
+          const text = await response.text();
+          expect(text).to.equal('test1:test1 test2:test2');
+        });
+
+        it('responds with Bad Request when  name is too long', async () => {
+          const response = await fetch(baseUrl + '/postparams', {
+            method: 'POST',
+            body: "0123456789=test1&test2=test2",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          });
+
+          expect(response).to.include(badRequestStatus);
+        });
+
+        it('responds with Bad Request when value is too long', async () => {
+          const response = await fetch(baseUrl + '/postparams', {
+            method: 'POST',
+            body: "test1=0123456789&test2=test2",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          });
+          expect(response).to.include(badRequestStatus);
         });
       });
     });
@@ -166,10 +212,10 @@
     describe('Header parsing', () => {
       describe('/headers', () => {
         it('responds with the sent headers', async () => {
-          const reposene = await fetch(baseUrl + '/headers', {
+          const response = await fetch(baseUrl + '/headers', {
             headers: { Test1: 'test1', Test2: 'test2' }
           });
-          const text = await reposene.text();
+          const text = await response.text();
           expect(text).to.equal(expectedResponse);
         });
       });
@@ -178,8 +224,8 @@
     describe('Escaping', () => {
       describe('/url escaping?!test%40=spaces and escapes %24', () => {
         it('responds with the escaped path and query', async () => {
-          const reposene = await fetch(baseUrl + '/url escaping?!test%40=spaces and escapes %24');
-          const buffer = await reposene.arrayBuffer();
+          const response = await fetch(baseUrl + '/url escaping?!test%40=spaces and escapes %24');
+          const buffer = await response.arrayBuffer();
           let decoder = new TextDecoder();
           let text = decoder.decode(buffer);
           expect(text).to.equal('/url escaping !test@=spaces and escapes $');
@@ -188,14 +234,14 @@
 
       describe('/postparams', () => {
         it('responds with the escaped post parameters', async () => {
-          const reposene = await fetch(baseUrl + '/postparams', {
+          const response = await fetch(baseUrl + '/postparams', {
             method: 'POST',
             body: "te st1=te st1%24&&test2=te st2%24",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
           });
-          const buffer = await reposene.arrayBuffer();
+          const buffer = await response.arrayBuffer();
           let decoder = new TextDecoder();
           let text = decoder.decode(buffer);
           expect(text).to.equal('te st1:te st1$ : test2:te st2$');
@@ -250,17 +296,16 @@
     describe('Router with use', () => {
       describe('/routeruse', () => {
         it('responds to get', async () => {
-          const reposene = await fetch(baseUrl + '/routeruse');
-          expect(reposene).to.include(successStatus);
+          const response = await fetch(baseUrl + '/routeruse');
+          expect(response).to.include(successStatus);
         });
       });
     });
 
-    describe('Reading and writing 10KB binary data', () => {
+    describe('Reading and writing random binary data', () => {
       describe('/readwrite', () => {
         it('returns the same random data that was sent', async () => {
-          const data = new Uint8Array([...new Array(10000)].map(() => Math.round(Math.random() * 255)));
-
+          const data = new Uint8Array([...new Array(1000)].map(() => Math.round(Math.random() * 255)));
           const response = await fetch(baseUrl + '/readwrite', {
             method: 'POST',
             credentials: 'same-origin',
@@ -272,6 +317,18 @@
           const returned = new Uint8Array(buffer);
 
           expect(data.every((value, index) => value === returned[index])).to.be.true;
+        });
+
+        it('returns bad respose status when payload is too large', async () => {
+          const data = new Uint8Array([...new Array(1001)].map(() => Math.round(Math.random() * 255)));
+          const response = await fetch(baseUrl + '/readwrite', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/binary' },
+            body: data
+          });
+
+          expect(response).to.include(badRequestStatus);
         });
       });
     });

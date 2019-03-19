@@ -5,15 +5,15 @@ const char* ssid = "wifi";
 const char* password = "pass";
 
 WiFiServer server(80);
-WebApp app;
+Application app;
 char authBuffer[200];
 
 void auth(Request &req, Response &res) {
-  char * authHeader = req.header("Authorization");
+  char * authHeader = req.get("Authorization");
 
   if (strcmp(authHeader, "Basic c3VwZXI6YWRtaW4=") != 0) { // super:admin in base64
     res.set("WWW-Authenticate", "Basic realm=\"Secret Area\"");
-    res.unauthorized();
+    res.sendStatus(401);
     res.end();
   }
 }
@@ -29,7 +29,7 @@ void indexCmd(Request &req, Response &res) {
     "</body>\n"
     "</html>";
 
-  res.success("text/html");
+  res.set("Content-Tpe", "text/html");
   res.printP(secretPage);
 }
 
@@ -45,7 +45,7 @@ void setup() {
 
   server.begin();
 
-  app.readHeader("Authorization", authBuffer, 200);
+  app.header("Authorization", authBuffer, 200);
   app.use(&auth);
   app.get("/", &indexCmd);
 }
