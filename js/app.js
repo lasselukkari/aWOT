@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 StrongLoop, IBM, and Express Contributors
+ Copyright (c) 2019 StrongLoop, IBM, Express and aWOT Contributors
  License: MIT
 */
 
@@ -42,10 +42,10 @@ $(function(){
 
   // edit page link
   var latest = '';
-  var branchPath = 'https://github.com/expressjs/expressjs.com';
+  var branchPath = 'https://github.com/lasselukkari/aWOT';
   var pathName = document.location.pathname;
 
-  var currentVersion = pathName.split('/').splice(-2)[0] || '4x'; // defaults to current version
+  var currentVersion = pathName.split('/').splice(-2)[0] || '1x'; // defaults to current version
   var fileName = pathName.split('/').splice(-2)[1];
   var pagePath;
   var editPath;

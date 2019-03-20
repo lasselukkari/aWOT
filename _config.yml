@@ -12,6 +12,4 @@ kramdown:
   syntax_highlighter_opts:
     disable : true
 
-exclude: [uk/CHANGELOG.md]
-
 github: [metadata]

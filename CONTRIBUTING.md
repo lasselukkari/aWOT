@@ -1,6 +1,6 @@
-## Contributing to expressjs.com
+## Contributing to awot.net
 
-This repository is only for issues related to the website [http://expressjs.com](http://expressjs.com). For issues related to Express, the framework, go to [https://github.com/expressjs/express](https://github.com/expressjs/express).
+This repository is only for issues related to the website [http://awot.net](http://awot.net). For issues related to aWOT, the framework, go to [https://github.com/lasselukkari/awot](https://github.com/lasselukkari/awot).
 
 Feel free to make changes to the template files or the document files. The supporting docs are located in their respective directories, and the API docs are located under the `_includes` directory.
 
@@ -9,28 +9,11 @@ See [LICENSE.md](LICENSE.md) for the full license.
 
 ## Contributing translations
 
-**IMPORTANT:** We have professional translations of the Express documentation into:
-- German
-- French
-- Italian
-- Spanish
-- Brazilian Portuguese
-- Japanese
-- Simplified Chinese
-- Traditional Chinese
-- Russian
-- Korean
-
-Therefore we can no longer accept community translations for these languages, except for corrections
-to the existing translations and updates to align with changes or additions to the English documentation.
-
-To contribute a translation into another language, following the procedure below.
-
 Follow these steps:
 
-0. Clone the [`expressjs.com` repository](https://github.com/expressjs/expressjs.com)
+0. Clone the [`awot.net` repository](https://github.com/lasselukkari/awot.net)
 1. Create a directory for the language of your choice using its [ISO 639-1 code](http://www.loc.gov/standards/iso639-2/php/code_list.php) as its name.
-2. Copy `index.md`, `api.md`, `starter/`, `guide/`, `advanced/`, `resources/`, `4x/`, and `3x/`, to the language directory.
+2. Copy `index.md`, `api.md`, `starter/`, `guide/`, `advanced/`, `resources/`, `1x/`, and `3x/`, to the language directory.
 3. Remove the link to 2.x docs from the "API Reference" menu.
 4. Update the `lang` variable in the copied markdown files.
 5. Update the `title` variable in the copied markdown files.

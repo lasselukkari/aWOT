@@ -1,6 +1,6 @@
-# expressjs.com
+# awot.net
 
-This is the repository of the website [expressjs.com](https://expressjs.com). It is hosted directly from the repository as a [GitHub Pages](https://pages.github.com/) website.
+This is the repository of the website [awot.net](https://awot.net). It is hosted directly from the repository as a [GitHub Pages](https://pages.github.com/) website.
 
 ## Local Setup
 
@@ -17,7 +17,7 @@ To preview the website locally:
 1. `cd` to the repository directory and run the following command:
 
    ```
-   $ cd expressjs.com
+   $ cd aWOT
    $ bundle install
    ```
 
@@ -40,19 +40,23 @@ Jekyll uses the [Liquid template engine](http://liquidmarkup.org/) for templatin
 You can use [GFM](https://kramdown.gettalong.org/parser/gfm.html) fenced code blocks for JavaScript; for example:
 
 <pre>
-```js
-var express = require('express')
-var app = express()
-app.listen(3000)
+```arduino
+WiFiClient client = server.available();
+  
+if (client.connected()) {
+  app.process(&client);
+}
 ```
 </pre>
 
 The result looks like this:
 
-```js
-var express = require('express')
-var app = express()
-app.listen(3000)
+```arduino
+WiFiClient client = server.available();
+  
+if (client.connected()) {
+  app.process(&client);
+}
 ```
 
 The default GitHub Pages syntax highlighting has been disabled in `_config.yml` to allow highlighting with [prism.js](https://prismjs.com/).
@@ -63,6 +67,6 @@ Feel free to make changes to the template files or the document files. The suppo
 
 Please see the [Contributors' Guide](CONTRIBUTING.md) for more information on contributing to the documentation, including information on contributing translations.
 
-## Why use Jekyll instead of an Express-based solution?
+## Why use Jekyll instead of an aWOT-based solution?
 
 Jekyll comes built-in with GitHub Pages. Since we are already using GitHub Pages to host the website, it makes sense to leverage the capabilities it provides. It's all about using the right tool, for the right job, under the right circumstances.
