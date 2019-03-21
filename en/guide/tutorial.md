@@ -734,7 +734,7 @@ redirect_from: "/guide/tutorial.html"
   To to turn the led on:
   <br/>
 </p>
-<pre><code class="language-sh">curl 'http://192.168 .1.227/led' -X PUT --data-binary '1'</code></pre>
+<pre><code class="language-sh">curl 'http://192.168.1.227/led' -X PUT --data-binary '1'</code></pre>
 <h3 id="front-end">4. Front-end Development</h3>
 <p>
   Now that the back-end is done, we are ready to start working with the user interface. Uploading the user interface files to the microcontroller board every time we make changes would be a way too slow development cycle. Luckily we can proxy all API requests to the microcontroller while we do local development. To forward the API requests to the microcontroller we need to configure the proxy setting in our package.json. Replace the <strong>arduino.ip</strong> with the address that was printed out in the <strong>Serial Monitor</strong>.

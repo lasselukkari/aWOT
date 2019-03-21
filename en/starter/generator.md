@@ -13,7 +13,7 @@ Use the application generator tool, `awot-create` found in [awot-scipts](https:/
 The `awot-scripts` package installs the `awot-create` command-line tool. Use the following command to do so:
 
 ```sh
-$ npm install awot-scripts -g 
+npm install awot-scripts -g
 ```
 
 To generate the back-end boilerplate to be used with the WiFi library run:
