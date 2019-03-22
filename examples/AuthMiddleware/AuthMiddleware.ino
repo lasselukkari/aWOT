@@ -8,10 +8,42 @@ WiFiServer server(80);
 Application app;
 char authBuffer[200];
 
+// https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
+bool str_iseq(const char *s1, const char *s2) {
+  int    m = 0;
+  size_t i = 0;
+  size_t j = 0;
+  size_t k = 0;
+
+  if (s1 == NULL || s2 == NULL) {
+    return false;
+  }
+
+  while (true) {
+    m |= s1[i] ^ s2[j];
+
+    if (s1[i] == '\0') {
+      break;
+    }
+
+    i++;
+
+    if (s2[j] != '\0') {
+      j++;
+    }
+
+    if (s2[j] == '\0') {
+      k++;
+    }
+  }
+
+  return m == 0;
+}
+
 void auth(Request &req, Response &res) {
   char * authHeader = req.get("Authorization");
 
-  if (strcmp(authHeader, "Basic c3VwZXI6YWRtaW4=") != 0) { // super:admin in base64
+  if (!str_iseq(authHeader, "Basic c3VwZXI6YWRtaW4=")) { // super:admin in base64
     res.set("WWW-Authenticate", "Basic realm=\"Secret Area\"");
     res.sendStatus(401);
     res.end();
@@ -29,7 +61,7 @@ void indexCmd(Request &req, Response &res) {
     "</body>\n"
     "</html>";
 
-  res.set("Content-Tpe", "text/html");
+  res.set("Content-Type", "text/html");
   res.printP(secretPage);
 }
 
