@@ -7,8 +7,6 @@ redirect_from: "/guide/middleware.html"
 ---
 # Middleware
 
-<h2>Overview</h2>
-
 _Middleware_ functions are functions that have access to the [request](/{{ page.lang }}/1x/api.html#req)  (`req`) and the [response](/{{ page.lang }}/1x/api.html#res) (`res`) parameters.
 
 Middleware functions can execute any code and optionally end the request-response cycle.
