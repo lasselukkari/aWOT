@@ -9,7 +9,7 @@ redirect_from: "/guide/json.html"
 
 The [Request](/{{ page.lang }}/1x/api.html#req) and [Response](/{{ page.lang }}/1x/api.html#res) classes both implement the [Arduino Stream interface](https://www.arduino.cc/reference/en/language/functions/communication/stream/). This makes it possible to directly forward them to Arduino JSON libraries for parsing and serializing. 
 
-The example uses the [aJSON](https://github.com/interactive-matter/aJson/) library. The app has two routes: one or reading the JSON encoded data and one for updating it. See the aJSON documentation for details how to access and manipulate the properties individually.
+The example uses the [aJSON](https://github.com/interactive-matter/aJson/) library. The app has two routes: one or reading the JSON encoded data and one for updating it.
 
 ```arduino
 #include <WiFi.h>
@@ -18,18 +18,38 @@ The example uses the [aJSON](https://github.com/interactive-matter/aJson/) libra
 
 WiFiServer server(80);
 Application app;
-aJsonObject* example = aJson.parse("{\"example\":\"data\"}");
 
-void readExample(Request &req, Response &res) {
+char* userFilter[3] = {"name", "password", NULL};
+aJsonObject* user = aJson.parse("{\"name\":\"John Smith\",\"password\":\"secret\"}");
+
+void readUser(Request & req, Response & res) {
   res.set("Content-Type", "application/json");
   aJsonStream stream(&res);
-  aJson.print(example, &stream);
+  aJson.print(user, &stream);
 }
 
-void updateExample(Request &req, Response &res) {
+void updateUser(Request & req, Response & res) {
   aJsonStream stream(&req);
-  example = aJson.parse(&stream);
-  return readExample(req, res);
+
+  aJsonObject* newUser = aJson.parse(&stream, userFilter);
+  if (!newUser) {
+    return res.sendStatus(400);
+  }
+
+  aJsonObject* name = aJson.getObjectItem(newUser, "name");
+  if (!name || name->type != aJson_String) {
+    return res.sendStatus(400);
+  }
+
+  aJsonObject* password = aJson.getObjectItem(newUser, "password");
+  if (!password || password->type != aJson_String) {
+    return res.sendStatus(400);
+  }
+
+  aJson.deleteItem(user);
+  user = newUser;
+
+  return readUser(req, res);
 }
 
 void setup() {
@@ -42,8 +62,8 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/example", &readExample);
-  app.put("/example", &updateExample);
+  app.get("/user", &readUser);
+  app.put("/user", &updateUser);
 
   server.begin();
 }
@@ -60,11 +80,11 @@ void loop() {
 You can test the api with curl. To read the current data:
 
 ```sh
-$ curl 'http://192.168.1.140/example' -v
+$ curl 'http://192.168.1.140/user' -v
 *   Trying 192.168.1.140...
 * TCP_NODELAY set
 * Connected to 192.168.1.140 (192.168.1.140) port 80 (#0)
-> GET /example HTTP/1.1
+> GET /user HTTP/1.1
 > Host: 192.168.1.140
 > User-Agent: curl/7.54.0
 > Accept: */*
@@ -74,28 +94,28 @@ $ curl 'http://192.168.1.140/example' -v
 < Content-Type: application/json
 < 
 * Closing connection 0
-{"example":"data"}
+{"name":"John Smith","password":"secret"}
 ```
 
 And to update:
 
 ```sh
-$ curl 'http://192.168.1.140/example' -X PUT -H "Content-Type: application/json" -d '{"new":"data"}' -v
+$ curl 'http://192.168.1.140/user' -X PUT -H "Content-Type: application/json" -d '{"name":"4N0NYM0U5", "password":"pwn3d"}' -v
 *   Trying 192.168.1.140...
 * TCP_NODELAY set
 * Connected to 192.168.1.140 (192.168.1.140) port 80 (#0)
-> PUT /example HTTP/1.1
+> PUT /user HTTP/1.1
 > Host: 192.168.1.140
 > User-Agent: curl/7.54.0
 > Accept: */*
 > Content-Type: application/json
-> Content-Length: 14
+> Content-Length: 40
 > 
-* upload completely sent off: 14 out of 14 bytes
+* upload completely sent off: 40 out of 40 bytes
 * HTTP 1.0, assume close after body
 < HTTP/1.0 200 OK
 < Content-Type: application/json
 < 
 * Closing connection 0
-{"new":"data"}
+{"name":"4N0NYM0U5","password":"pwn3d"}
 ```
