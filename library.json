@@ -1,7 +1,7 @@
 {
   "name": "aWOT",
   "keywords": "wifi, ethernet, http, web, server, rest",
-  "description": "Arduino web server library.",
+  "description": "aWOT is a web server library compatible with multiple different board architectures and networking solutions.",
   "repository":
   {
     "type": "git",
