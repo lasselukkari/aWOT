@@ -29,7 +29,7 @@ redirect_from: "/en/index.html"
       <h3>Compatible</h3>Target mutltiple different platforms and harware configurations with the same code.
     </div>
     <div id="small">
-      <h3>Small</h3> Host full-stack applications on Arduino compatible boards with a minimal memory footprint.
+      <h3>Small</h3> Less than 20kB of ROM and 1kB of RAM needed when compiled for a 8-bit AVR microcontroller.
     </div>
     <div id="like-express">
       <h3><a href="https://expressjs.com">Like Express</a></h3> With familiar patterns and sane defaults creating a HTTP API is quick and easy.
