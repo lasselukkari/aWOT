@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <aWOT.h>
 
-const char* ssid = "wifi";
-const char* password = "pass";
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
 
 WiFiServer server(80);
 Application app;
@@ -67,7 +67,7 @@ void indexCmd(Request &req, Response &res) {
 
 void setup() {
   Serial.begin(115200);
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);

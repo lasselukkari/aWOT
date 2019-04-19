@@ -1,1 +1,20 @@
 .DS_Store
+
+/.bundle/
+/.yardoc
+Gemfile.lock
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+vendor
+*.gem
+
+# rspec failure tracking
+.rspec_status
+
+# C++ stuff
+*.bin
+*.bin.dSYM
+

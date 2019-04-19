@@ -1,5 +1,12 @@
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
 #include <WiFi.h>
+#endif
 #include <aWOT.h>
+
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
   
 WiFiServer server(80);
 Application app;
@@ -11,7 +18,7 @@ void index(Request &req, Response &res) {
 void setup() {
   Serial.begin(115200);
   
-  WiFi.begin("ssid", "password");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
