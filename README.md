@@ -4,7 +4,21 @@ aWOT [![Build Status](https://travis-ci.org/lasselukkari/aWOT.svg?branch=master)
 Arduino web server library.
 
 ## Documentation
-[awot.net](https://awot.net)
+#### 1. Getting started
+ * [Hello World](https://awot.net/en/starter/hello-world.html)
+ * [Basic routing](https://awot.net/en/starter/basic-routing.html)
+ * [Application generator](https://awot.net/en/starter/generator.html)
+ * [Serving static files](https://awot.net/en/starter/static-files.html)
+#### 2. Guide
+ * [Routing](https://awot.net/en/guide/routing.html)
+ * [Middleware](https://awot.net/en/guide/middleware.html)
+ * [Working with JSON data](https://awot.net/en/guide/json.html)
+ * [Tutorial: Deploying a React app on the ESP32](https://awot.net/en/guide/tutorial.html)
+#### 3. API Reference
+ * [Application](https://awot.net/en/1x/api.html#app)
+ * [Request](https://awot.net/en/1x/api.html#req)
+ * [Response](https://awot.net/en/1x/api.html#res)
+ * [Router](https://awot.net/en/1x/api.html#router)
 
 ## Hello World Example
 ```cpp
