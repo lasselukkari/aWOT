@@ -17,7 +17,7 @@ void fileServer(Request &req, Response &res) {
     return;
   }
 
-  const char * = req.path();
+  const char * path = req.path();
 
   if(strcmp(path, "/") == 0){
     path = indexFile;
