@@ -20,7 +20,8 @@ Arduino web server library.
  * [Response](https://awot.net/en/1x/api.html#res)
  * [Router](https://awot.net/en/1x/api.html#router)
 
-## Hello World Example
+## Examples
+### Hello World Example
 ```cpp
 #include <WiFi.h>
 #include <aWOT.h>
