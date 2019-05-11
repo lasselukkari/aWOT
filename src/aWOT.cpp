@@ -547,6 +547,10 @@ bool Response::ended() {
 }
 
 void Response::flush() {
+  if (!m_clientObject->connected()) {
+    return;
+  }
+
   m_flushBuf();
   m_clientObject->flush();
 }
@@ -640,7 +644,7 @@ bool Response::statusSent() {
 }
 
 size_t Response::write(uint8_t data) {
-  if (m_ended) {
+  if (m_ended || !m_clientObject->connected()) {
     return 0;
   }
 
@@ -661,7 +665,7 @@ size_t Response::write(uint8_t data) {
 }
 
 size_t Response::write(uint8_t *buffer, size_t bufferLength) {
-  if (m_ended) {
+  if (m_ended || !m_clientObject->connected()) {
     return 0;
   }
 
@@ -676,7 +680,7 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
-  if (m_ended) {
+  if (m_ended || !m_clientObject->connected()) {
     return;
   }
 
@@ -1153,15 +1157,23 @@ void Response::m_printCRLF() {
 }
 
 void Response::m_flushBuf() {
+
+
   if (m_bufFill > 0) {
-    m_clientObject->write(m_buffer, m_bufFill);
+    if (m_clientObject->connected()) {
+      m_clientObject->write(m_buffer, m_bufFill);
+    }
+
     m_bufFill = 0;
   };
 }
 
 void Response::m_reset() {
   flush();
-  m_clientObject->stop();
+
+  if (m_clientObject->connected()) {
+    m_clientObject->stop();
+  }
 }
 
 
