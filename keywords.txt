@@ -1,4 +1,4 @@
-Application KEYWORD1
+Application	KEYWORD1
 all	KEYWORD2
 del	KEYWORD2
 get	KEYWORD2
