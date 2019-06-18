@@ -136,18 +136,14 @@ Application app;
 Router cats("/cats");
 
 void looooong(Request &req, Response &res) {
-  res.success("text/html");
   res.print("looooong cat is long!");
 }
 
 void ceiling(Request &req, Response &res) {
-  res.success("text/html");
   res.print("ceiling cat is watching you debug!");
 }
 
 void nyannyan(Request &req, Response &res) {
-  res.success("text/html");
-
   for (int i = 0; i < 100; i++) {
       res.print("nyan ");
   }
