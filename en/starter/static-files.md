@@ -36,6 +36,6 @@ Example configuration used in the front-end project:
 
 Execute the script by running `npm run awot-static`.
 
-This will generate a static gzipped payload file `StaticFiles.ino` to the `sketchDir` directory. To mount the http handlers call `app.use(staticFiles());`. 
+This will generate a static gzipped payload file `StaticFiles.h` to the `sketchDir` directory. Include the file with `#include "StaticFiles.h"` and to mount the http handlers call `app.use(staticFiles());`.
 
-See the tutorial for more details.
+See the [tutorial](https://awot.net/guide/tutorial.html) for more details.
