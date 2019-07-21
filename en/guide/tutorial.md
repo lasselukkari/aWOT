@@ -152,7 +152,7 @@ redirect_from: "/guide/tutorial.html"
   ├── .gitignore
   ├── BlinkServer
   │   ├── BlinkServer.ino
-  │   ├── StaticFiles.ino
+  │   ├── StaticFiles.h
   │   ├── aWOT.cpp
   │   └── aWOT.h
   ├── public
@@ -691,6 +691,7 @@ redirect_from: "/guide/tutorial.html"
                 <td class="d2h-cntx">
                   <div class="d2h-code-line d2h-cntx">
                     <span class="d2h-code-line-prefix"> </span>
+                    <span class="d2h-code-line-ctn">#include &quot;StaticFiles.h&quot;</span>
                   </div>
                 </td>
               </tr>
@@ -698,6 +699,17 @@ redirect_from: "/guide/tutorial.html"
                 <td class="d2h-code-linenumber d2h-cntx">
                   <div class="line-num1">4</div>
                   <div class="line-num2">4</div>
+                </td>
+                <td class="d2h-cntx">
+                  <div class="d2h-code-line d2h-cntx">
+                    <span class="d2h-code-line-prefix"> </span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="d2h-code-linenumber d2h-cntx">
+                  <div class="line-num1">5</div>
+                  <div class="line-num2">5</div>
                 </td>
                 <td class="d2h-cntx">
                   <div class="d2h-code-line d2h-cntx">
@@ -1924,7 +1936,7 @@ redirect_from: "/guide/tutorial.html"
 </p>
 <pre><code class="language-sh">npm run dist</code></pre>
 <p>
-  This command took the contents of <strong>build</strong> directory and embedded the data to the <strong>StaticFiles.ino</strong> under the <strong>BlinkServer</strong> directory. To save some space the files were at the same time compressed with gzip. The script also generated the proper http headers for encoding, cache control, response length and content type. In real life you would most likely want to exclude this file from your version control system. <a href="https://github.com/lasselukkari/led-blink/commit/9ebea4b00c909418ca24c429d84fec35708d957b"><i
+  This command took the contents of <strong>build</strong> directory and embedded the data to the <strong>StaticFiles.h</strong> under the <strong>BlinkServer</strong> directory. To save some space the files were at the same time compressed with gzip. The script also generated the proper http headers for encoding, cache control, response length and content type. In real life you would most likely want to exclude this file from your version control system. <a href="https://github.com/lasselukkari/led-blink/commit/9ebea4b00c909418ca24c429d84fec35708d957b"><i
     class="fab fa-github"></i></a>
 </p>
 <div class="diff">
@@ -1942,7 +1954,7 @@ redirect_from: "/guide/tutorial.html"
             <path
               d="M13 1H1C0.45 1 0 1.45 0 2v12c0 0.55 0.45 1 1 1h12c0.55 0 1-0.45 1-1V2c0-0.55-0.45-1-1-1z m0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"></path>
           </svg>
-          <a href="#d2h-764011" class="d2h-file-name">BlinkServer/StaticFiles.ino</a>
+          <a href="#d2h-764011" class="d2h-file-name">BlinkServer/StaticFiles.h</a>
           <span class="d2h-file-stats">
           <span class="d2h-lines-added">+4487</span>
           <span class="d2h-lines-deleted">-14</span>
@@ -1959,7 +1971,7 @@ redirect_from: "/guide/tutorial.html"
             <path
               d="M6 5H2v-1h4v1zM2 8h7v-1H2v1z m0 2h7v-1H2v1z m0 2h7v-1H2v1z m10-7.5v9.5c0 0.55-0.45 1-1 1H1c-0.55 0-1-0.45-1-1V2c0-0.55 0.45-1 1-1h7.5l3.5 3.5z m-1 0.5L8 2H1v12h10V5z"></path>
           </svg>
-          <span class="d2h-file-name">BlinkServer/StaticFiles.ino</span>
+          <span class="d2h-file-name">BlinkServer/StaticFiles.h</span>
           <span class="d2h-tag d2h-changed d2h-changed-tag">CHANGED</span>
         </span>
       </div>
