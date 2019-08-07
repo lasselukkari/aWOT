@@ -10,7 +10,7 @@ redirect_from: "/starter/hello-world.html"
 
 Embedded below is essentially the simplest aWOT app you can create.
 
-<div id="hello-example"><pre><code class="language-js">#include &lt;WiFi.h.h&gt;
+<div id="hello-example"><pre><code class="language-js">#include &lt;WiFi.h&gt;
 #include &lt;aWOT.h&gt;
   
 WiFiServer server(80);
