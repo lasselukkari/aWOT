@@ -548,7 +548,10 @@ bool Response::ended() {
 
 void Response::flush() {
   m_flushBuf();
-  m_clientObject->flush();
+  
+  if (m_clientObject->connected()) {
+    m_clientObject->flush();
+  }
 }
 
 const char * Response::get(const char *name) {
