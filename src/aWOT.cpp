@@ -548,7 +548,10 @@ bool Response::ended() {
 
 void Response::flush() {
   m_flushBuf();
-  m_clientObject->flush();
+  if (m_clientObject->connected()) {
+    m_clientObject->flush();
+  }
+
 }
 
 const char * Response::get(const char *name) {
@@ -651,7 +654,10 @@ size_t Response::write(uint8_t data) {
   m_buffer[m_bufFill++] = data;
 
   if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
-    m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    if (m_clientObject->connected()) {
+      m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    }
+
     m_bufFill = 0;
   }
 
@@ -670,7 +676,10 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
   }
 
   m_flushBuf();
-  m_clientObject->write(buffer, bufferLength);
+  if (m_clientObject->connected()) {
+    m_clientObject->write(buffer, bufferLength);
+  }
+
   m_bytesSent += bufferLength;
   return bufferLength;
 }
@@ -1153,15 +1162,23 @@ void Response::m_printCRLF() {
 }
 
 void Response::m_flushBuf() {
+
+
   if (m_bufFill > 0) {
-    m_clientObject->write(m_buffer, m_bufFill);
+    if (m_clientObject->connected()) {
+      m_clientObject->write(m_buffer, m_bufFill);
+    }
+
     m_bufFill = 0;
   };
 }
 
 void Response::m_reset() {
   flush();
-  m_clientObject->stop();
+
+  if (m_clientObject->connected()) {
+    m_clientObject->stop();
+  }
 }
 
 
