@@ -186,7 +186,9 @@ class Response : public Stream {
     const char* name;
     const char* value;
   } m_headers[SERVER_MAX_HEADERS];
+  bool m_contentLenghtSet;
   bool m_contentTypeSet;
+  bool m_keepAlive;
   bool m_statusSent;
   bool m_headersSent;
   bool m_sendingStatus;
