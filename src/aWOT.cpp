@@ -22,25 +22,22 @@
 
 #include "aWOT.h"
 
-Request::Request() :
-  m_clientObject(NULL),
-  m_method(GET),
-  m_pushbackDepth(0),
-  m_readingContent(false),
-  m_left(0),
-  m_bytesRead(0),
-  m_headerTail(NULL),
-  m_query(NULL),
-  m_queryLength(0),
-  m_timeout(false),
-  m_path(NULL),
-  m_pathLength(0),
-  m_route(NULL) {
-}
+Request::Request()
+    : m_clientObject(NULL),
+      m_method(GET),
+      m_pushbackDepth(0),
+      m_readingContent(false),
+      m_left(0),
+      m_bytesRead(0),
+      m_headerTail(NULL),
+      m_query(NULL),
+      m_queryLength(0),
+      m_timeout(false),
+      m_path(NULL),
+      m_pathLength(0),
+      m_route(NULL) {}
 
-int Request::available() {
-  return m_clientObject->available();
-}
+int Request::available() { return m_clientObject->available(); }
 
 bool Request::body(uint8_t *buffer, int bufferLength) {
   memset(buffer, 0, bufferLength);
@@ -52,13 +49,9 @@ bool Request::body(uint8_t *buffer, int bufferLength) {
   return !left();
 }
 
-int Request::bytesRead() {
-  return m_bytesRead;
-}
+int Request::bytesRead() { return m_bytesRead; }
 
-Client *Request::client() {
-  return m_clientObject;
-}
+Client *Request::client() { return m_clientObject; }
 
 char *Request::get(const char *name) {
   HeaderNode *headerNode = m_headerTail;
@@ -127,17 +120,11 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
   return foundSomething && nameLength > 0 && valueLength > 0;
 }
 
-int Request::left() {
-  return m_left;
-}
+int Request::left() { return m_left; }
 
-Request::MethodType Request::method() {
-  return m_method;
-}
+Request::MethodType Request::method() { return m_method; }
 
-char *Request::path() {
-  return m_path;
-}
+char *Request::path() { return m_path; }
 
 int Request::peek() {
   uint8_t c = read();
@@ -159,20 +146,19 @@ void Request::push(uint8_t ch) {
   }
 }
 
-char *Request::query() {
-  return m_query;
-}
+char *Request::query() { return m_query; }
 
 bool Request::query(const char *name, char *buffer, int bufferLength) {
   memset(buffer, 0, bufferLength);
 
-  char * position = m_query;
+  char *position = m_query;
   int nameLength = strlen(name);
 
   while ((position = strstr(position, name))) {
     char previous = *(position - 1);
 
-    if ((previous == '\0' || previous == '&') && *(position + nameLength) == '=') {
+    if ((previous == '\0' || previous == '&') &&
+        *(position + nameLength) == '=') {
       position = position + nameLength + 1;
       while (*position && *position != '&' && --bufferLength) {
         *buffer++ = *position++;
@@ -279,17 +265,11 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
-bool Request::timeout() {
-  return m_timeout;
-}
+bool Request::timeout() { return m_timeout; }
 
-size_t Request::write(uint8_t data) {
-  return 0;
-}
+size_t Request::write(uint8_t data) { return 0; }
 
-void Request::flush() {
-  return;
-}
+void Request::flush() { return; }
 
 void Request::m_init(Client *client, char *buffer, int bufferLength) {
   m_clientObject = client;
@@ -330,7 +310,8 @@ bool Request::m_readURL() {
   int bufferLeft = m_pathLength;
   int ch;
 
-  while ((ch = read()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' && --bufferLeft) {
+  while ((ch = read()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
+         --bufferLeft) {
     if (ch == '%') {
       char high = read();
       if (high == -1) {
@@ -393,7 +374,7 @@ bool Request::m_processHeaders(HeaderNode *headerTail) {
     while (headerNode != NULL) {
       if (m_expect(headerNode->name)) {
         char c = read();
-        if (c  == -1) {
+        if (c == -1) {
           return false;
         }
 
@@ -431,7 +412,8 @@ bool Request::m_headerValue(char *buffer, int bufferLength) {
   int ch;
   memset(buffer, 0, bufferLength);
 
-  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'));
+  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
+    ;
   push(ch);
 
   while ((ch = read()) != -1 && ch != '\r') {
@@ -450,7 +432,8 @@ bool Request::m_readInt(int &number) {
 
   number = 0;
 
-  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'));
+  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
+    ;
 
   if (ch == '-') {
     negate = true;
@@ -483,13 +466,9 @@ void Request::m_setRoute(int prefixLength, const char *route) {
   m_route = route;
 }
 
-void Request::m_setMethod(MethodType method) {
-  m_method = method;
-}
+void Request::m_setMethod(MethodType method) { m_method = method; }
 
-int Request::m_getUrlPathLength() {
-  return m_pathLength;
-}
+int Request::m_getUrlPathLength() { return m_pathLength; }
 
 bool Request::m_expect(const char *expected) {
   const char *candidate = expected;
@@ -518,22 +497,19 @@ void Request::m_reset() {
   }
 }
 
-Response::Response():
-  m_clientObject(NULL),
-  m_contentTypeSet(false),
-  m_statusSent(false),
-  m_headersSent(false),
-  m_sendingStatus(false),
-  m_sendingHeaders(false),
-  m_headersCount(0),
-  m_bytesSent(0),
-  m_ended(false),
-  m_bufFill(0) {
-}
+Response::Response()
+    : m_clientObject(NULL),
+      m_contentTypeSet(false),
+      m_statusSent(false),
+      m_headersSent(false),
+      m_sendingStatus(false),
+      m_sendingHeaders(false),
+      m_headersCount(0),
+      m_bytesSent(0),
+      m_ended(false),
+      m_bufFill(0) {}
 
-int Response::bytesSent() {
-  return m_bytesSent;
-}
+int Response::bytesSent() { return m_bytesSent; }
 
 void Response::end() {
   if (m_shouldPrintHeaders()) {
@@ -542,19 +518,17 @@ void Response::end() {
   m_ended = true;
 }
 
-bool Response::ended() {
-  return m_ended;
-}
+bool Response::ended() { return m_ended; }
 
 void Response::flush() {
   m_flushBuf();
-  
+
   if (m_clientObject->connected()) {
     m_clientObject->flush();
   }
 }
 
-const char * Response::get(const char *name) {
+const char *Response::get(const char *name) {
   for (int i = 0; i < m_headersCount; i++) {
     if (Application::strcmpi(name, m_headers[i].name) == 0) {
       return m_headers[m_headersCount].value;
@@ -564,9 +538,7 @@ const char * Response::get(const char *name) {
   return NULL;
 }
 
-bool Response::headersSent() {
-  return m_headersSent;
-}
+bool Response::headersSent() { return m_headersSent; }
 
 void Response::printP(const unsigned char *string) {
   if (m_ended) {
@@ -582,9 +554,7 @@ void Response::printP(const unsigned char *string) {
   }
 }
 
-void Response::printP(const char *string) {
-  printP((unsigned char*) string);
-}
+void Response::printP(const char *string) { printP((unsigned char *)string); }
 
 void Response::sendStatus(int code) {
   status(code);
@@ -631,9 +601,7 @@ void Response::status(int code) {
   }
 }
 
-bool Response::statusSent() {
-  return m_statusSent;
-}
+bool Response::statusSent() { return m_statusSent; }
 
 size_t Response::write(uint8_t data) {
   if (m_ended) {
@@ -685,7 +653,7 @@ void Response::writeP(const unsigned char *data, size_t length) {
   }
 }
 
-void Response::m_init(Client * client) {
+void Response::m_init(Client *client) {
   m_clientObject = client;
   m_contentTypeSet = false;
   m_statusSent = false;
@@ -697,423 +665,417 @@ void Response::m_init(Client * client) {
   m_ended = false;
 }
 
-int Response::available() {
-  return 0;
-}
+int Response::available() { return 0; }
 
-int Response::read() {
-  return -1;
-}
+int Response::read() { return -1; }
 
-int Response::peek() {
-  return -1;
-}
+int Response::peek() { return -1; }
 
 void Response::m_printStatus(int code) {
   switch (code) {
 #ifndef LOW_SRAM_MCU
     case 100: {
-        P(Continue) = "Continue";
-        printP(Continue);
-        break;
-      }
+      P(Continue) = "Continue";
+      printP(Continue);
+      break;
+    }
     case 101: {
-        P(SwitchingProtocols) = "Switching Protocols";
-        printP(SwitchingProtocols);
-        break;
-      }
+      P(SwitchingProtocols) = "Switching Protocols";
+      printP(SwitchingProtocols);
+      break;
+    }
     case 102: {
-        P(Processing) = "Processing";
-        printP(Processing);
-        break;
-      }
+      P(Processing) = "Processing";
+      printP(Processing);
+      break;
+    }
     case 103: {
-        P(EarlyHints) = "Early Hints";
-        printP(EarlyHints);
-        break;
-      }
+      P(EarlyHints) = "Early Hints";
+      printP(EarlyHints);
+      break;
+    }
     case 200: {
-        P(OK) = "OK";
-        printP(OK);
-        break;
-      }
+      P(OK) = "OK";
+      printP(OK);
+      break;
+    }
     case 201: {
-        P(Created) = "Created";
-        printP(Created);
-        break;
-      }
+      P(Created) = "Created";
+      printP(Created);
+      break;
+    }
     case 202: {
-        P(Accepted) = "Accepted";
-        printP(Accepted);
-        break;
-      }
+      P(Accepted) = "Accepted";
+      printP(Accepted);
+      break;
+    }
     case 203: {
-        P(NonAuthoritativeInformation) = "Non-Authoritative Information";
-        printP(NonAuthoritativeInformation);
-        break;
-      }
+      P(NonAuthoritativeInformation) = "Non-Authoritative Information";
+      printP(NonAuthoritativeInformation);
+      break;
+    }
     case 204: {
-        P(NoContent) = "No Content";
-        printP(NoContent);
-        break;
-      }
+      P(NoContent) = "No Content";
+      printP(NoContent);
+      break;
+    }
     case 205: {
-        P(ResetContent) = "Reset Content";
-        printP(ResetContent);
-        break;
-      }
+      P(ResetContent) = "Reset Content";
+      printP(ResetContent);
+      break;
+    }
     case 206: {
-        P(PartialContent) = "Partial Content";
-        printP(PartialContent);
-        break;
-      }
+      P(PartialContent) = "Partial Content";
+      printP(PartialContent);
+      break;
+    }
     case 207: {
-        P(MultiStatus) = "Multi-Status";
-        printP(MultiStatus);
-        break;
-      }
+      P(MultiStatus) = "Multi-Status";
+      printP(MultiStatus);
+      break;
+    }
     case 208: {
-        P(AlreadyReported) = "Already Reported";
-        printP(AlreadyReported);
-        break;
-      }
+      P(AlreadyReported) = "Already Reported";
+      printP(AlreadyReported);
+      break;
+    }
     case 226: {
-        P(IMUsed) = "IM Used";
-        printP(IMUsed);
-        break;
-      }
+      P(IMUsed) = "IM Used";
+      printP(IMUsed);
+      break;
+    }
     case 300: {
-        P(MultipleChoices) = "Multiple Choices";
-        printP(MultipleChoices);
-        break;
-      }
+      P(MultipleChoices) = "Multiple Choices";
+      printP(MultipleChoices);
+      break;
+    }
     case 301: {
-        P(MovedPermanently) = "Moved Permanently";
-        printP(MovedPermanently);
-        break;
-      }
+      P(MovedPermanently) = "Moved Permanently";
+      printP(MovedPermanently);
+      break;
+    }
     case 302: {
-        P(Found) = "Found";
-        printP(Found);
-        break;
-      }
+      P(Found) = "Found";
+      printP(Found);
+      break;
+    }
     case 303: {
-        P(SeeOther) = "See Other";
-        printP(SeeOther);
-        break;
-      }
+      P(SeeOther) = "See Other";
+      printP(SeeOther);
+      break;
+    }
     case 304: {
-        P(NotModified) = "Not Modified";
-        printP(NotModified);
-        break;
-      }
+      P(NotModified) = "Not Modified";
+      printP(NotModified);
+      break;
+    }
     case 305: {
-        P(UseProxy) = "Use Proxy";
-        printP(UseProxy);
-        break;
-      }
+      P(UseProxy) = "Use Proxy";
+      printP(UseProxy);
+      break;
+    }
     case 306: {
-        P(Unused) = "(Unused)";
-        printP(Unused);
-        break;
-      }
+      P(Unused) = "(Unused)";
+      printP(Unused);
+      break;
+    }
     case 307: {
-        P(TemporaryRedirect) = "Temporary Redirect";
-        printP(TemporaryRedirect);
-        break;
-      }
+      P(TemporaryRedirect) = "Temporary Redirect";
+      printP(TemporaryRedirect);
+      break;
+    }
     case 308: {
-        P(PermanentRedirect) = "Permanent Redirect";
-        printP(PermanentRedirect);
-        break;
-      }
+      P(PermanentRedirect) = "Permanent Redirect";
+      printP(PermanentRedirect);
+      break;
+    }
     case 400: {
-        P(BadRequest) = "Bad Request";
-        printP(BadRequest);
-        break;
-      }
+      P(BadRequest) = "Bad Request";
+      printP(BadRequest);
+      break;
+    }
     case 401: {
-        P(Unauthorized) = "Unauthorized";
-        printP(Unauthorized);
-        break;
-      }
+      P(Unauthorized) = "Unauthorized";
+      printP(Unauthorized);
+      break;
+    }
     case 402: {
-        P(PaymentRequired) = "Payment Required";
-        printP(PaymentRequired);
-        break;
-      }
+      P(PaymentRequired) = "Payment Required";
+      printP(PaymentRequired);
+      break;
+    }
     case 403: {
-        P(Forbidden) = "Forbidden";
-        printP(Forbidden);
-        break;
-      }
+      P(Forbidden) = "Forbidden";
+      printP(Forbidden);
+      break;
+    }
     case 404: {
-        P(NotFound) = "Not Found";
-        printP(NotFound);
-        break;
-      }
+      P(NotFound) = "Not Found";
+      printP(NotFound);
+      break;
+    }
     case 405: {
-        P(MethodNotAllowed) = "Method Not Allowed";
-        printP(MethodNotAllowed);
-        break;
-      }
+      P(MethodNotAllowed) = "Method Not Allowed";
+      printP(MethodNotAllowed);
+      break;
+    }
     case 406: {
-        P(NotAcceptable) = "Not Acceptable";
-        printP(NotAcceptable);
-        break;
-      }
+      P(NotAcceptable) = "Not Acceptable";
+      printP(NotAcceptable);
+      break;
+    }
     case 407: {
-        P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
-        printP(ProxyAuthenticationRequired);
-        break;
-      }
+      P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
+      printP(ProxyAuthenticationRequired);
+      break;
+    }
     case 408: {
-        P(RequestTimeout) = "Request Timeout";
-        printP(RequestTimeout);
-        break;
-      }
+      P(RequestTimeout) = "Request Timeout";
+      printP(RequestTimeout);
+      break;
+    }
     case 409: {
-        P(Conflict) = "Conflict";
-        printP(Conflict);
-        break;
-      }
+      P(Conflict) = "Conflict";
+      printP(Conflict);
+      break;
+    }
     case 410: {
-        P(Gone) = "Gone";
-        printP(Gone);
-        break;
-      }
+      P(Gone) = "Gone";
+      printP(Gone);
+      break;
+    }
     case 411: {
-        P(LengthRequired) = "Length Required";
-        printP(LengthRequired);
-        break;
-      }
+      P(LengthRequired) = "Length Required";
+      printP(LengthRequired);
+      break;
+    }
     case 412: {
-        P(PreconditionFailed) = "Precondition Failed";
-        printP(PreconditionFailed);
-        break;
-      }
+      P(PreconditionFailed) = "Precondition Failed";
+      printP(PreconditionFailed);
+      break;
+    }
     case 413: {
-        P(PayloadTooLarge) = "Payload Too Large";
-        printP(PayloadTooLarge);
-        break;
-      }
+      P(PayloadTooLarge) = "Payload Too Large";
+      printP(PayloadTooLarge);
+      break;
+    }
     case 414: {
-        P(URITooLong) = "URI Too Long";
-        printP(URITooLong);
-        break;
-      }
+      P(URITooLong) = "URI Too Long";
+      printP(URITooLong);
+      break;
+    }
     case 415: {
-        P(UnsupportedMediaType) = "Unsupported Media Type";
-        printP(UnsupportedMediaType);
-        break;
-      }
+      P(UnsupportedMediaType) = "Unsupported Media Type";
+      printP(UnsupportedMediaType);
+      break;
+    }
     case 416: {
-        P(RangeNotSatisfiable) = "Range Not Satisfiable";
-        printP(RangeNotSatisfiable);
-        break;
-      }
+      P(RangeNotSatisfiable) = "Range Not Satisfiable";
+      printP(RangeNotSatisfiable);
+      break;
+    }
     case 417: {
-        P(ExpectationFailed) = "Expectation Failed";
-        printP(ExpectationFailed);
-        break;
-      }
+      P(ExpectationFailed) = "Expectation Failed";
+      printP(ExpectationFailed);
+      break;
+    }
     case 421: {
-        P(MisdirectedRequest) = "Misdirected Request";
-        printP(MisdirectedRequest);
-        break;
-      }
+      P(MisdirectedRequest) = "Misdirected Request";
+      printP(MisdirectedRequest);
+      break;
+    }
     case 422: {
-        P(UnprocessableEntity) = "Unprocessable Entity";
-        printP(UnprocessableEntity);
-        break;
-      }
+      P(UnprocessableEntity) = "Unprocessable Entity";
+      printP(UnprocessableEntity);
+      break;
+    }
     case 423: {
-        P(Locked) = "Locked";
-        printP(Locked);
-        break;
-      }
+      P(Locked) = "Locked";
+      printP(Locked);
+      break;
+    }
     case 424: {
-        P(FailedDependency) = "Failed Dependency";
-        printP(FailedDependency);
-        break;
-      }
+      P(FailedDependency) = "Failed Dependency";
+      printP(FailedDependency);
+      break;
+    }
     case 425: {
-        P(TooEarly) = "Too Early";
-        printP(TooEarly);
-        break;
-      }
+      P(TooEarly) = "Too Early";
+      printP(TooEarly);
+      break;
+    }
     case 426: {
-        P(UpgradeRequired) = "Upgrade Required";
-        printP(UpgradeRequired);
-        break;
-      }
+      P(UpgradeRequired) = "Upgrade Required";
+      printP(UpgradeRequired);
+      break;
+    }
     case 428: {
-        P(PreconditionRequired) = "Precondition Required";
-        printP(PreconditionRequired);
-        break;
-      }
+      P(PreconditionRequired) = "Precondition Required";
+      printP(PreconditionRequired);
+      break;
+    }
     case 429: {
-        P(TooManyRequests) = "Too Many Requests";
-        printP(TooManyRequests);
-        break;
-      }
+      P(TooManyRequests) = "Too Many Requests";
+      printP(TooManyRequests);
+      break;
+    }
     case 431: {
-        P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
-        printP(RequestHeaderFieldsTooLarge);
-        break;
-      }
+      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
+      printP(RequestHeaderFieldsTooLarge);
+      break;
+    }
     case 451: {
-        P(UnavailableForLegalReasons) = "Unavailable For Legal Reasons";
-        printP(UnavailableForLegalReasons);
-        break;
-      }
+      P(UnavailableForLegalReasons) = "Unavailable For Legal Reasons";
+      printP(UnavailableForLegalReasons);
+      break;
+    }
     case 500: {
-        P(InternalServerError) = "Internal Server Error";
-        printP(InternalServerError);
-        break;
-      }
+      P(InternalServerError) = "Internal Server Error";
+      printP(InternalServerError);
+      break;
+    }
     case 501: {
-        P(NotImplemented) = "Not Implemented";
-        printP(NotImplemented);
-        break;
-      }
+      P(NotImplemented) = "Not Implemented";
+      printP(NotImplemented);
+      break;
+    }
     case 502: {
-        P(BadGateway) = "Bad Gateway";
-        printP(BadGateway);
-        break;
-      }
+      P(BadGateway) = "Bad Gateway";
+      printP(BadGateway);
+      break;
+    }
     case 503: {
-        P(ServiceUnavailable) = "Service Unavailable";
-        printP(ServiceUnavailable);
-        break;
-      }
+      P(ServiceUnavailable) = "Service Unavailable";
+      printP(ServiceUnavailable);
+      break;
+    }
     case 504: {
-        P(GatewayTimeout) = "Gateway Timeout";
-        printP(GatewayTimeout);
-        break;
-      }
+      P(GatewayTimeout) = "Gateway Timeout";
+      printP(GatewayTimeout);
+      break;
+    }
     case 505: {
-        P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
-        printP(HTTPVersionNotSupported);
-        break;
-      }
+      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
+      printP(HTTPVersionNotSupported);
+      break;
+    }
     case 506: {
-        P(VariantAlsoNegotiates) = "Variant Also Negotiates";
-        printP(VariantAlsoNegotiates);
-        break;
-      }
+      P(VariantAlsoNegotiates) = "Variant Also Negotiates";
+      printP(VariantAlsoNegotiates);
+      break;
+    }
     case 507: {
-        P(InsufficientStorage) = "Insufficient Storage";
-        printP(InsufficientStorage);
-        break;
-      }
+      P(InsufficientStorage) = "Insufficient Storage";
+      printP(InsufficientStorage);
+      break;
+    }
     case 508: {
-        P(LoopDetected) = "Loop Detected";
-        printP(LoopDetected);
-        break;
-      }
+      P(LoopDetected) = "Loop Detected";
+      printP(LoopDetected);
+      break;
+    }
     case 510: {
-        P(NotExtended) = "Not Extended";
-        printP(NotExtended);
-        break;
-      }
+      P(NotExtended) = "Not Extended";
+      printP(NotExtended);
+      break;
+    }
     case 511: {
-        P(NetworkAuthenticationRequired) = "Network Authentication Required";
-        printP(NetworkAuthenticationRequired);
-        break;
-      }
+      P(NetworkAuthenticationRequired) = "Network Authentication Required";
+      printP(NetworkAuthenticationRequired);
+      break;
+    }
 #else
     case 200: {
-        P(OK) = "OK";
-        printP(OK);
-        break;
-      }
+      P(OK) = "OK";
+      printP(OK);
+      break;
+    }
     case 201: {
-        P(Created) = "Created";
-        printP(Created);
-        break;
-      }
+      P(Created) = "Created";
+      printP(Created);
+      break;
+    }
     case 202: {
-        P(Accepted) = "Accepted";
-        printP(Accepted);
-        break;
-      }
+      P(Accepted) = "Accepted";
+      printP(Accepted);
+      break;
+    }
     case 204: {
-        P(NoContent) = "No Content";
-        printP(NoContent);
-        break;
-      }
+      P(NoContent) = "No Content";
+      printP(NoContent);
+      break;
+    }
     case 303: {
-        P(SeeOther) = "See Other";
-        printP(SeeOther);
-        break;
-      }
+      P(SeeOther) = "See Other";
+      printP(SeeOther);
+      break;
+    }
     case 304: {
-        P(NotModified) = "Not Modified";
-        printP(NotModified);
-        break;
-      }
+      P(NotModified) = "Not Modified";
+      printP(NotModified);
+      break;
+    }
     case 400: {
-        P(BadRequest) = "Bad Request";
-        printP(BadRequest);
-        break;
-      }
+      P(BadRequest) = "Bad Request";
+      printP(BadRequest);
+      break;
+    }
     case 401: {
-        P(Unauthorized) = "Unauthorized";
-        printP(Unauthorized);
-        break;
-      }
+      P(Unauthorized) = "Unauthorized";
+      printP(Unauthorized);
+      break;
+    }
     case 402: {
-        P(PaymentRequired) = "Payment Required";
-        printP(PaymentRequired);
-        break;
-      }
+      P(PaymentRequired) = "Payment Required";
+      printP(PaymentRequired);
+      break;
+    }
     case 403: {
-        P(Forbidden) = "Forbidden";
-        printP(Forbidden);
-        break;
-      }
+      P(Forbidden) = "Forbidden";
+      printP(Forbidden);
+      break;
+    }
     case 404: {
-        P(NotFound) = "Not Found";
-        printP(NotFound);
-        break;
-      }
+      P(NotFound) = "Not Found";
+      printP(NotFound);
+      break;
+    }
     case 405: {
-        P(MethodNotAllowed) = "Method Not Allowed";
-        printP(MethodNotAllowed);
-        break;
-      }
+      P(MethodNotAllowed) = "Method Not Allowed";
+      printP(MethodNotAllowed);
+      break;
+    }
     case 406: {
-        P(NotAcceptable) = "Not Acceptable";
-        printP(NotAcceptable);
-        break;
-      }
+      P(NotAcceptable) = "Not Acceptable";
+      printP(NotAcceptable);
+      break;
+    }
     case 407: {
-        P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
-        printP(ProxyAuthenticationRequired);
-        break;
-      }
+      P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
+      printP(ProxyAuthenticationRequired);
+      break;
+    }
     case 408: {
-        P(RequestTimeout) = "Request Timeout";
-        printP(RequestTimeout);
-        break;
-      }
+      P(RequestTimeout) = "Request Timeout";
+      printP(RequestTimeout);
+      break;
+    }
 
     case 431: {
-        P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
-        printP(RequestHeaderFieldsTooLarge);
-        break;
-      }
+      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
+      printP(RequestHeaderFieldsTooLarge);
+      break;
+    }
     case 500: {
-        P(InternalServerError) = "Internal Server Error";
-        printP(InternalServerError);
-        break;
-      }
+      P(InternalServerError) = "Internal Server Error";
+      printP(InternalServerError);
+      break;
+    }
 #endif
     default: {
-        print(code);
-        break;
-      }
+      print(code);
+      break;
+    }
   }
 }
 
@@ -1144,9 +1106,7 @@ void Response::m_printHeaders() {
   m_headersSent = true;
 }
 
-void Response::m_printCRLF() {
-  print(CRLF);
-}
+void Response::m_printCRLF() { print(CRLF); }
 
 void Response::m_flushBuf() {
   if (m_bufFill > 0) {
@@ -1160,46 +1120,43 @@ void Response::m_reset() {
   m_clientObject->stop();
 }
 
+Router::Router(const char *urlPrefix)
+    : m_head(NULL), m_next(NULL), m_urlPrefix(urlPrefix) {}
 
-Router::Router(const char *urlPrefix):
-  m_head(NULL),
-  m_next(NULL),
-  m_urlPrefix(urlPrefix) {
-}
-
-void Router::all(const char *path, Middleware * middleware) {
+void Router::all(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void Router::del(const char *path, Middleware * middleware) {
+void Router::del(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void Router::get(const char *path, Middleware * middleware) {
+void Router::get(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::GET, path, middleware);
 }
 
-void Router::options(const char *path, Middleware * middleware) {
+void Router::options(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void Router::post(const char *path, Middleware * middleware) {
+void Router::post(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::POST, path, middleware);
 }
 
-void Router::put(const char *path, Middleware * middleware) {
+void Router::put(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Router::patch(const char *path, Middleware * middleware) {
+void Router::patch(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Router::use(Middleware * middleware) {
+void Router::use(Middleware *middleware) {
   m_addMiddleware(Request::USE, NULL, middleware);
 }
 
-void Router::m_addMiddleware(Request::MethodType type, const char *path, Middleware * middleware) {
+void Router::m_addMiddleware(Request::MethodType type, const char *path,
+                             Middleware *middleware) {
   MiddlewareNode *tail = (MiddlewareNode *)malloc(sizeof(MiddlewareNode));
   tail->path = path;
   tail->middleware = middleware;
@@ -1219,15 +1176,11 @@ void Router::m_addMiddleware(Request::MethodType type, const char *path, Middlew
   }
 }
 
-Router *Router::m_getNext() {
-  return m_next;
-}
+Router *Router::m_getNext() { return m_next; }
 
-void Router::m_setNext(Router * next) {
-  m_next = next;
-}
+void Router::m_setNext(Router *next) { m_next = next; }
 
-bool Router::m_dispatchMiddleware(Request & request, Response & response) {
+bool Router::m_dispatchMiddleware(Request &request, Response &response) {
   bool routeFound = false;
   int prefixLength = strlen(m_urlPrefix);
 
@@ -1237,7 +1190,8 @@ bool Router::m_dispatchMiddleware(Request & request, Response & response) {
     MiddlewareNode *middleware = m_head;
 
     while (middleware != NULL && !response.ended()) {
-      if (middleware->type == request.method() || middleware->type == Request::ALL ||
+      if (middleware->type == request.method() ||
+          middleware->type == Request::ALL ||
           middleware->type == Request::USE) {
         if (middleware->type == Request::USE ||
             m_routeMatch(trimmedPath, middleware->path)) {
@@ -1296,12 +1250,10 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
   return match;
 }
 
-
-Application::Application():
-  m_clientObject(NULL),
-  m_routerTail(&m_defaultRouter),
-  m_headerTail(NULL) {
-}
+Application::Application()
+    : m_clientObject(NULL),
+      m_routerTail(&m_defaultRouter),
+      m_headerTail(NULL) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1325,40 +1277,40 @@ int Application::strcmpi(const char *s1, const char *s2) {
   return 1;
 }
 
-void Application::all(const char *path, Router::Middleware * middleware) {
+void Application::all(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void Application::del(const char *path, Router::Middleware * middleware) {
+void Application::del(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void Application::get(const char *path, Router::Middleware * middleware) {
+void Application::get(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
-void Application::options(const char *path, Router::Middleware * middleware) {
+void Application::options(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void Application::patch(const char *path, Router::Middleware * middleware) {
+void Application::patch(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Application::post(const char *path, Router::Middleware * middleware) {
+void Application::post(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
-void Application::put(const char *path, Router::Middleware * middleware) {
+void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Client * client) {
+void Application::process(Client *client) {
   char request[SERVER_URL_BUFFER_SIZE];
   process(client, request, SERVER_URL_BUFFER_SIZE);
 }
 
-void Application::process(Client * client, char *buffer, int bufferLength) {
+void Application::process(Client *client, char *buffer, int bufferLength) {
   m_clientObject = client;
 
   if (m_clientObject == NULL) {
@@ -1374,12 +1326,12 @@ void Application::process(Client * client, char *buffer, int bufferLength) {
   m_response.m_reset();
 }
 
-void Application::use(Router::Middleware * middleware) {
+void Application::use(Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::USE, NULL, middleware);
 }
 
 /* Mounts a Router instance to the server. */
-void Application::route(Router * router) {
+void Application::route(Router *router) {
   Router *routerNode = m_routerTail;
 
   while (routerNode->m_getNext() != NULL) {
@@ -1444,7 +1396,7 @@ void Application::m_process() {
 
 void Application::header(const char *name, char *buffer, int bufferLength) {
   Request::HeaderNode *newNode =
-    (Request::HeaderNode *)malloc(sizeof(Request::HeaderNode));
+      (Request::HeaderNode *)malloc(sizeof(Request::HeaderNode));
 
   newNode->name = name;
   newNode->buffer = buffer;
