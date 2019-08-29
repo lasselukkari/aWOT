@@ -597,13 +597,6 @@ void Response::sendStatus(int code) {
 }
 
 void Response::set(const char *name, const char *value) {
-  for (int i = 0; i < m_headersCount; i++) {
-    if (Application::strcmpi(name, m_headers[i].name) == 0) {
-      m_headers[m_headersCount].value = value;
-      return;
-    }
-  }
-
   if (m_headersCount >= SIZE(m_headers)) {
     return;
   }
