@@ -499,7 +499,9 @@ void Request::m_reset() {
 
 Response::Response()
     : m_clientObject(NULL),
+      m_contentLenghtSet(false),
       m_contentTypeSet(false),
+      m_keepAlive(true),
       m_statusSent(false),
       m_headersSent(false),
       m_sendingStatus(false),
@@ -578,6 +580,14 @@ void Response::set(const char *name, const char *value) {
   if (Application::strcmpi(name, "Content-Type") == 0) {
     m_contentTypeSet = true;
   }
+
+  if (Application::strcmpi(name, "Content-Length") == 0) {
+    m_contentLenghtSet = true;
+  }
+
+  if (Application::strcmpi(name, "Connection") == 0) {
+    m_keepAlive = Application::strcmpi(value, "close");
+  }
 }
 
 void Response::status(int code) {
@@ -586,7 +596,7 @@ void Response::status(int code) {
   }
 
   m_sendingStatus = true;
-  P(httpVersion) = "HTTP/1.0 ";
+  P(httpVersion) = "HTTP/1.1 ";
   printP(httpVersion);
   print(code);
   print(" ");
@@ -615,7 +625,17 @@ size_t Response::write(uint8_t data) {
   m_buffer[m_bufFill++] = data;
 
   if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
+    if (m_headersSent && !m_contentLenghtSet) {
+      m_clientObject->print(m_bufFill, HEX);
+      m_clientObject->print(CRLF);
+    }
+
     m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+
+    if (m_headersSent && !m_contentLenghtSet) {
+      m_clientObject->print(CRLF);
+    }
+
     m_bufFill = 0;
   }
 
@@ -634,7 +654,18 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
   }
 
   m_flushBuf();
+
+  if (m_headersSent && !m_contentLenghtSet) {
+    m_clientObject->print(bufferLength, HEX);
+    m_clientObject->print(CRLF);
+  }
+
   m_clientObject->write(buffer, bufferLength);
+
+  if (m_headersSent && !m_contentLenghtSet) {
+    m_clientObject->print(CRLF);
+  }
+
   m_bytesSent += bufferLength;
   return bufferLength;
 }
@@ -655,7 +686,9 @@ void Response::writeP(const unsigned char *data, size_t length) {
 
 void Response::m_init(Client *client) {
   m_clientObject = client;
+  m_contentLenghtSet = false;
   m_contentTypeSet = false;
+  m_keepAlive = true;
   m_statusSent = false;
   m_headersSent = false;
   m_sendingStatus = false;
@@ -1094,6 +1127,10 @@ void Response::m_printHeaders() {
     set("Content-Type", "text/plain");
   }
 
+  if (!m_contentLenghtSet) {
+    set("Transfer-Encoding", "chunked");
+  }
+
   for (int i = 0; i < m_headersCount; i++) {
     print(m_headers[i].name);
     print(": ");
@@ -1102,6 +1139,7 @@ void Response::m_printHeaders() {
   }
 
   m_printCRLF();
+  m_flushBuf();
   m_sendingHeaders = false;
   m_headersSent = true;
 }
@@ -1110,14 +1148,33 @@ void Response::m_printCRLF() { print(CRLF); }
 
 void Response::m_flushBuf() {
   if (m_bufFill > 0) {
+    if (m_headersSent && !m_contentLenghtSet) {
+      m_clientObject->print(m_bufFill, HEX);
+      m_clientObject->print(CRLF);
+    }
+
     m_clientObject->write(m_buffer, m_bufFill);
+
+    if (m_headersSent && !m_contentLenghtSet) {
+      m_clientObject->print(CRLF);
+    }
+
     m_bufFill = 0;
   };
 }
 
 void Response::m_reset() {
   flush();
-  m_clientObject->stop();
+
+  if (m_headersSent && !m_contentLenghtSet) {
+    m_clientObject->print(0, HEX);
+    m_clientObject->print(CRLF);
+    m_clientObject->print(CRLF);
+  }
+
+  if (!m_keepAlive) {
+    m_clientObject->stop();
+  }
 }
 
 Router::Router(const char *urlPrefix)
