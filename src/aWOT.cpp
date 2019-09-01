@@ -501,7 +501,7 @@ Response::Response()
     : m_clientObject(NULL),
       m_contentLenghtSet(false),
       m_contentTypeSet(false),
-      m_keepAlive(true),
+      m_keepAlive(false),
       m_statusSent(false),
       m_headersSent(false),
       m_sendingStatus(false),
@@ -586,7 +586,7 @@ void Response::set(const char *name, const char *value) {
   }
 
   if (Application::strcmpi(name, "Connection") == 0) {
-    m_keepAlive = Application::strcmpi(value, "close");
+    m_keepAlive = Application::strcmpi(value, "keep-alive") == 0;
   }
 }
 
@@ -688,7 +688,7 @@ void Response::m_init(Client *client) {
   m_clientObject = client;
   m_contentLenghtSet = false;
   m_contentTypeSet = false;
-  m_keepAlive = true;
+  m_keepAlive = false;
   m_statusSent = false;
   m_headersSent = false;
   m_sendingStatus = false;
@@ -1129,6 +1129,10 @@ void Response::m_printHeaders() {
 
   if (!m_contentLenghtSet) {
     set("Transfer-Encoding", "chunked");
+  }
+
+  if (!m_keepAlive) {
+    set("Connection", "close");
   }
 
   for (int i = 0; i < m_headersCount; i++) {
