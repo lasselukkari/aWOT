@@ -23,7 +23,7 @@
 #include "aWOT.h"
 
 Request::Request()
-    : m_clientObject(NULL),
+    : m_stream(NULL),
       m_method(GET),
       m_pushbackDepth(0),
       m_readingContent(false),
@@ -37,7 +37,7 @@ Request::Request()
       m_pathLength(0),
       m_route(NULL) {}
 
-int Request::available() { return m_clientObject->available(); }
+int Request::available() { return m_stream->available(); }
 
 bool Request::body(uint8_t *buffer, int bufferLength) {
   memset(buffer, 0, bufferLength);
@@ -51,7 +51,7 @@ bool Request::body(uint8_t *buffer, int bufferLength) {
 
 int Request::bytesRead() { return m_bytesRead; }
 
-Client *Request::client() { return m_clientObject; }
+Stream *Request::client() { return m_stream; }
 
 char *Request::get(const char *name) {
   HeaderNode *headerNode = m_headerTail;
@@ -185,14 +185,14 @@ int Request::read() {
 
   unsigned long timeoutTime = millis() + SERVER_READ_TIMEOUT_MS;
 
-  while (m_clientObject->connected()) {
+    while (true) {
     if (m_readingContent && left() == 0) {
       return -1;
     }
 
     int ch = -1;
-    if (m_clientObject->available()) {
-      ch = m_clientObject->read();
+    if (m_stream->available()) {
+      ch = m_stream->read();
     }
 
     if (ch != -1) {
@@ -212,9 +212,6 @@ int Request::read() {
       }
     }
   }
-
-  m_timeout = true;
-  return -1;
 }
 
 bool Request::route(const char *name, char *buffer, int bufferLength) {
@@ -271,8 +268,8 @@ size_t Request::write(uint8_t data) { return 0; }
 
 void Request::flush() { return; }
 
-void Request::m_init(Client *client, char *buffer, int bufferLength) {
-  m_clientObject = client;
+void Request::m_init(Stream *client, char *buffer, int bufferLength) {
+  m_stream = client;
   m_bytesRead = 0;
   m_path = buffer;
   m_pathLength = bufferLength - 1;
@@ -498,7 +495,7 @@ void Request::m_reset() {
 }
 
 Response::Response()
-    : m_clientObject(NULL),
+    : m_stream(NULL),
       m_contentLenghtSet(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
@@ -525,9 +522,7 @@ bool Response::ended() { return m_ended; }
 void Response::flush() {
   m_flushBuf();
 
-  if (m_clientObject->connected()) {
-    m_clientObject->flush();
-  }
+  m_stream->flush();
 }
 
 const char *Response::get(const char *name) {
@@ -626,14 +621,14 @@ size_t Response::write(uint8_t data) {
 
   if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
     if (m_headersSent && !m_contentLenghtSet) {
-      m_clientObject->print(m_bufFill, HEX);
-      m_clientObject->print(CRLF);
+      m_stream->print(m_bufFill, HEX);
+      m_stream->print(CRLF);
     }
 
-    m_clientObject->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    m_stream->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
 
     if (m_headersSent && !m_contentLenghtSet) {
-      m_clientObject->print(CRLF);
+      m_stream->print(CRLF);
     }
 
     m_bufFill = 0;
@@ -656,14 +651,14 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
   m_flushBuf();
 
   if (m_headersSent && !m_contentLenghtSet) {
-    m_clientObject->print(bufferLength, HEX);
-    m_clientObject->print(CRLF);
+    m_stream->print(bufferLength, HEX);
+    m_stream->print(CRLF);
   }
 
-  m_clientObject->write(buffer, bufferLength);
+  m_stream->write(buffer, bufferLength);
 
   if (m_headersSent && !m_contentLenghtSet) {
-    m_clientObject->print(CRLF);
+    m_stream->print(CRLF);
   }
 
   m_bytesSent += bufferLength;
@@ -684,8 +679,8 @@ void Response::writeP(const unsigned char *data, size_t length) {
   }
 }
 
-void Response::m_init(Client *client) {
-  m_clientObject = client;
+void Response::m_init(Stream *client) {
+  m_stream = client;
   m_contentLenghtSet = false;
   m_contentTypeSet = false;
   m_keepAlive = false;
@@ -1153,14 +1148,14 @@ void Response::m_printCRLF() { print(CRLF); }
 void Response::m_flushBuf() {
   if (m_bufFill > 0) {
     if (m_headersSent && !m_contentLenghtSet) {
-      m_clientObject->print(m_bufFill, HEX);
-      m_clientObject->print(CRLF);
+      m_stream->print(m_bufFill, HEX);
+      m_stream->print(CRLF);
     }
 
-    m_clientObject->write(m_buffer, m_bufFill);
+    m_stream->write(m_buffer, m_bufFill);
 
     if (m_headersSent && !m_contentLenghtSet) {
-      m_clientObject->print(CRLF);
+      m_stream->print(CRLF);
     }
 
     m_bufFill = 0;
@@ -1171,13 +1166,9 @@ void Response::m_reset() {
   flush();
 
   if (m_headersSent && !m_contentLenghtSet) {
-    m_clientObject->print(0, HEX);
-    m_clientObject->print(CRLF);
-    m_clientObject->print(CRLF);
-  }
-
-  if (!m_keepAlive) {
-    m_clientObject->stop();
+    m_stream->print(0, HEX);
+    m_stream->print(CRLF);
+    m_stream->print(CRLF);
   }
 }
 
@@ -1312,7 +1303,7 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
 }
 
 Application::Application()
-    : m_clientObject(NULL),
+    : m_stream(NULL),
       m_routerTail(&m_defaultRouter),
       m_headerTail(NULL) {}
 
@@ -1366,20 +1357,20 @@ void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Client *client) {
+void Application::process(Stream *client) {
   char request[SERVER_URL_BUFFER_SIZE];
   process(client, request, SERVER_URL_BUFFER_SIZE);
 }
 
-void Application::process(Client *client, char *buffer, int bufferLength) {
-  m_clientObject = client;
+void Application::process(Stream *client, char *buffer, int bufferLength) {
+  m_stream = client;
 
-  if (m_clientObject == NULL) {
+  if (m_stream == NULL) {
     return;
   }
 
-  m_request.m_init(m_clientObject, buffer, bufferLength);
-  m_response.m_init(m_clientObject);
+  m_request.m_init(m_stream, buffer, bufferLength);
+  m_response.m_init(m_stream);
 
   m_process();
 

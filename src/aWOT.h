@@ -85,7 +85,7 @@ class Request : public Stream {
   int available();
   bool body(uint8_t* buffer, int bufferLength);
   int bytesRead();
-  Client* client();
+  Stream* client();
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
   int left();
@@ -113,7 +113,7 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Client* client, char* buffer, int bufferLength);
+  void m_init(Stream* client, char* buffer, int bufferLength);
   bool m_processMethod();
   bool m_readURL();
   void m_processURL();
@@ -126,7 +126,7 @@ class Request : public Stream {
   bool m_expect(const char* expected);
   void m_reset();
 
-  Client* m_clientObject;
+  Stream* m_stream;
   MethodType m_method;
   unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
   int m_pushbackDepth;
@@ -173,7 +173,7 @@ class Response : public Stream {
  private:
   Response();
 
-  void m_init(Client* client);
+  void m_init(Stream* client);
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();
@@ -181,7 +181,7 @@ class Response : public Stream {
   void m_flushBuf();
   void m_reset();
 
-  Client* m_clientObject;
+  Stream* m_stream;
   struct Headers {
     const char* name;
     const char* value;
@@ -252,15 +252,15 @@ class Application {
   void patch(const char* path, Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
-  void process(Client* client);
-  void process(Client* client, char* buffer, int bufferLength);
+  void process(Stream* client);
+  void process(Stream* client, char* buffer, int bufferLength);
   void route(Router* router);
   void use(Router::Middleware* middleware);
 
  private:
   void m_process();
 
-  Client* m_clientObject;
+  Stream* m_stream;
   Request m_request;
   Response m_response;
   Router* m_routerTail;
