@@ -73,6 +73,7 @@ void loop() {
 
   if (client.connected()) {
     app.process(&client);
+    client.flush();
   }
 }
 ```
