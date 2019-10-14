@@ -391,6 +391,11 @@ bool Request::m_processHeaders(HeaderNode *headerTail) {
     }
 
     if (match) {
+      if(m_expect(CRLF)) {
+        m_readingContent = true;
+        return true;
+      }
+
       continue;
     }
 
@@ -413,7 +418,7 @@ bool Request::m_headerValue(char *buffer, int bufferLength) {
     ;
   push(ch);
 
-  while ((ch = read()) != -1 && ch != '\r') {
+  while (!m_expect(CRLF) && (ch = read()) != -1) {
     if (--bufferLength > 0) {
       *buffer++ = ch;
     }
