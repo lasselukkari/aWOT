@@ -45,7 +45,6 @@ WiFiClient client = server.available();
   
 if (client.connected()) {
   app.process(&client);
-  client.flush();
 }
 ```
 </pre>
@@ -57,7 +56,6 @@ WiFiClient client = server.available();
   
 if (client.connected()) {
   app.process(&client);
-  client.flush();
 }
 ```
 

@@ -39,7 +39,6 @@ void loop() {
   
   if (client.connected()) {
     app.process(&client);
-    client.flush();
   }
 }
 </code></pre></div>
