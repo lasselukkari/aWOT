@@ -29,6 +29,14 @@ The Response class represents the HTTP response that an Express app sends when i
 </section>
 
 <section markdown="1">
+  {% include api/en/1x/res-print.md %}
+</section>
+
+<section markdown="1">
+  {% include api/en/1x/res-println.md %}
+</section>
+
+<section markdown="1">
   {% include api/en/1x/res-printP.md %}
 </section>
 
