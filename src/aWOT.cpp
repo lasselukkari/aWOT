@@ -1168,7 +1168,7 @@ void Response::m_flushBuf() {
 }
 
 void Response::m_reset() {
-  flush();
+  m_flushBuf();
 
   if (m_headersSent && !m_contentLenghtSet) {
     m_stream->print(0, HEX);
