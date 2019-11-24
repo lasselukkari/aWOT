@@ -93,6 +93,10 @@
             </li>
             <li><a href="#res.headersSent">res.headersSent()</a>
             </li>
+            <li><a href="#res.print">res.print()</a>
+            </li>
+            <li><a href="#res.println">res.println()</a>
+            </li>
             <li><a href="#res.printP">res.printP()</a>
             </li>
             <li><a href="#res.sendStatus">res.sendStatus()</a>
