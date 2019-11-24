@@ -1,5 +1,5 @@
 <h3 id='res.printP'>
-void printP(const char *string);
+void printP(const char *string);<br/>
 void printP(const unsigned char *string);
 </h3>
 
