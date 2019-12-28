@@ -607,6 +607,7 @@ void Response::status(int code) {
   m_sendingStatus = false;
 
   if (code == 204 || code == 304) {
+    m_contentLenghtSet = true;
     m_contentTypeSet = true;
   }
 }
