@@ -25,6 +25,7 @@
 Request::Request()
     : m_stream(NULL),
       m_method(GET),
+      m_minorVersion(-1),
       m_pushbackDepth(0),
       m_readingContent(false),
       m_left(0),
@@ -42,8 +43,13 @@ int Request::available() { return m_stream->available(); }
 bool Request::body(uint8_t *buffer, int bufferLength) {
   memset(buffer, 0, bufferLength);
 
-  while (left() && --bufferLength && !m_timeout) {
-    *buffer++ = read();
+  while (--bufferLength) {
+    int ch = read();
+    if (ch == -1) {
+      return false;
+    }
+
+    *buffer++ = ch;
   }
 
   return !left();
@@ -127,17 +133,16 @@ Request::MethodType Request::method() { return m_method; }
 char *Request::path() { return m_path; }
 
 int Request::peek() {
-  uint8_t c = read();
-  push(c);
+  int ch = read();
 
-  return c;
+  if (ch != -1) {
+    push(ch);
+  }
+
+  return ch;
 }
 
 void Request::push(uint8_t ch) {
-  if (ch == -1) {
-    return;
-  }
-
   m_pushback[m_pushbackDepth++] = ch;
 
   // can't raise error here, so just replace last char over and over
@@ -177,6 +182,7 @@ int Request::read() {
   if (m_timeout) {
     return -1;
   }
+
   m_timeout = false;
 
   if (m_pushbackDepth > 0) {
@@ -185,28 +191,20 @@ int Request::read() {
 
   unsigned long timeoutTime = millis() + SERVER_READ_TIMEOUT_MS;
 
-    while (true) {
-    if (m_readingContent && left() == 0) {
-      return -1;
-    }
-
-    int ch = -1;
-    if (m_stream->available()) {
-      ch = m_stream->read();
-    }
-
-    if (ch != -1) {
+  while (true) {
+    int ch;
+    if ((ch = m_stream->read()) != -1) {
       m_bytesRead++;
 
       if (m_readingContent) {
-        --m_left;
+        m_left--;
       }
 
       return ch;
     } else {
       unsigned long now = millis();
 
-      if (now > timeoutTime) {
+      if (now >= timeoutTime) {
         m_timeout = true;
         return -1;
       }
@@ -264,13 +262,17 @@ bool Request::route(int number, char *buffer, int bufferLength) {
 
 bool Request::timeout() { return m_timeout; }
 
+int Request::minorVersion() { return m_minorVersion; }
+
 size_t Request::write(uint8_t data) { return 0; }
 
 void Request::flush() { return; }
 
-void Request::m_init(Stream *client, char *buffer, int bufferLength) {
+void Request::m_init(Stream *client, HeaderNode *headerTail, char *buffer,
+                     int bufferLength) {
   m_stream = client;
   m_bytesRead = 0;
+  m_headerTail = headerTail;
   m_path = buffer;
   m_pathLength = bufferLength - 1;
   m_pushbackDepth = 0;
@@ -278,6 +280,7 @@ void Request::m_init(Stream *client, char *buffer, int bufferLength) {
   m_timeout = false;
   m_readingContent = false;
   m_method = GET;
+  m_minorVersion = -1;
 }
 
 bool Request::m_processMethod() {
@@ -310,12 +313,12 @@ bool Request::m_readURL() {
   while ((ch = read()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
          --bufferLeft) {
     if (ch == '%') {
-      char high = read();
+      int high = read();
       if (high == -1) {
         return false;
       }
 
-      char low = read();
+      int low = read();
       if (high == -1) {
         return false;
       }
@@ -343,6 +346,20 @@ bool Request::m_readURL() {
   return bufferLeft > 0;
 }
 
+bool Request::m_readVersion() {
+  while (!m_expect(CRLF)) {
+    if (m_expect("1.0")) {
+      m_minorVersion = 0;
+    } else if (m_expect("1.1")) {
+      m_minorVersion = 1;
+    } else if (read() == -1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void Request::m_processURL() {
   char *qmLocation = strchr(m_path, '?');
   int qmOffset = (qmLocation == NULL) ? 0 : 1;
@@ -356,100 +373,107 @@ void Request::m_processURL() {
   }
 }
 
-bool Request::m_processHeaders(HeaderNode *headerTail) {
-  m_headerTail = headerTail;
+bool Request::m_processHeaders() {
+  bool canEnd = true;
 
-  while (true) {
+  while (!(canEnd && m_expect(CRLF))) {
+    canEnd = false;
+
     if (m_expect("Content-Length:")) {
-      m_readInt(m_left);
-      continue;
-    }
+      if (!m_readInt(m_left) || !m_expect(CRLF)) {
+        return false;
+      }
 
-    bool match = false;
-    HeaderNode *headerNode = m_headerTail;
+      canEnd = true;
+    } else {
+      HeaderNode *headerNode = m_headerTail;
 
-    while (headerNode != NULL) {
-      if (m_expect(headerNode->name)) {
-        char c = read();
-        if (c == -1) {
-          return false;
-        }
-
-        if (c == ':') {
+      while (headerNode != NULL) {
+        if (m_expect(headerNode->name) && m_expect(":")) {
           if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
             return false;
           }
 
-          match = true;
+          canEnd = true;
           break;
-        } else {
-          push(c);
+        }
+
+        headerNode = headerNode->next;
+      }
+    }
+
+    if (!canEnd) {
+      while (!m_expect(CRLF)) {
+        if (read() == -1) {
+          return false;
         }
       }
 
-      headerNode = headerNode->next;
-    }
-
-    if (match) {
-      if(m_expect(CRLF)) {
-        m_readingContent = true;
-        return true;
-      }
-
-      continue;
-    }
-
-    if (m_expect(CRLF CRLF)) {
-      m_readingContent = true;
-      return true;
-    }
-
-    if (read() == -1) {
-      return false;
+      canEnd = true;
     }
   }
+
+  m_readingContent = true;
+
+  return true;
 }
 
 bool Request::m_headerValue(char *buffer, int bufferLength) {
   int ch;
-  memset(buffer, 0, bufferLength);
 
-  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
-    ;
-  push(ch);
+  if (buffer[0] != '\0') {
+    int length = strlen(buffer);
+    buffer[length] = ',';
+    buffer = buffer + length + 1;
+    bufferLength = bufferLength - (length + 1);
+  }
 
-  while (!m_expect(CRLF) && (ch = read()) != -1) {
+  if (!m_skipSpace()) {
+    return false;
+  }
+
+  while ((ch = read()) != -1) {
     if (--bufferLength > 0) {
       *buffer++ = ch;
     }
+
+    if (m_expect(CRLF)) {
+      *buffer = '\0';
+      return bufferLength > 0;
+    }
   }
 
-  return bufferLength > 0;
+  return false;
 }
 
 bool Request::m_readInt(int &number) {
   bool negate = false;
   bool gotNumber = false;
-  int ch;
 
-  number = 0;
+  if (!m_skipSpace()) {
+    return false;
+  }
 
-  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
-    ;
+  int ch = read();
+  if (ch == -1) {
+    return false;
+  }
 
   if (ch == '-') {
     negate = true;
     ch = read();
-    if (m_timeout) {
+    if (ch == -1) {
       return false;
     }
   }
+
+  number = 0;
 
   while (ch >= '0' && ch <= '9') {
     gotNumber = true;
     number = number * 10 + ch - '0';
     ch = read();
-    if (m_timeout) {
+    if (ch == -1) {
       return false;
     }
   }
@@ -476,6 +500,9 @@ bool Request::m_expect(const char *expected) {
   const char *candidate = expected;
   while (*candidate != 0) {
     int ch = read();
+    if (ch == -1) {
+      return false;
+    }
 
     if (tolower(ch) != tolower(*candidate++)) {
       push(ch);
@@ -487,6 +514,21 @@ bool Request::m_expect(const char *expected) {
       return false;
     }
   }
+
+  return true;
+}
+
+bool Request::m_skipSpace() {
+  int ch;
+
+  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
+    ;
+
+  if (ch == -1) {
+    return false;
+  }
+
+  push(ch);
 
   return true;
 }
@@ -1105,6 +1147,11 @@ void Response::m_printStatus(int code) {
       printP(InternalServerError);
       break;
     }
+    case 505: {
+      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
+      printP(HTTPVersionNotSupported);
+      break;
+    }
 #endif
     default: {
       print(code);
@@ -1128,11 +1175,12 @@ void Response::m_printHeaders() {
     set("Content-Type", "text/plain");
   }
 
-  if (!m_contentLenghtSet) {
+  if (m_keepAlive && !m_contentLenghtSet) {
     set("Transfer-Encoding", "chunked");
   }
 
   if (!m_keepAlive) {
+    m_contentLenghtSet = true;
     set("Connection", "close");
   }
 
@@ -1180,6 +1228,20 @@ void Response::m_reset() {
 
 Router::Router(const char *urlPrefix)
     : m_head(NULL), m_next(NULL), m_urlPrefix(urlPrefix) {}
+
+Router::~Router() {
+  MiddlewareNode *current = m_head;
+  MiddlewareNode *next;
+
+  while (current != NULL) {
+    next = current->next;
+    free(current);
+
+    current = next;
+  }
+
+  m_head = NULL;
+}
 
 void Router::all(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::ALL, path, middleware);
@@ -1309,9 +1371,7 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
 }
 
 Application::Application()
-    : m_stream(NULL),
-      m_routerTail(&m_defaultRouter),
-      m_headerTail(NULL) {}
+    : m_stream(NULL), m_routerTail(&m_defaultRouter), m_headerTail(NULL) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1333,6 +1393,19 @@ int Application::strcmpi(const char *s1, const char *s2) {
   }
 
   return 1;
+}
+
+Application::~Application() {
+  Request::HeaderNode *current = m_headerTail;
+  Request::HeaderNode *next;
+
+  while (current != NULL) {
+    next = current->next;
+    free(current);
+    current = next;
+  }
+
+  m_headerTail = NULL;
 }
 
 void Application::all(const char *path, Router::Middleware *middleware) {
@@ -1375,7 +1448,7 @@ void Application::process(Stream *client, char *buffer, int bufferLength) {
     return;
   }
 
-  m_request.m_init(m_stream, buffer, bufferLength);
+  m_request.m_init(m_stream, m_headerTail, buffer, bufferLength);
   m_response.m_init(m_stream);
 
   m_process();
@@ -1420,7 +1493,15 @@ void Application::m_process() {
 
   m_request.m_processURL();
 
-  if (!m_request.m_processHeaders(m_headerTail)) {
+  if (!m_request.m_readVersion()) {
+    if (m_request.timeout()) {
+      return m_response.sendStatus(408);
+    }
+
+    return m_response.sendStatus(505);
+  }
+
+  if (!m_request.m_processHeaders()) {
     if (m_request.timeout()) {
       return m_response.sendStatus(408);
     }
@@ -1455,6 +1536,8 @@ void Application::m_process() {
 void Application::header(const char *name, char *buffer, int bufferLength) {
   Request::HeaderNode *newNode =
       (Request::HeaderNode *)malloc(sizeof(Request::HeaderNode));
+
+  buffer[0] = '\0';
 
   newNode->name = name;
   newNode->buffer = buffer;
