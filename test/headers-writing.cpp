@@ -71,9 +71,20 @@ unittest(content_type) {
 unittest(connection_keep_alive) {
   char const *request = 
   "GET / HTTP/1.0" CRLF 
+  CRLF
+  "GET / HTTP/1.0" CRLF
   CRLF;
 
   char const *expected = 
+  "HTTP/1.1 200 OK" CRLF
+  "Connection: keep-alive" CRLF
+  "Content-Type: text/plain" CRLF
+  "Transfer-Encoding: chunked" CRLF
+  CRLF
+  "1" CRLF
+  "/" CRLF
+  "0" CRLF
+  CRLF
   "HTTP/1.1 200 OK" CRLF
   "Connection: keep-alive" CRLF
   "Content-Type: text/plain" CRLF
@@ -88,6 +99,7 @@ unittest(connection_keep_alive) {
   Application app;
 
   app.get("/", &keepAliveHandler);
+  app.process(&stream);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
