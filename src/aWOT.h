@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Client.h"
+#include "Stream.h"
 
 #define CRLF "\r\n"
 
@@ -99,6 +99,7 @@ class Request : public Stream {
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
   bool timeout();
+  int minorVersion();
 
   // dummy implementation for the stream intreface
   void flush();
@@ -113,21 +114,24 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Stream* client, char* buffer, int bufferLength);
+  void m_init(Stream* client, HeaderNode *headerTail, char* buffer, int bufferLength);
   bool m_processMethod();
   bool m_readURL();
+  bool m_readVersion();
   void m_processURL();
-  bool m_processHeaders(HeaderNode* headerTail);
+  bool m_processHeaders();
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
   void m_setRoute(int prefixLength, const char* route);
   void m_setMethod(MethodType method);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
+  bool m_skipSpace();
   void m_reset();
 
   Stream* m_stream;
   MethodType m_method;
+  int m_minorVersion;
   unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
   int m_pushbackDepth;
   bool m_readingContent;
@@ -193,7 +197,7 @@ class Response : public Stream {
   bool m_headersSent;
   bool m_sendingStatus;
   bool m_sendingHeaders;
-  unsigned int m_headersCount;
+  int m_headersCount;
   char* m_mime;
   int m_bytesSent;
   bool m_ended;
@@ -208,6 +212,7 @@ class Router {
   typedef void Middleware(Request& request, Response& response);
 
   Router(const char* urlPrefix = "");
+  ~Router();
 
   void all(const char* path, Middleware* middleware);
   void del(const char* path, Middleware* middleware);
@@ -241,6 +246,7 @@ class Router {
 class Application {
  public:
   Application();
+  ~Application();
 
   static int strcmpi(const char* s1, const char* s2);
 
