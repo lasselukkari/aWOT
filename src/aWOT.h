@@ -221,21 +221,24 @@ class Router {
   void patch(const char* path, Middleware* middleware);
   void post(const char* path, Middleware* middleware);
   void put(const char* path, Middleware* middleware);
+  void route(Router* router);
   void use(Middleware* middleware);
 
  private:
   struct MiddlewareNode {
     const char* path;
     Middleware* middleware;
+    Router* router;
     Request::MethodType type;
     MiddlewareNode* next;
   };
 
   void m_addMiddleware(Request::MethodType type, const char* path,
                        Middleware* middleware);
+  void m_mountMiddleware(MiddlewareNode *tail);
   void m_setNext(Router* next);
   Router* m_getNext();
-  bool m_dispatchMiddleware(Request& request, Response& response);
+  bool m_dispatchMiddleware(Request& request, Response& response, int urlShift = 0);
   bool m_routeMatch(const char* route, const char* pattern);
 
   MiddlewareNode* m_head;
