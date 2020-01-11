@@ -26,6 +26,7 @@ Request::Request()
     : m_stream(NULL),
       m_method(GET),
       m_minorVersion(-1),
+      m_pushback(),
       m_pushbackDepth(0),
       m_readingContent(false),
       m_left(0),
@@ -36,7 +37,9 @@ Request::Request()
       m_timeout(false),
       m_path(NULL),
       m_pathLength(0),
-      m_route(NULL) {}
+      m_prefixLength(0),
+      m_route(NULL),
+      m_next(false) {}
 
 int Request::available() { return m_stream->available(); }
 
@@ -97,7 +100,7 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
       }
 
       char low = read();
-      if (high == -1) {
+      if (low == -1) {
         return false;
       }
 
@@ -319,7 +322,7 @@ bool Request::m_readURL() {
       }
 
       int low = read();
-      if (high == -1) {
+      if (low == -1) {
         return false;
       }
 
@@ -543,6 +546,7 @@ void Request::m_reset() {
 
 Response::Response()
     : m_stream(NULL),
+      m_headers(),
       m_contentLenghtSet(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
@@ -551,8 +555,10 @@ Response::Response()
       m_sendingStatus(false),
       m_sendingHeaders(false),
       m_headersCount(0),
+      m_mime(NULL),
       m_bytesSent(0),
       m_ended(false),
+      m_buffer(),
       m_bufFill(0) {}
 
 int Response::bytesSent() { return m_bytesSent; }
@@ -1235,7 +1241,7 @@ Router::~Router() {
 
   while (current != NULL) {
     next = current->next;
-    free(current);
+    delete current;
 
     current = next;
   }
@@ -1276,7 +1282,7 @@ void Router::use(Middleware *middleware) {
 }
 
 void Router::route(Router *router) {
-  MiddlewareNode *tail = (MiddlewareNode *)malloc(sizeof(MiddlewareNode));
+  MiddlewareNode *tail = new MiddlewareNode();
   tail->router = router;
   tail->next = NULL;
   m_mountMiddleware(tail);
@@ -1284,7 +1290,7 @@ void Router::route(Router *router) {
 
 void Router::m_addMiddleware(Request::MethodType type, const char *path,
                              Middleware *middleware) {
-  MiddlewareNode *tail = (MiddlewareNode *)malloc(sizeof(MiddlewareNode));
+  MiddlewareNode *tail = new MiddlewareNode();
   tail->path = path;
   tail->middleware = middleware;
   tail->router = NULL;
@@ -1347,8 +1353,8 @@ bool Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
   return routeFound;
 }
 
-bool Router::m_routeMatch(const char *text, const char *pattern) {
-  if (pattern[0] == '\0' && text[0] == '\0') {
+bool Router::m_routeMatch(const char* route, const char* pattern) {
+  if (pattern[0] == '\0' && route[0] == '\0') {
     return true;
   }
 
@@ -1356,18 +1362,18 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
   int i = 0;
   int j = 0;
 
-  while (pattern[i] && text[j]) {
+  while (pattern[i] && route[j]) {
     if (pattern[i] == ':') {
       while (pattern[i] && pattern[i] != '/') {
         i++;
       }
 
-      while (text[j] && text[j] != '/') {
+      while (route[j] && route[j] != '/') {
         j++;
       }
 
       match = true;
-    } else if (pattern[i] == text[j]) {
+    } else if (pattern[i] == route[j]) {
       j++;
       i++;
       match = true;
@@ -1377,9 +1383,9 @@ bool Router::m_routeMatch(const char *text, const char *pattern) {
     }
   }
 
-  if (match && !pattern[i] && text[j] == '/' && !text[j]) {
+  if (match && !pattern[i] && route[j] == '/' && !route[i]) {
     match = true;
-  } else if (pattern[i] || text[j]) {
+  } else if (pattern[i] || route[j]) {
     match = false;
   }
 
@@ -1417,7 +1423,7 @@ Application::~Application() {
 
   while (current != NULL) {
     next = current->next;
-    free(current);
+    delete current;
     current = next;
   }
 
@@ -1544,8 +1550,7 @@ void Application::m_process() {
 }
 
 void Application::header(const char *name, char *buffer, int bufferLength) {
-  Request::HeaderNode *newNode =
-      (Request::HeaderNode *)malloc(sizeof(Request::HeaderNode));
+  Request::HeaderNode *newNode = new Request::HeaderNode();
 
   buffer[0] = '\0';
 
