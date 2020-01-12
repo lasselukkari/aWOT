@@ -25,18 +25,18 @@ void keepAliveContentLengthHandler(Request & req, Response & res) {
 }
 
 unittest(custom_headers) {
-  char const *request = 
-  "GET / HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Test1: test1" CRLF
-  "Test1: test2" CRLF
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "/";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Test1: test1" CRLF
+    "Test1: test2" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "/";
 
   MockStream stream(request);
   Application app;
@@ -48,16 +48,16 @@ unittest(custom_headers) {
 }
 
 unittest(content_type) {
-  char const *request = 
-  "GET / HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Content-Type: test/type" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "/";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: test/type" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "/";
 
   MockStream stream(request);
   Application app;
@@ -69,31 +69,31 @@ unittest(content_type) {
 }
 
 unittest(connection_keep_alive) {
-  char const *request = 
-  "GET / HTTP/1.0" CRLF 
-  CRLF
-  "GET / HTTP/1.0" CRLF
-  CRLF;
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF
+    "GET / HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF
-  "Connection: keep-alive" CRLF
-  "Content-Type: text/plain" CRLF
-  "Transfer-Encoding: chunked" CRLF
-  CRLF
-  "1" CRLF
-  "/" CRLF
-  "0" CRLF
-  CRLF
-  "HTTP/1.1 200 OK" CRLF
-  "Connection: keep-alive" CRLF
-  "Content-Type: text/plain" CRLF
-  "Transfer-Encoding: chunked" CRLF
-  CRLF
-  "1" CRLF
-  "/" CRLF
-  "0" CRLF
-  CRLF;
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Connection: keep-alive" CRLF
+    "Content-Type: text/plain" CRLF
+    "Transfer-Encoding: chunked" CRLF
+    CRLF
+    "1" CRLF
+    "/" CRLF
+    "0" CRLF
+    CRLF
+    "HTTP/1.1 200 OK" CRLF
+    "Connection: keep-alive" CRLF
+    "Content-Type: text/plain" CRLF
+    "Transfer-Encoding: chunked" CRLF
+    CRLF
+    "1" CRLF
+    "/" CRLF
+    "0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -106,17 +106,17 @@ unittest(connection_keep_alive) {
 }
 
 unittest(connection_keep_alive_content_length) {
-  char const *request = 
-  "GET / HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF
-  "Connection: keep-alive" CRLF
-  "Content-Length: 1" CRLF
-  "Content-Type: text/plain" CRLF
-  CRLF
-  "/";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Connection: keep-alive" CRLF
+    "Content-Length: 1" CRLF
+    "Content-Type: text/plain" CRLF
+    CRLF
+    "/";
 
   MockStream stream(request);
   Application app;

@@ -8,16 +8,16 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(root_path) {
-  char const *request = 
-  "GET /notfound HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET /notfound HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 404 Not Found" CRLF
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF
-  CRLF
-  "Not Found";
+  char const *expected =
+    "HTTP/1.1 404 Not Found" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "Not Found";
 
   MockStream stream(request);
   Application app;

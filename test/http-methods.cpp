@@ -3,18 +3,22 @@
 #include "./mocks/MockStream.h"
 
 void handler(Request &req, Response &res) {
-  res.status(204);
+  res.set("Test", "Test");
+  res.print("test");
 }
 
-unittest(http_methods_get) {
-  char const *request = 
-  "GET /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
+char const *expected =
+  "HTTP/1.1 200 OK" CRLF
+  "Test: Test" CRLF
+  "Content-Type: text/plain" CRLF
   "Connection: close" CRLF
-  CRLF;
+  CRLF
+  "test";
+
+unittest(http_methods_get) {
+  char const *request =
+    "GET /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -26,14 +30,9 @@ unittest(http_methods_get) {
 }
 
 unittest(http_methods_post) {
-  char const *request = 
-  "POST /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
-  "Connection: close" CRLF
-  CRLF;
+  char const *request =
+    "POST /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -45,14 +44,9 @@ unittest(http_methods_post) {
 }
 
 unittest(http_methods_put) {
-  char const *request = 
-  "PUT /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
-  "Connection: close" CRLF
-  CRLF;
+  char const *request =
+    "PUT /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -63,14 +57,9 @@ unittest(http_methods_put) {
 }
 
 unittest(http_methods_patch) {
-  char const *request = 
-  "PATCH /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
-  "Connection: close" CRLF
-  CRLF;
+  char const *request =
+    "PATCH /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -82,14 +71,9 @@ unittest(http_methods_patch) {
 }
 
 unittest(http_methods_delete) {
-  char const *request = 
-  "DELETE /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
-  "Connection: close" CRLF
-  CRLF;
+  char const *request =
+    "DELETE /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -101,14 +85,9 @@ unittest(http_methods_delete) {
 }
 
 unittest(http_methods_options) {
-  char const *request = 
-  "OPTIONS /test HTTP/1.0" CRLF
-  CRLF;
-
-  char const *expected = 
-  "HTTP/1.1 204 No Content" CRLF
-  "Connection: close" CRLF
-  CRLF;
+  char const *request =
+    "OPTIONS /test HTTP/1.0" CRLF
+    CRLF;
 
   MockStream stream(request);
   Application app;
@@ -117,6 +96,27 @@ unittest(http_methods_options) {
   app.process(&stream);
 
   assertEqual(expected, stream.response());
+}
+
+unittest(http_methods_head) {
+  char const *request =
+    "HEAD /test HTTP/1.0" CRLF
+    CRLF;
+
+  char const *noBody =
+    "HTTP/1.1 200 OK" CRLF
+    "Test: Test" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF;
+
+  MockStream stream(request);
+  Application app;
+
+  app.get("/test", &handler);
+  app.process(&stream);
+
+  assertEqual(noBody, stream.response());
 }
 
 unittest_main()

@@ -25,16 +25,16 @@ void afterAll(Request &req, Response &res) {
 }
 
 unittest(nested_routers) {
-  char const *request = 
-   "GET /router1/router2/router3/route/test HTTP/1.0" CRLF
-  CRLF;
+  char const *request =
+    "GET /router1/router2/router3/route/test HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "beforeAll-beforeRouter-test-afterRouter-afterAll";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "beforeAll-beforeRouter-test-afterRouter-afterAll";
 
   MockStream stream(request);
   Router router1("/router1");
