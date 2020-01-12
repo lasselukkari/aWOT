@@ -552,6 +552,7 @@ Response::Response()
       m_keepAlive(false),
       m_statusSent(false),
       m_headersSent(false),
+      m_noBody(false),
       m_sendingStatus(false),
       m_sendingHeaders(false),
       m_headersCount(0),
@@ -564,9 +565,6 @@ Response::Response()
 int Response::bytesSent() { return m_bytesSent; }
 
 void Response::end() {
-  if (m_shouldPrintHeaders()) {
-    m_printHeaders();
-  }
   m_ended = true;
 }
 
@@ -597,6 +595,10 @@ void Response::printP(const unsigned char *string) {
 
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
+  }
+
+  if(m_noBody && m_headersSent){
+    return;
   }
 
   while (uint8_t value = pgm_read_byte(string++)) {
@@ -671,6 +673,10 @@ size_t Response::write(uint8_t data) {
     m_printHeaders();
   }
 
+  if(m_noBody && m_headersSent){
+    return 0;
+  }
+
   m_buffer[m_bufFill++] = data;
 
   if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
@@ -702,6 +708,10 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
     m_printHeaders();
   }
 
+  if(m_noBody && m_headersSent){
+    return 0;
+  }
+
   m_flushBuf();
 
   if (m_headersSent && !m_contentLenghtSet) {
@@ -728,6 +738,10 @@ void Response::writeP(const unsigned char *data, size_t length) {
     m_printHeaders();
   }
 
+  if(m_noBody && m_headersSent){
+    return;
+  }
+
   while (length--) {
     write(pgm_read_byte(data++));
   }
@@ -740,6 +754,7 @@ void Response::m_init(Stream *client) {
   m_keepAlive = false;
   m_statusSent = false;
   m_headersSent = false;
+  m_noBody = false;
   m_sendingStatus = false;
   m_sendingHeaders = false;
   m_bytesSent = 0;
@@ -752,6 +767,8 @@ int Response::available() { return 0; }
 int Response::read() { return -1; }
 
 int Response::peek() { return -1; }
+
+void Response::m_disableBody() { m_noBody = true ; }
 
 void Response::m_printStatus(int code) {
   switch (code) {
@@ -1527,7 +1544,7 @@ void Application::m_process() {
 
   if (m_request.method() == Request::HEAD) {
     m_request.m_setMethod(Request::GET);
-    m_response.end();
+    m_response.m_disableBody();
   }
 
   Router *routerNode = m_routerTail;

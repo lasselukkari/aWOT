@@ -8,16 +8,16 @@ void handler(Request & req, Response & res) {
 }
 
 unittest(root_path) {
-  char const *request = 
-  "GET / HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "/";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "/";
 
   MockStream stream(request);
   Application app;

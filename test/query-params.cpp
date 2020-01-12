@@ -21,16 +21,16 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(query_params_ok) {
-  char const *request = 
-  "GET /query?test1=test1&test2=test2 HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET /query?test1=test1&test2=test2 HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "test1 test2";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "test1 test2";
 
   MockStream stream(request);
   Application app;
@@ -42,16 +42,16 @@ unittest(query_params_ok) {
 }
 
 unittest(query_params_value_too_long) {
-  char const *request = 
-  "GET /query?test1=123456&test2=test2 HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET /query?test1=123456&test2=test2 HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 400 Bad Request" CRLF
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF
-  CRLF
-  "Bad Request";;
+  char const *expected =
+    "HTTP/1.1 400 Bad Request" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "Bad Request";;
 
   MockStream stream(request);
   Application app;
@@ -63,16 +63,16 @@ unittest(query_params_value_too_long) {
 }
 
 unittest(router_query_params) {
-  char const *request = 
-  "GET /router/query?test1=test1&test2=test2 HTTP/1.0" CRLF 
-  CRLF;
+  char const *request =
+    "GET /router/query?test1=test1&test2=test2 HTTP/1.0" CRLF
+    CRLF;
 
-  char const *expected = 
-  "HTTP/1.1 200 OK" CRLF 
-  "Content-Type: text/plain" CRLF
-  "Connection: close" CRLF 
-  CRLF 
-  "test1 test2";
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "test1 test2";
 
   MockStream stream(request);
   Router router("/router");

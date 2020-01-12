@@ -178,6 +178,7 @@ class Response : public Stream {
   Response();
 
   void m_init(Stream* client);
+  void m_disableBody();
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();
@@ -195,6 +196,7 @@ class Response : public Stream {
   bool m_keepAlive;
   bool m_statusSent;
   bool m_headersSent;
+  bool m_noBody;
   bool m_sendingStatus;
   bool m_sendingHeaders;
   int m_headersCount;
