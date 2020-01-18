@@ -94,8 +94,8 @@ void postParams(Request &req, Response &res) {
   char name[10];
   char value[64];
 
-  while (req.contentLeft()) {
-    req.postParam(name, 10, value, 64);
+  while (req.left()) {
+    req.form(name, 10, value, 64);
     res.print(name);
     res.print(": ");
     res.println(value);
