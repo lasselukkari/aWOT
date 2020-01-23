@@ -83,7 +83,6 @@ class Request : public Stream {
   enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
 
   int available();
-  bool body(uint8_t* buffer, int bufferLength);
   int bytesRead();
   Stream* client();
   bool form(char* name, int nameLength, char* value, int valueLength);

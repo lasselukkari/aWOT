@@ -43,21 +43,6 @@ Request::Request()
 
 int Request::available() { return m_stream->available(); }
 
-bool Request::body(uint8_t *buffer, int bufferLength) {
-  memset(buffer, 0, bufferLength);
-
-  while (--bufferLength) {
-    int ch = read();
-    if (ch == -1) {
-      return false;
-    }
-
-    *buffer++ = ch;
-  }
-
-  return !left();
-}
-
 int Request::bytesRead() { return m_bytesRead; }
 
 Stream *Request::client() { return m_stream; }
