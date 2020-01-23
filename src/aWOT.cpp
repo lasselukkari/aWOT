@@ -239,10 +239,6 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
-void Request::setTimeout(unsigned long timeoutMillis) {
-  _timeout = timeoutMillis;
-}
-
 bool Request::timeout() { return m_timeout; }
 
 int Request::minorVersion() { return m_minorVersion; }
