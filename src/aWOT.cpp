@@ -41,21 +41,8 @@ Request::Request()
       m_route(NULL),
       m_next(false) {}
 
-int Request::available() { return m_stream->available(); }
-
-bool Request::body(uint8_t *buffer, int bufferLength) {
-  memset(buffer, 0, bufferLength);
-
-  while (--bufferLength) {
-    int ch = read();
-    if (ch == -1) {
-      return false;
-    }
-
-    *buffer++ = ch;
-  }
-
-  return !left();
+int Request::available() {
+  return min(m_stream->available(), m_left);
 }
 
 int Request::bytesRead() { return m_bytesRead; }
@@ -182,7 +169,7 @@ bool Request::query(const char *name, char *buffer, int bufferLength) {
 }
 
 int Request::read() {
-  if (m_timeout) {
+  if (m_timeout || (m_readingContent && !m_left)) {
     return -1;
   }
 

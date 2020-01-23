@@ -40,7 +40,7 @@ class MockStream : public Stream {
     return readBuffer[readPosition++];
   };
 
-  int available() { return readPosition - readBufferLenght; };
+  int available() { return readBufferLenght - readPosition; };
 
   void flush(){};
 
