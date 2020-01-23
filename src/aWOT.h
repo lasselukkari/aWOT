@@ -64,10 +64,6 @@
 #define SERVER_MAX_HEADERS 10
 #endif
 
-#ifndef SERVER_READ_TIMEOUT_MS
-#define SERVER_READ_TIMEOUT_MS 1000
-#endif
-
 #ifdef _VARIANT_ARDUINO_DUE_X_
 #define pgm_read_byte(ptr) (unsigned char)(*ptr)
 #endif
@@ -97,6 +93,7 @@ class Request : public Stream {
   int read();
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
+  void setTimeout(unsigned long timeoutMillis);
   bool timeout();
   int minorVersion();
 
@@ -113,7 +110,7 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Stream* client, HeaderNode *headerTail, char* buffer, int bufferLength);
+  void m_init(Stream* client, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
   bool m_processMethod();
   bool m_readURL();
   bool m_readVersion();
@@ -265,17 +262,18 @@ class Application {
   void process(Stream* client);
   void process(Stream* client, char* buffer, int bufferLength);
   void route(Router* router);
+  void setTimeout(unsigned long timeoutMillis);
   void use(Router::Middleware* middleware);
 
  private:
   void m_process();
 
-  Stream* m_stream;
   Request m_request;
   Response m_response;
   Router* m_routerTail;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
+  unsigned long m_timeout;
 };
 
 #endif

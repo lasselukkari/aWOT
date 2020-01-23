@@ -14,7 +14,6 @@ platforms:
     gcc:
       defines:
         - __AVR_ATmega2560__
-        - SERVER_READ_TIMEOUT_MS=0
 
 compile:
   platforms:
