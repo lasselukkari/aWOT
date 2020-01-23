@@ -71,7 +71,7 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
   memset(name, 0, nameLength);
   memset(value, 0, valueLength);
 
-  while ((ch = read()) != -1) {
+  while ((ch = timedRead()) != -1) {
     foundSomething = true;
     if (ch == '+') {
       ch = ' ';
@@ -81,12 +81,12 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
     } else if (ch == '&') {
       return nameLength > 0 && valueLength > 0;
     } else if (ch == '%') {
-      char high = read();
+      char high = timedRead();
       if (high == -1) {
         return false;
       }
 
-      char low = read();
+      char low = timedRead();
       if (low == -1) {
         return false;
       }
@@ -169,37 +169,26 @@ bool Request::query(const char *name, char *buffer, int bufferLength) {
 }
 
 int Request::read() {
-  if (m_timeout || (m_readingContent && !m_left)) {
+  if (m_readingContent && !m_left) {
     return -1;
   }
-
-  m_timeout = false;
 
   if (m_pushbackDepth > 0) {
     return m_pushback[--m_pushbackDepth];
   }
 
-  unsigned long timeoutTime = millis() + SERVER_READ_TIMEOUT_MS;
+  int ch = m_stream->read();
+  if (ch == -1) {
+    m_timeout = true;
+  } else {
+    m_bytesRead++;
 
-  while (true) {
-    int ch;
-    if ((ch = m_stream->read()) != -1) {
-      m_bytesRead++;
-
-      if (m_readingContent) {
-        m_left--;
-      }
-
-      return ch;
-    } else {
-      unsigned long now = millis();
-
-      if (now >= timeoutTime) {
-        m_timeout = true;
-        return -1;
-      }
+    if (m_readingContent) {
+      m_left--;
     }
   }
+
+  return ch;
 }
 
 bool Request::route(const char *name, char *buffer, int bufferLength) {
@@ -250,6 +239,10 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
+void Request::setTimeout(unsigned long timeoutMillis) {
+  _timeout = timeoutMillis;
+}
+
 bool Request::timeout() { return m_timeout; }
 
 int Request::minorVersion() { return m_minorVersion; }
@@ -259,7 +252,7 @@ size_t Request::write(uint8_t data) { return 0; }
 void Request::flush() { return; }
 
 void Request::m_init(Stream *client, HeaderNode *headerTail, char *buffer,
-                     int bufferLength) {
+                     int bufferLength, unsigned long timeout) {
   m_stream = client;
   m_bytesRead = 0;
   m_headerTail = headerTail;
@@ -271,6 +264,8 @@ void Request::m_init(Stream *client, HeaderNode *headerTail, char *buffer,
   m_readingContent = false;
   m_method = GET;
   m_minorVersion = -1;
+
+  _timeout = timeout;
 }
 
 bool Request::m_processMethod() {
@@ -300,15 +295,15 @@ bool Request::m_readURL() {
   int bufferLeft = m_pathLength;
   int ch;
 
-  while ((ch = read()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
+  while ((ch = timedRead()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
          --bufferLeft) {
     if (ch == '%') {
-      int high = read();
+      int high = timedRead();
       if (high == -1) {
         return false;
       }
 
-      int low = read();
+      int low = timedRead();
       if (low == -1) {
         return false;
       }
@@ -342,7 +337,7 @@ bool Request::m_readVersion() {
       m_minorVersion = 0;
     } else if (m_expect("1.1")) {
       m_minorVersion = 1;
-    } else if (read() == -1) {
+    } else if (timedRead() == -1) {
       return false;
     }
   }
@@ -394,7 +389,7 @@ bool Request::m_processHeaders() {
 
     if (!canEnd) {
       while (!m_expect(CRLF)) {
-        if (read() == -1) {
+        if (timedRead() == -1) {
           return false;
         }
       }
@@ -422,7 +417,7 @@ bool Request::m_headerValue(char *buffer, int bufferLength) {
     return false;
   }
 
-  while ((ch = read()) != -1) {
+  while ((ch = timedRead()) != -1) {
     if (--bufferLength > 0) {
       *buffer++ = ch;
     }
@@ -444,14 +439,14 @@ bool Request::m_readInt(int &number) {
     return false;
   }
 
-  int ch = read();
+  int ch = timedRead();
   if (ch == -1) {
     return false;
   }
 
   if (ch == '-') {
     negate = true;
-    ch = read();
+    ch = timedRead();
     if (ch == -1) {
       return false;
     }
@@ -462,7 +457,7 @@ bool Request::m_readInt(int &number) {
   while (ch >= '0' && ch <= '9') {
     gotNumber = true;
     number = number * 10 + ch - '0';
-    ch = read();
+    ch = timedRead();
     if (ch == -1) {
       return false;
     }
@@ -489,7 +484,7 @@ int Request::m_getUrlPathLength() { return m_pathLength; }
 bool Request::m_expect(const char *expected) {
   const char *candidate = expected;
   while (*candidate != 0) {
-    int ch = read();
+    int ch = timedRead();
     if (ch == -1) {
       return false;
     }
@@ -511,7 +506,7 @@ bool Request::m_expect(const char *expected) {
 bool Request::m_skipSpace() {
   int ch;
 
-  while ((ch = read()) != -1 && (ch == ' ' || ch == '\t'))
+  while ((ch = timedRead()) != -1 && (ch == ' ' || ch == '\t'))
     ;
 
   if (ch == -1) {
@@ -1397,7 +1392,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_stream(NULL), m_routerTail(&m_defaultRouter), m_headerTail(NULL) {}
+    : m_routerTail(&m_defaultRouter), m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1462,20 +1457,18 @@ void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Stream *client) {
+void Application::process(Stream *stream) {
   char request[SERVER_URL_BUFFER_SIZE];
-  process(client, request, SERVER_URL_BUFFER_SIZE);
+  process(stream, request, SERVER_URL_BUFFER_SIZE);
 }
 
-void Application::process(Stream *client, char *buffer, int bufferLength) {
-  m_stream = client;
-
-  if (m_stream == NULL) {
+void Application::process(Stream *stream, char *buffer, int bufferLength) {
+  if (stream == NULL) {
     return;
   }
 
-  m_request.m_init(m_stream, m_headerTail, buffer, bufferLength);
-  m_response.m_init(m_stream);
+  m_request.m_init(stream, m_headerTail, buffer, bufferLength, m_timeout);
+  m_response.m_init(stream);
 
   m_process();
 
@@ -1487,7 +1480,10 @@ void Application::use(Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::USE, NULL, middleware);
 }
 
-/* Mounts a Router instance to the server. */
+void Application::setTimeout(unsigned long timeoutMillis) {
+  m_timeout = timeoutMillis;
+}
+
 void Application::route(Router *router) {
   m_defaultRouter.route(router);
 }
