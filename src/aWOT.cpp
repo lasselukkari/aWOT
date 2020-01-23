@@ -182,7 +182,7 @@ bool Request::query(const char *name, char *buffer, int bufferLength) {
 }
 
 int Request::read() {
-  if (m_timeout) {
+  if (m_timeout || (m_readingContent && !m_left)) {
     return -1;
   }
 
