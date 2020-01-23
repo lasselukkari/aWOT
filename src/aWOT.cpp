@@ -42,7 +42,7 @@ Request::Request()
       m_next(false) {}
 
 int Request::available() {
-  return min(m_stream->available(), m_left);
+  return min(m_stream->available(), m_left + m_pushbackDepth);
 }
 
 int Request::bytesRead() { return m_bytesRead; }
@@ -116,7 +116,7 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
   return foundSomething && nameLength > 0 && valueLength > 0;
 }
 
-int Request::left() { return m_left; }
+int Request::left() { return m_left + m_pushbackDepth; }
 
 Request::MethodType Request::method() { return m_method; }
 
@@ -169,12 +169,12 @@ bool Request::query(const char *name, char *buffer, int bufferLength) {
 }
 
 int Request::read() {
-  if (m_readingContent && !m_left) {
-    return -1;
-  }
-
   if (m_pushbackDepth > 0) {
     return m_pushback[--m_pushbackDepth];
+  }
+
+  if (m_readingContent && !m_left) {
+    return -1;
   }
 
   int ch = m_stream->read();
