@@ -41,7 +41,9 @@ Request::Request()
       m_route(NULL),
       m_next(false) {}
 
-int Request::available() { return m_stream->available(); }
+int Request::available() {
+  return min(m_stream->available(), m_left);
+}
 
 int Request::bytesRead() { return m_bytesRead; }
 
