@@ -174,6 +174,7 @@ int Request::read() {
   }
 
   if (m_readingContent && !m_left) {
+    _timeout = 0;
     return -1;
   }
 
