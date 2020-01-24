@@ -93,7 +93,6 @@ class Request : public Stream {
   int read();
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
-  void setTimeout(unsigned long timeoutMillis);
   bool timeout();
   int minorVersion();
 
