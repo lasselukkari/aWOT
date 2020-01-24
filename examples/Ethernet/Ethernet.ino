@@ -43,6 +43,7 @@ void setup() {
 void loop(){
   EthernetClient client = server.available();
   if (client.connected()) {
-      app.process(&client);
+    app.process(&client);
+    client.stop();
   }
 }
