@@ -71,79 +71,7 @@
 #define P(name) static const unsigned char name[] PROGMEM
 #define SIZE(array) (sizeof(array) / sizeof(*array))
 
-class Request : public Stream {
-  friend class Application;
-  friend class Router;
-
- public:
-  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
-
-  int available();
-  int bytesRead();
-  Stream* client();
-  bool form(char* name, int nameLength, char* value, int valueLength);
-  char* get(const char* name);
-  int left();
-  MethodType method();
-  char* path();
-  int peek();
-  void push(uint8_t ch);
-  char* query();
-  bool query(const char* name, char* buffer, int bufferLength);
-  int read();
-  bool route(const char* name, char* buffer, int bufferLength);
-  bool route(int number, char* buffer, int bufferLength);
-  bool timeout();
-  int minorVersion();
-
-  // dummy implementation for the stream intreface
-  void flush();
-  size_t write(uint8_t data);
-
- private:
-  struct HeaderNode {
-    const char* name;
-    char* buffer;
-    int bufferLength;
-    HeaderNode* next;
-  };
-
-  Request();
-  void m_init(Stream* client, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
-  bool m_processMethod();
-  bool m_readURL();
-  bool m_readVersion();
-  void m_processURL();
-  bool m_processHeaders();
-  bool m_headerValue(char* buffer, int bufferLength);
-  bool m_readInt(int& number);
-  void m_setRoute(int prefixLength, const char* route);
-  void m_setMethod(MethodType method);
-  int m_getUrlPathLength();
-  bool m_expect(const char* expected);
-  bool m_skipSpace();
-  void m_reset();
-
-  Stream* m_stream;
-  MethodType m_method;
-  int m_minorVersion;
-  unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
-  int m_pushbackDepth;
-  bool m_readingContent;
-  int m_left;
-  int m_bytesRead;
-  HeaderNode* m_headerTail;
-  char* m_query;
-  int m_queryLength;
-  bool m_timeout;
-  char* m_path;
-  int m_pathLength;
-  int m_prefixLength;
-  const char* m_route;
-  bool m_next;
-};
-
-class Response : public Stream {
+class Response : public Print {
   friend class Application;
   friend class Router;
 
@@ -163,11 +91,6 @@ class Response : public Stream {
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
-
-  // dummy implementation for the stream intreface
-  int available();
-  int peek();
-  int read();
 
  private:
   Response();
@@ -200,6 +123,78 @@ class Response : public Stream {
   bool m_ended;
   uint8_t m_buffer[SERVER_OUTPUT_BUFFER_SIZE];
   int m_bufFill;
+};
+
+class Request : public Stream {
+  friend class Application;
+  friend class Router;
+
+ public:
+  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
+
+  int available();
+  int bytesRead();
+  Stream* client();
+  void flush();
+  bool form(char* name, int nameLength, char* value, int valueLength);
+  char* get(const char* name);
+  int left();
+  MethodType method();
+  char* path();
+  int peek();
+  void push(uint8_t ch);
+  char* query();
+  bool query(const char* name, char* buffer, int bufferLength);
+  int read();
+  bool route(const char* name, char* buffer, int bufferLength);
+  bool route(int number, char* buffer, int bufferLength);
+  bool timeout();
+  int minorVersion();
+  size_t write(uint8_t data);
+  size_t write(uint8_t* buffer, size_t bufferLength);
+
+ private:
+  struct HeaderNode {
+    const char* name;
+    char* buffer;
+    int bufferLength;
+    HeaderNode* next;
+  };
+
+  Request();
+  void m_init(Stream* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
+  bool m_processMethod();
+  bool m_readURL();
+  bool m_readVersion();
+  void m_processURL();
+  bool m_processHeaders();
+  bool m_headerValue(char* buffer, int bufferLength);
+  bool m_readInt(int& number);
+  void m_setRoute(int prefixLength, const char* route);
+  void m_setMethod(MethodType method);
+  int m_getUrlPathLength();
+  bool m_expect(const char* expected);
+  bool m_skipSpace();
+  void m_reset();
+
+  Stream* m_stream;
+  Response* m_response;
+  MethodType m_method;
+  int m_minorVersion;
+  unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
+  int m_pushbackDepth;
+  bool m_readingContent;
+  int m_left;
+  int m_bytesRead;
+  HeaderNode* m_headerTail;
+  char* m_query;
+  int m_queryLength;
+  bool m_timeout;
+  char* m_path;
+  int m_pathLength;
+  int m_prefixLength;
+  const char* m_route;
+  bool m_next;
 };
 
 class Router {
