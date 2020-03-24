@@ -240,12 +240,6 @@ void Response::m_init(Stream *client) {
   m_ended = false;
 }
 
-int Response::available() { return 0; }
-
-int Response::read() { return -1; }
-
-int Response::peek() { return -1; }
-
 void Response::m_disableBody() { m_noBody = true ; }
 
 void Response::m_printStatus(int code) {

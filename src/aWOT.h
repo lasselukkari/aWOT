@@ -70,7 +70,8 @@
 
 #define P(name) static const unsigned char name[] PROGMEM
 #define SIZE(array) (sizeof(array) / sizeof(*array))
-class Response : public Stream {
+
+class Response : public Print {
   friend class Application;
   friend class Router;
 
@@ -90,11 +91,6 @@ class Response : public Stream {
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
-
-  // dummy implementation for the stream intreface
-  int available();
-  int peek();
-  int read();
 
  private:
   Response();
