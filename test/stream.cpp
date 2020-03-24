@@ -17,6 +17,10 @@ void readBytesHandler(Request &req, Response &res) {
   res.print(type);
 }
 
+void reqPrintHandler(Request &req, Response &res) {
+  req.print("TEST");
+}
+
 unittest(req_available) {
   char const *request =
     "POST / HTTP/1.0" CRLF
@@ -130,6 +134,27 @@ unittest(req_read_bytes_timeout) {
   Application app;
 
   app.post("/", &readBytesHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
+unittest(req_print) {
+  char const *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
+
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "TEST";
+
+  MockStream stream(request);
+  Application app;
+
+  app.get("/", &reqPrintHandler);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
