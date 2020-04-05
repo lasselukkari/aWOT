@@ -76,6 +76,7 @@ class Response : public Print {
   friend class Router;
 
  public:
+  int availableForWrite();
   int bytesSent();
   void end();
   bool ended();
@@ -133,6 +134,7 @@ class Request : public Stream {
   enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
 
   int available();
+  int availableForWrite();
   int bytesRead();
   Stream* client();
   void flush();

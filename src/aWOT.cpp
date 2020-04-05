@@ -40,6 +40,10 @@ Response::Response()
       m_buffer(),
       m_bufFill(0) {}
 
+int Response::availableForWrite() {
+  return SERVER_OUTPUT_BUFFER_SIZE - m_bufFill - 1;
+}
+
 int Response::bytesSent() { return m_bytesSent; }
 
 void Response::end() {
@@ -740,6 +744,10 @@ Request::Request()
       m_prefixLength(0),
       m_route(NULL),
       m_next(false) {}
+
+int Request::availableForWrite() {
+  return m_response->availableForWrite();
+}
 
 int Request::available() {
   return min(m_stream->available(), m_left + m_pushbackDepth);
