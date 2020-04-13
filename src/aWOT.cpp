@@ -952,7 +952,7 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
-bool Request::timeout() { return m_timeout; }
+bool Request::timedout() { return m_timeout; }
 
 int Request::minorVersion() { return m_minorVersion; }
 
@@ -1501,7 +1501,7 @@ void Application::m_process() {
   bool routeMatch = false;
 
   if (!m_request.m_processMethod()) {
-    if (m_request.timeout()) {
+    if (m_request.timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1509,7 +1509,7 @@ void Application::m_process() {
   }
 
   if (!m_request.m_readURL()) {
-    if (m_request.timeout()) {
+    if (m_request.timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1519,7 +1519,7 @@ void Application::m_process() {
   m_request.m_processURL();
 
   if (!m_request.m_readVersion()) {
-    if (m_request.timeout()) {
+    if (m_request.timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1527,7 +1527,7 @@ void Application::m_process() {
   }
 
   if (!m_request.m_processHeaders()) {
-    if (m_request.timeout()) {
+    if (m_request.timedout()) {
       return m_response.sendStatus(408);
     }
 

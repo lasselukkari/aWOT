@@ -150,7 +150,7 @@ class Request : public Stream {
   int read();
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
-  bool timeout();
+  bool timedout();
   int minorVersion();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
