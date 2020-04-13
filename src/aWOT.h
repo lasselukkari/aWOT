@@ -136,7 +136,7 @@ class Request : public Stream {
   int available();
   int availableForWrite();
   int bytesRead();
-  Stream* client();
+  Stream* stream();
   void flush();
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
@@ -150,7 +150,7 @@ class Request : public Stream {
   int read();
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
-  bool timeout();
+  bool timedout();
   int minorVersion();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
@@ -191,7 +191,7 @@ class Request : public Stream {
   HeaderNode* m_headerTail;
   char* m_query;
   int m_queryLength;
-  bool m_timeout;
+  bool m_timedout;
   char* m_path;
   int m_pathLength;
   int m_prefixLength;
@@ -269,7 +269,7 @@ class Application {
   Router* m_routerTail;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
-  unsigned long m_timeout;
+  unsigned long m_timedout;
 };
 
 #endif
