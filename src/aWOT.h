@@ -191,7 +191,7 @@ class Request : public Stream {
   HeaderNode* m_headerTail;
   char* m_query;
   int m_queryLength;
-  bool m_timeout;
+  bool m_timedout;
   char* m_path;
   int m_pathLength;
   int m_prefixLength;
@@ -269,7 +269,7 @@ class Application {
   Router* m_routerTail;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
-  unsigned long m_timeout;
+  unsigned long m_timedout;
 };
 
 #endif

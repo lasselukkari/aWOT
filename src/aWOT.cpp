@@ -738,7 +738,7 @@ Request::Request()
       m_headerTail(NULL),
       m_query(NULL),
       m_queryLength(0),
-      m_timeout(false),
+      m_timedout(false),
       m_path(NULL),
       m_pathLength(0),
       m_prefixLength(0),
@@ -892,7 +892,7 @@ int Request::read() {
 
   int ch = m_stream->read();
   if (ch == -1) {
-    m_timeout = true;
+    m_timedout = true;
   } else {
     m_bytesRead++;
 
@@ -952,7 +952,7 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
-bool Request::timedout() { return m_timeout; }
+bool Request::timedout() { return m_timedout; }
 
 int Request::minorVersion() { return m_minorVersion; }
 
@@ -974,7 +974,7 @@ void Request::m_init(Stream *client, Response *response, HeaderNode *headerTail,
   m_pathLength = bufferLength - 1;
   m_pushbackDepth = 0;
   m_left = 0;
-  m_timeout = false;
+  m_timedout = false;
   m_readingContent = false;
   m_method = GET;
   m_minorVersion = -1;
@@ -1401,7 +1401,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_routerTail(&m_defaultRouter), m_headerTail(NULL), m_timeout(1000) {}
+    : m_routerTail(&m_defaultRouter), m_headerTail(NULL), m_timedout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1476,7 +1476,7 @@ void Application::process(Stream *stream, char *buffer, int bufferLength) {
     return;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout);
+  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timedout);
   m_response.m_init(stream);
 
   m_process();
@@ -1490,7 +1490,7 @@ void Application::use(Router::Middleware *middleware) {
 }
 
 void Application::setTimeout(unsigned long timeoutMillis) {
-  m_timeout = timeoutMillis;
+  m_timedout = timeoutMillis;
 }
 
 void Application::route(Router *router) {
