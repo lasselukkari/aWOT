@@ -755,7 +755,7 @@ int Request::available() {
 
 int Request::bytesRead() { return m_bytesRead; }
 
-Stream *Request::client() { return m_stream; }
+Stream *Request::stream() { return m_stream; }
 
 char *Request::get(const char *name) {
   HeaderNode *headerNode = m_headerTail;

@@ -136,7 +136,7 @@ class Request : public Stream {
   int available();
   int availableForWrite();
   int bytesRead();
-  Stream* client();
+  Stream* stream();
   void flush();
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
