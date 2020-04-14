@@ -157,8 +157,10 @@ li code {
 }
 
 #api-doc section {
-  padding-left: 20px;
+  margin-bottom: 30px;
 }
+
+
 
 #api-doc > h3 {
   padding-top: 10px;
@@ -175,10 +177,11 @@ li code {
 }
 
 #api-doc section h3 {
+  margin-bottom: 0; 
   padding-top: 10px;
   padding-bottom: 5px;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 22px;
 }
 
 #api-doc h4 {
@@ -186,7 +189,14 @@ li code {
   font-weight: bold;
 }
 
+#api-doc h4.variant {
+  margin-top: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
 #api-doc h5 {
+  margin-bottom: 5px;
   font-size: 14px;
   font-weight: bold;
   color: #666;
@@ -205,7 +215,7 @@ a {
 }
 
 #api-doc *:target, #page-doc *:target {
- margin-top: -60px;
+ margin-top: -50px;
  padding-top: 60px;
  z-index: -1;
 }

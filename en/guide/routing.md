@@ -13,7 +13,7 @@ For an introduction to routing, see [Basic routing](/{{ page.lang }}/starter/bas
 
 You define routing using methods of the aWOT `Application` instance object that correspond to HTTP methods;
 for example, `app.get()` to handle GET requests and `app.post()` to handle POST requests.  For a full list,
-see [req.methodType](/{{ page.lang }}/1x/api.html#req.methodType).  You can also use [app.all()](/{{ page.lang }}/1x/api.html#app.all) to handle all HTTP methods and [app.use()](/{{ page.lang }}/1x/api.html#app.use) to
+see [req.methodType](/{{ page.lang }}/2x/api.html#req-methodType).  You can also use [app.all()](/{{ page.lang }}/2x/api.html#app-all) to handle all HTTP methods and [app.use()](/{{ page.lang }}/2x/api.html#app-use) to
 specify middleware as the callback function (See [Using middleware](/{{ page.lang }}/guide/using-middleware.html) for details).
 
 These routing methods specify a callback function (sometimes called "handler functions") called when the application receives a request to the specified route (endpoint) and HTTP method.  In other words, the application "listens" for requests that match the specified route(s) and method(s), and when it detects a match, it calls the specified callback function.
@@ -55,7 +55,7 @@ void setup() {
 ```
 
 aWOT supports methods that correspond to all HTTP request methods: `get`, `post`, and so on.
-For a full list, see [req.MethodType](/{{ page.lang }}/1x/api.html#req.methodType).
+For a full list, see [req.MethodType](/{{ page.lang }}/2x/api.html#req-methodType).
 
 There is a special routing method, `app.all()`, used to load middleware functions at a path for _all_ HTTP request methods.  For example, the following handler is executed for requests to the route "/secret" whether using GET, POST, PUT, DELETE, or any other HTTP request method supported.
 

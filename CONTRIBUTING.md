@@ -13,7 +13,7 @@ Follow these steps:
 
 0. Clone the [`awot.net` repository](https://github.com/lasselukkari/awot.net)
 1. Create a directory for the language of your choice using its [ISO 639-1 code](http://www.loc.gov/standards/iso639-2/php/code_list.php) as its name.
-2. Copy `index.md`, `api.md`, `starter/`, `guide/`, `advanced/`, `resources/`, `1x/`, and `3x/`, to the language directory.
+2. Copy `index.md`, `api.md`, `starter/`, `guide/`, `advanced/`, `resources/`, `2x/`, and `2x/`, to the language directory.
 3. Remove the link to 2.x docs from the "API Reference" menu.
 4. Update the `lang` variable in the copied markdown files.
 5. Update the `title` variable in the copied markdown files.
