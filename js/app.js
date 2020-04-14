@@ -45,7 +45,7 @@ $(function(){
   var branchPath = 'https://github.com/lasselukkari/aWOT';
   var pathName = document.location.pathname;
 
-  var currentVersion = pathName.split('/').splice(-2)[0] || '1x'; // defaults to current version
+  var currentVersion = pathName.split('/').splice(-2)[0] || '2x'; // defaults to current version
   var fileName = pathName.split('/').splice(-2)[1];
   var pagePath;
   var editPath;
@@ -87,7 +87,7 @@ $(function(){
 
   var headings = $('h2, h3').map(function(i, el){
     return {
-      top: $(el).offset().top - 200,
+      top: $(el).offset().top - 150,
       id: el.id
     }
   });
@@ -118,22 +118,29 @@ $(function(){
     if (!h) return;
 
 
-    if (window.location.pathname == '/3x/api.html') {
+    if (window.location.pathname == '/1x/api.html') {
 
-      if (prev) {
-      prev.removeClass('active');
-      prev.parent().parent().removeClass('active');
+      currentApiPrefix = h.id.split('.')[0];
+      parentMenuSelector = '#'+ currentApiPrefix + '-menu';
+
+      $(parentMenuSelector).addClass('active');
+
+      if (lastApiPrefix && (lastApiPrefix != currentApiPrefix)) {
+        $('#'+ lastApiPrefix + '-menu').removeClass('active');
       }
+
+      $('#menu li a').removeClass('active');
+
       var a = $('a[href="#' + h.id + '"]');
       a.addClass('active');
-      a.parent().parent().addClass('active');
-      prev = a;
+
+      lastApiPrefix = currentApiPrefix.split('.')[0];
 
     }
 
     else {
 
-      currentApiPrefix = h.id.split('.')[0];
+      currentApiPrefix = h.id.split('-')[0];
       parentMenuSelector = '#'+ currentApiPrefix + '-menu';
 
       $(parentMenuSelector).addClass('active');
