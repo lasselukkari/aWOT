@@ -21,7 +21,8 @@ void notFound(Request &req, Response &res) {
   }
 
   res.status(404);
-  res.print("This is not the page you are looking for.");
+  res.set("Content-Type", "application/json");
+  res.print("{\"error\":\"This is not the page you are looking for\"}");
 }
 
 void setup() {
