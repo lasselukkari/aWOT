@@ -26,6 +26,19 @@ void indexCmd(Request &req, Response &res) {
 
 }
 
+void overwritedNotFound(Request &req, Response &res){
+
+    res.status(404);
+    res.set("Content-Type", "application/json");
+    res.print(F("{\"error\":\"route not found\"}"));
+
+    Serial.print("Route: ");
+    Serial.print(req.path());
+    Serial.print(" error 404 'Not Found' from client: ");
+    Serial.println(((EthernetClient*)req.stream())->remoteIP());
+
+}
+
 void setup() {
 
   Serial.begin(115200);

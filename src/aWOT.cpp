@@ -22,6 +22,8 @@
 
 #include "aWOT.h"
 
+__attribute__((weak)) void overwritedNotFound(Request &req, Response &res);
+
 Response::Response()
     : m_stream(NULL),
       m_headers(),
@@ -1550,7 +1552,12 @@ void Application::m_process() {
   }
 
   if (!routeMatch && !m_response.ended() && !m_response.headersSent()) {
-    return m_response.sendStatus(404);
+    // Call custom user function for route not found if defined
+    if (overwritedNotFound){
+        overwritedNotFound(m_request, m_response); 
+    }else{
+        return m_response.sendStatus(404);
+    }
   }
 
   if (!m_response.ended() && !m_response.headersSent()) {
