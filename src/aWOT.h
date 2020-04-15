@@ -171,7 +171,6 @@ class Request : public Stream {
   void m_processURL();
   bool m_processHeaders();
   bool m_headerValue(char* buffer, int bufferLength);
-  bool m_readInt(int& number);
   void m_setRoute(int prefixLength, const char* route);
   void m_setMethod(MethodType method);
   int m_getUrlPathLength();
@@ -184,10 +183,10 @@ class Request : public Stream {
   MethodType m_method;
   int m_minorVersion;
   unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
-  int m_pushbackDepth;
+  long m_pushbackDepth;
   bool m_readingContent;
-  int m_left;
-  int m_bytesRead;
+  long m_left;
+  long m_bytesRead;
   HeaderNode* m_headerTail;
   char* m_query;
   int m_queryLength;

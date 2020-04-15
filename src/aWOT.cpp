@@ -750,7 +750,7 @@ int Request::availableForWrite() {
 }
 
 int Request::available() {
-  return min(m_stream->available(), m_left + m_pushbackDepth);
+  return min((long)m_stream->available(), m_left + m_pushbackDepth);
 }
 
 int Request::bytesRead() { return m_bytesRead; }
@@ -793,12 +793,12 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
     } else if (ch == '&') {
       return nameLength > 0 && valueLength > 0;
     } else if (ch == '%') {
-      char high = timedRead();
+      int high = timedRead();
       if (high == -1) {
         return false;
       }
 
-      char low = timedRead();
+      int low = timedRead();
       if (low == -1) {
         return false;
       }
@@ -1079,7 +1079,9 @@ bool Request::m_processHeaders() {
     canEnd = false;
 
     if (m_expect("Content-Length:")) {
-      if (!m_readInt(m_left) || !m_expect(CRLF)) {
+      m_left = parseInt();
+
+      if (!m_expect(CRLF)) {
         return false;
       }
 
@@ -1143,47 +1145,6 @@ bool Request::m_headerValue(char *buffer, int bufferLength) {
   }
 
   return false;
-}
-
-bool Request::m_readInt(int &number) {
-  bool negate = false;
-  bool gotNumber = false;
-
-  if (!m_skipSpace()) {
-    return false;
-  }
-
-  int ch = timedRead();
-  if (ch == -1) {
-    return false;
-  }
-
-  if (ch == '-') {
-    negate = true;
-    ch = timedRead();
-    if (ch == -1) {
-      return false;
-    }
-  }
-
-  number = 0;
-
-  while (ch >= '0' && ch <= '9') {
-    gotNumber = true;
-    number = number * 10 + ch - '0';
-    ch = timedRead();
-    if (ch == -1) {
-      return false;
-    }
-  }
-
-  push(ch);
-
-  if (negate) {
-    number = -number;
-  }
-
-  return gotNumber;
 }
 
 void Request::m_setRoute(int prefixLength, const char *route) {
