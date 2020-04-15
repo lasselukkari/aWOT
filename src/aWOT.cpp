@@ -793,12 +793,12 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
     } else if (ch == '&') {
       return nameLength > 0 && valueLength > 0;
     } else if (ch == '%') {
-      char high = timedRead();
+      int high = timedRead();
       if (high == -1) {
         return false;
       }
 
-      char low = timedRead();
+      int low = timedRead();
       if (low == -1) {
         return false;
       }
