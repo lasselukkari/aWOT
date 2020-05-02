@@ -1,0 +1,5 @@
+compile:
+  platforms:
+    - esp32
+  libraries:
+    - "LoRa"
