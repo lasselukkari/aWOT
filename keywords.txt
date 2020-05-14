@@ -8,7 +8,6 @@ patch	KEYWORD2
 post	KEYWORD2
 process	KEYWORD2
 put	KEYWORD2
-route	KEYWORD2
 use	KEYWORD2
 
 Request	KEYWORD1
