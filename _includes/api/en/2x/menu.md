@@ -21,8 +21,6 @@
             </li>
             <li><a href="#app-put">put</a>
             </li>
-            <li><a href="#app-route">route</a>
-            </li>
             <li><a href="#app-use">use</a>
             </li>
         </ul>

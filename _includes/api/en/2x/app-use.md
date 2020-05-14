@@ -1,9 +1,10 @@
 <h3 id='app-use'>Application::use</h3>
 <h4 class='variant'>void use(Router::Middleware* middleware);</h4>
+<h4 class='variant'>void use(Router * router);</h4>
 
-This method is like any standard app.METHOD() methods, except it matches all HTTP verbs and routes.
+This method is like any standard app.METHOD() methods, except it matches all HTTP verbs and routes. The overloaded version mounts a Router instance to the application.
 
-##### Example
+##### Example Middleware
 
 ```arduino
 void logRequest(Request &req, Response &res) {
@@ -38,4 +39,31 @@ void logRequest(Request &req, Response &res) {
 }
 
 app.use(&logRequest);
+```
+
+##### Example Router
+
+```arduino
+Application app;
+Router cats("/cats");
+
+void looooong(Request &req, Response &res) {
+  res.print("looooong cat is long!");
+}
+
+void ceiling(Request &req, Response &res) {
+  res.print("ceiling cat is watching you debug!");
+}
+
+void nyannyan(Request &req, Response &res) {
+  for (int i = 0; i < 100; i++) {
+      res.print("nyan ");
+  }
+}
+
+cats.get("/long", &looooong);
+cats.get("/ceiling", &ceiling);
+cats.get("/nyan", &nyannyan);
+
+app.use(&cats);
 ```

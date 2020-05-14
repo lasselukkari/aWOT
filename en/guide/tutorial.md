@@ -563,7 +563,7 @@ redirect_from: "/guide/tutorial.html"
                 <td class="d2h-cntx">
                   <div class="d2h-code-line d2h-cntx">
                     <span class="d2h-code-line-prefix"> </span>
-                    <span class="d2h-code-line-ctn">  app.route(staticFiles());</span>
+                    <span class="d2h-code-line-ctn">  app.use(staticFiles());</span>
                   </div>
                 </td>
               </tr>

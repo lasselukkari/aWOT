@@ -5,7 +5,7 @@ A `Router` is an isolated instance of middleware and routes. You can think of it
 as a "mini-application," capable only of performing middleware and routing
 functions. Every aWOT application has a built-in default router.
 
-Routers can't be nested. Use it as an argument to [app.route()](#app.router) method. 
+Routers can also be nested. Use it as an argument to [router.use()](#router.use) method.
 
 ##### Example
 ```arduino
