@@ -156,7 +156,7 @@ void setup() {
   cats.get("/ceiling", &ceiling);
   cats.get("/nyan", &nyannyan);
 
-  app.route(&cats);
+  app.use(&cats);
 }
 ```
 

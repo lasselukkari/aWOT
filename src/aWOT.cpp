@@ -1289,7 +1289,7 @@ void Router::use(Middleware *middleware) {
   m_addMiddleware(Request::USE, NULL, middleware);
 }
 
-void Router::route(Router *router) {
+void Router::use(Router *router) {
   MiddlewareNode *tail = new MiddlewareNode();
   tail->router = router;
   tail->next = NULL;
@@ -1493,8 +1493,8 @@ void Application::setTimeout(unsigned long timeoutMillis) {
   m_timedout = timeoutMillis;
 }
 
-void Application::route(Router *router) {
-  m_defaultRouter.route(router);
+void Application::use(Router *router) {
+  m_defaultRouter.use(router);
 }
 
 void Application::m_process() {

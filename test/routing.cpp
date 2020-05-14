@@ -45,11 +45,11 @@ unittest(nested_routers) {
   router3.use(&beforeRouter);
   router3.get("/route/:test1", &handler);
   router3.use(&afterRouter);
-  router2.route(&router3);
-  router1.route(&router2);
+  router2.use(&router3);
+  router1.use(&router2);
 
   app.use(&beforeAll);
-  app.route(&router1);
+  app.use(&router1);
   app.use(&afterAll);
   app.process(&stream);
 

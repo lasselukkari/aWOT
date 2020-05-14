@@ -78,7 +78,7 @@ unittest(router_route_params) {
   Application app;
 
   router.get("/route/:test1/params/:test2", &handler);
-  app.route(&router);
+  app.use(&router);
 
   app.process(&stream);
 

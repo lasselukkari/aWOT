@@ -79,7 +79,7 @@ unittest(router_query_params) {
   Application app;
 
   router.get("/query", &handler);
-  app.route(&router);
+  app.use(&router);
 
   app.process(&stream);
 
