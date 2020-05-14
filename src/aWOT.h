@@ -215,7 +215,7 @@ class Router {
   void patch(const char* path, Middleware* middleware);
   void post(const char* path, Middleware* middleware);
   void put(const char* path, Middleware* middleware);
-  void route(Router* router);
+  void use(Router* router);
   void use(Middleware* middleware);
 
  private:
@@ -257,8 +257,8 @@ class Application {
   void put(const char* path, Router::Middleware* middleware);
   void process(Stream* client);
   void process(Stream* client, char* buffer, int bufferLength);
-  void route(Router* router);
   void setTimeout(unsigned long timeoutMillis);
+  void use(Router* router);
   void use(Router::Middleware* middleware);
 
  private:
