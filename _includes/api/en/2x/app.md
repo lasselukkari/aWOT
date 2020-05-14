@@ -76,9 +76,5 @@ void loop() {
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-route.md %}
-</section>
-
-<section markdown="1">
   {% include api/en/2x/app-use.md %}
 </section>
