@@ -135,13 +135,22 @@ void Response::status(int code) {
   m_printStatus(code);
 
   m_printCRLF();
-  m_statusSent = true;
-  m_sendingStatus = false;
 
-  if (code == 204 || code == 304) {
-    m_contentLenghtSet = true;
-    m_contentTypeSet = true;
+  if (code < 200) {
+    m_sendingHeaders = true;
+    m_printCustomHeaders();
+    m_sendingHeaders = false;
+    m_printCRLF();
+  } else {
+    m_statusSent = true;
+
+    if (code == 204 || code == 304) {
+      m_contentLenghtSet = true;
+      m_contentTypeSet = true;
+    }
   }
+
+  m_sendingStatus = false;
 }
 
 bool Response::statusSent() { return m_statusSent; }
@@ -245,6 +254,17 @@ void Response::m_init(Stream *client) {
 }
 
 void Response::m_disableBody() { m_noBody = true ; }
+
+void Response::m_printCustomHeaders() {
+  for (int i = 0; i < m_headersCount; i++) {
+    print(m_headers[i].name);
+    print(": ");
+    print(m_headers[i].value);
+    m_printCRLF();
+  }
+
+  m_headersCount = 0;
+}
 
 void Response::m_printStatus(int code) {
   switch (code) {
@@ -683,12 +703,7 @@ void Response::m_printHeaders() {
     set("Connection", "close");
   }
 
-  for (int i = 0; i < m_headersCount; i++) {
-    print(m_headers[i].name);
-    print(": ");
-    print(m_headers[i].value);
-    m_printCRLF();
-  }
+  m_printCustomHeaders();
 
   m_printCRLF();
   m_flushBuf();

@@ -98,6 +98,7 @@ class Response : public Print {
 
   void m_init(Stream* client);
   void m_disableBody();
+  void m_printCustomHeaders();
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();
