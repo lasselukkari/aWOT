@@ -9,7 +9,7 @@
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 
-// You can also use cURL: http://192.168.1.1/update --data-binary "@sketch.bin"
+// You can also use cURL: curl http://192.168.1.1/update --data-binary "@sketch.bin"
 
 WiFiServer server(80);
 Application app;
