@@ -59,7 +59,7 @@ void update(Request &req, Response &res) {
   }
 
   unsigned long start = millis();
-  while (!req.available() && millis() - start <= 1000) {}
+  while (!req.available() && millis() - start <= 5000) {}
 
   if (!req.available()) {
     return res.sendStatus(408);
