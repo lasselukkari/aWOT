@@ -132,7 +132,7 @@ class Request : public Stream {
   friend class Router;
 
  public:
-  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
+  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, USE };
 
   int available();
   int availableForWrite();
@@ -206,17 +206,24 @@ class Router {
  public:
   typedef void Middleware(Request& request, Response& response);
 
-  Router(const char* urlPrefix = "");
+  Router();
   ~Router();
 
-  void all(const char* path, Middleware* middleware);
   void del(const char* path, Middleware* middleware);
+  void del(Middleware* middleware);
   void get(const char* path, Middleware* middleware);
+  void get(Middleware* middleware);
   void options(const char* path, Middleware* middleware);
+  void options(Middleware* middleware);
   void patch(const char* path, Middleware* middleware);
+  void patch(Middleware* middleware);
   void post(const char* path, Middleware* middleware);
+  void post(Middleware* middleware);
   void put(const char* path, Middleware* middleware);
+  void put(Middleware* middleware);
+  void use(const char* path, Router* router);
   void use(Router* router);
+  void use(const char* path, Middleware* middleware);
   void use(Middleware* middleware);
 
  private:
@@ -238,7 +245,6 @@ class Router {
 
   MiddlewareNode* m_head;
   Router* m_next;
-  const char* m_urlPrefix;
 };
 
 class Application {
@@ -248,18 +254,25 @@ class Application {
 
   static int strcmpi(const char* s1, const char* s2);
 
-  void all(const char* path, Router::Middleware* middleware);
   void del(const char* path, Router::Middleware* middleware);
+  void del(Router::Middleware* middleware);
   void get(const char* path, Router::Middleware* middleware);
+  void get(Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
   void options(const char* path, Router::Middleware* middleware);
+  void options(Router::Middleware* middleware);
   void patch(const char* path, Router::Middleware* middleware);
+  void patch(Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
+  void post(Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
+  void put(Router::Middleware* middleware);
   void process(Stream* client);
   void process(Stream* client, char* buffer, int bufferLength);
   void setTimeout(unsigned long timeoutMillis);
+  void use(const char* path, Router* router);
   void use(Router* router);
+  void use(const char* path, Router::Middleware* middleware);
   void use(Router::Middleware* middleware);
 
  private:
@@ -267,7 +280,6 @@ class Application {
 
   Request m_request;
   Response m_response;
-  Router* m_routerTail;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
   unsigned long m_timedout;

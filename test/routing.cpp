@@ -37,19 +37,19 @@ unittest(nested_routers) {
     "beforeAll-beforeRouter-test-afterRouter-afterAll";
 
   MockStream stream(request);
-  Router router1("/router1");
-  Router router2("/router2");
-  Router router3("/router3"); 
+  Router router1;
+  Router router2;
+  Router router3;
   Application app;
 
   router3.use(&beforeRouter);
   router3.get("/route/:test1", &handler);
   router3.use(&afterRouter);
-  router2.use(&router3);
-  router1.use(&router2);
+  router2.use("/router3", &router3);
+  router1.use("/router2", &router2);
 
   app.use(&beforeAll);
-  app.use(&router1);
+  app.use("/router1", &router1);
   app.use(&afterAll);
   app.process(&stream);
 

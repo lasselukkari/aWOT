@@ -1255,8 +1255,8 @@ void Request::m_reset() {
   }
 }
 
-Router::Router(const char *urlPrefix)
-    : m_head(NULL), m_next(NULL), m_urlPrefix(urlPrefix) {}
+Router::Router()
+    : m_head(NULL), m_next(NULL) {}
 
 Router::~Router() {
   MiddlewareNode *current = m_head;
@@ -1272,43 +1272,73 @@ Router::~Router() {
   m_head = NULL;
 }
 
-void Router::all(const char *path, Middleware *middleware) {
-  m_addMiddleware(Request::ALL, path, middleware);
-}
-
 void Router::del(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::DELETE, path, middleware);
+}
+
+void Router::del(Middleware *middleware) {
+  del(NULL, middleware);
 }
 
 void Router::get(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::GET, path, middleware);
 }
 
+void Router::get(Middleware *middleware) {
+  get(NULL, middleware);
+}
+
 void Router::options(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
+}
+
+void Router::options(Middleware *middleware) {
+  options(NULL, middleware);
 }
 
 void Router::post(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::POST, path, middleware);
 }
 
+void Router::post(Middleware *middleware) {
+  post(NULL, middleware);
+}
+
 void Router::put(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PUT, path, middleware);
+}
+
+void Router::put(Middleware *middleware) {
+  put(NULL, middleware);
 }
 
 void Router::patch(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Router::use(Middleware *middleware) {
-  m_addMiddleware(Request::USE, NULL, middleware);
+void Router::patch(Middleware *middleware) {
+  patch(NULL, middleware);
 }
 
-void Router::use(Router *router) {
+void Router::use(const char *path, Middleware *middleware) {
+  m_addMiddleware(Request::USE, path, middleware);
+}
+
+void Router::use(Middleware *middleware) {
+  use(NULL, middleware);
+}
+
+void Router::use(const char *path, Router *router) {
   MiddlewareNode *tail = new MiddlewareNode();
+  tail->path = path;
+  tail->middleware = NULL;
   tail->router = router;
   tail->next = NULL;
   m_mountMiddleware(tail);
+}
+
+void Router::use(Router *router) {
+  use(NULL, router);
 }
 
 void Router::m_addMiddleware(Request::MethodType type, const char *path,
@@ -1337,40 +1367,27 @@ void Router::m_mountMiddleware(MiddlewareNode *tail) {
   }
 }
 
-Router *Router::m_getNext() { return m_next; }
-
-void Router::m_setNext(Router *next) { m_next = next; }
-
 bool Router::m_dispatchMiddleware(Request &request, Response &response, int urlShift) {
   bool routeFound = false;
-  int prefixLength = strlen(m_urlPrefix);
+  MiddlewareNode *middleware = m_head;
 
-  if (strncmp(m_urlPrefix, request.path() + urlShift, prefixLength) == 0) {
-    int shift = urlShift + prefixLength;
-    char *trimmedPath = request.path() + shift;
-    MiddlewareNode *middleware = m_head;
+  while (middleware != NULL && !response.ended()) {
+    if (middleware->router != NULL) {
+      int prefixLength = strlen(middleware->path);
+      int shift = urlShift + prefixLength;
 
-    while (middleware != NULL && !response.ended()) {
-      if(middleware->router != NULL){
-        if( middleware->router->m_dispatchMiddleware(request, response, shift)) {
-          routeFound = true;
-        }
-      } else if (middleware->type == request.method() ||
-          middleware->type == Request::ALL ||
-          middleware->type == Request::USE) {
-        if (middleware->type == Request::USE ||
-            m_routeMatch(trimmedPath, middleware->path)) {
-          if (middleware->type != Request::USE) {
-            routeFound = true;
-          }
-
-          request.m_setRoute(shift, middleware->path);
-          middleware->middleware(request, response);
-        }
+      if (middleware->path == NULL || strncmp(middleware->path, request.path() + urlShift, prefixLength) == 0) {
+        routeFound = middleware->router->m_dispatchMiddleware(request, response, shift);
       }
-
-      middleware = middleware->next;
+    } else if (middleware->type == request.method() || middleware->type == Request::USE) {
+      if (middleware->path == NULL || m_routeMatch(request.path() + urlShift, middleware->path)) {
+        routeFound = middleware->type != Request::USE && middleware->path != NULL;
+        request.m_setRoute(urlShift, middleware->path);
+        middleware->middleware(request, response);
+      }
     }
+
+    middleware = middleware->next;
   }
 
   return routeFound;
@@ -1416,7 +1433,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_routerTail(&m_defaultRouter), m_headerTail(NULL), m_timedout(1000) {}
+    : m_headerTail(NULL), m_timedout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1453,32 +1470,52 @@ Application::~Application() {
   m_headerTail = NULL;
 }
 
-void Application::all(const char *path, Router::Middleware *middleware) {
-  m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
-}
-
 void Application::del(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
+}
+
+void Application::del(Router::Middleware *middleware) {
+  del(NULL, middleware);
 }
 
 void Application::get(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
+void Application::get(Router::Middleware *middleware) {
+  get(NULL, middleware);
+}
+
 void Application::options(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
+}
+
+void Application::options(Router::Middleware *middleware) {
+  options(NULL, middleware);
 }
 
 void Application::patch(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
 }
 
+void Application::patch(Router::Middleware *middleware) {
+  patch(NULL, middleware);
+}
+
 void Application::post(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
+void Application::post(Router::Middleware *middleware) {
+  post(NULL, middleware);
+}
+
 void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
+}
+
+void Application::put(Router::Middleware *middleware) {
+  put(NULL, middleware);
 }
 
 void Application::process(Stream *stream) {
@@ -1500,16 +1537,24 @@ void Application::process(Stream *stream, char *buffer, int bufferLength) {
   m_response.m_reset();
 }
 
+void Application::use(const char *path, Router::Middleware *middleware) {
+  m_defaultRouter.m_addMiddleware(Request::USE, path, middleware);
+}
+
 void Application::use(Router::Middleware *middleware) {
-  m_defaultRouter.m_addMiddleware(Request::USE, NULL, middleware);
+  use(NULL, middleware);
 }
 
 void Application::setTimeout(unsigned long timeoutMillis) {
   m_timedout = timeoutMillis;
 }
 
+void Application::use(const char *path, Router *router) {
+  m_defaultRouter.use(path, router);
+}
+
 void Application::use(Router *router) {
-  m_defaultRouter.use(router);
+  use(NULL, router);
 }
 
 void Application::m_process() {
@@ -1554,17 +1599,8 @@ void Application::m_process() {
     m_response.m_disableBody();
   }
 
-  Router *routerNode = m_routerTail;
-
-  while (routerNode != NULL && !m_response.ended()) {
-    if (routerNode->m_dispatchMiddleware(m_request, m_response)) {
-      routeMatch = true;
-    }
-
-    routerNode = routerNode->m_getNext();
-  }
-
-  if (!routeMatch && !m_response.ended() && !m_response.headersSent()) {
+  if (!m_defaultRouter.m_dispatchMiddleware(m_request, m_response) &&
+      !m_response.ended() && !m_response.headersSent()) {
     return m_response.sendStatus(404);
   }
 
