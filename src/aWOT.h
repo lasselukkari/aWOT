@@ -173,7 +173,7 @@ class Request : public Stream {
   bool m_processHeaders();
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
-  void m_setRoute(int prefixLength, const char* route);
+  void m_setRoute(const char* route, const char* pattern);
   void m_setMethod(MethodType method);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
@@ -195,7 +195,7 @@ class Request : public Stream {
   bool m_timedout;
   char* m_path;
   int m_pathLength;
-  int m_prefixLength;
+  const char* m_pattern;
   const char* m_route;
 };
 

@@ -756,7 +756,7 @@ Request::Request()
       m_timedout(false),
       m_path(NULL),
       m_pathLength(0),
-      m_prefixLength(0),
+      m_pattern(NULL),
       m_route(NULL) {}
 
 int Request::availableForWrite() {
@@ -922,20 +922,20 @@ bool Request::route(const char *name, char *buffer, int bufferLength) {
   int part = 0;
   int i = 1;
 
-  while (m_route[i]) {
-    if (m_route[i] == '/') {
+  while (m_pattern[i]) {
+    if (m_pattern[i] == '/') {
       part++;
     }
 
-    if (m_route[i++] == ':') {
+    if (m_pattern[i++] == ':') {
       int j = 0;
 
-      while ((m_route[i] && name[j]) && m_route[i] == name[j]) {
+      while ((m_pattern[i] && name[j]) && m_pattern[i] == name[j]) {
         i++;
         j++;
       }
 
-      if (!name[j] && (m_route[i] == '/' || !m_route[i])) {
+      if (!name[j] && (m_pattern[i] == '/' || !m_pattern[i])) {
         return route(part, buffer, bufferLength);
       }
     }
@@ -947,7 +947,7 @@ bool Request::route(const char *name, char *buffer, int bufferLength) {
 bool Request::route(int number, char *buffer, int bufferLength) {
   memset(buffer, 0, bufferLength);
   int part = -1;
-  char *routeStart = m_path + m_prefixLength;
+  const char *routeStart = m_route;
 
   while (*routeStart) {
     if (*routeStart++ == '/') {
@@ -1200,9 +1200,9 @@ bool Request::m_readInt(int &number) {
   return gotNumber;
 }
 
-void Request::m_setRoute(int prefixLength, const char *route) {
-  m_prefixLength = prefixLength;
+void Request::m_setRoute(const char *route, const char *pattern) {
   m_route = route;
+  m_pattern = pattern;
 }
 
 void Request::m_setMethod(MethodType method) { m_method = method; }
@@ -1379,7 +1379,7 @@ void Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
       }
     } else if (middleware->type == request.method() || middleware->type == Request::USE) {
       if (middleware->path == NULL || m_routeMatch(request.path() + urlShift, middleware->path)) {
-        request.m_setRoute(urlShift, middleware->path);
+        request.m_setRoute(request.path() + urlShift, middleware->path);
         middleware->middleware(request, response);
       }
     }
