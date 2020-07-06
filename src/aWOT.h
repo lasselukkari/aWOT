@@ -197,7 +197,6 @@ class Request : public Stream {
   int m_pathLength;
   int m_prefixLength;
   const char* m_route;
-  bool m_next;
 };
 
 class Router {
@@ -244,7 +243,6 @@ class Router {
   bool m_routeMatch(const char* route, const char* pattern);
 
   MiddlewareNode* m_head;
-  Router* m_next;
 };
 
 class Application {

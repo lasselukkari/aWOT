@@ -757,8 +757,7 @@ Request::Request()
       m_path(NULL),
       m_pathLength(0),
       m_prefixLength(0),
-      m_route(NULL),
-      m_next(false) {}
+      m_route(NULL) {}
 
 int Request::availableForWrite() {
   return m_response->availableForWrite();
@@ -1256,7 +1255,7 @@ void Request::m_reset() {
 }
 
 Router::Router()
-    : m_head(NULL), m_next(NULL) {}
+    : m_head(NULL) {}
 
 Router::~Router() {
   MiddlewareNode *current = m_head;
