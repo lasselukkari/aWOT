@@ -240,7 +240,7 @@ class Router {
   void m_mountMiddleware(MiddlewareNode *tail);
   void m_setNext(Router* next);
   Router* m_getNext();
-  bool m_dispatchMiddleware(Request& request, Response& response, int urlShift = 0);
+  void m_dispatchMiddleware(Request& request, Response& response, int urlShift = 0);
   bool m_routeMatch(const char* route, const char* pattern);
 
   MiddlewareNode* m_head;

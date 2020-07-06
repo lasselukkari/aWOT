@@ -1367,8 +1367,7 @@ void Router::m_mountMiddleware(MiddlewareNode *tail) {
   }
 }
 
-bool Router::m_dispatchMiddleware(Request &request, Response &response, int urlShift) {
-  bool routeFound = false;
+void Router::m_dispatchMiddleware(Request &request, Response &response, int urlShift) {
   MiddlewareNode *middleware = m_head;
 
   while (middleware != NULL && !response.ended()) {
@@ -1377,11 +1376,10 @@ bool Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
       int shift = urlShift + prefixLength;
 
       if (middleware->path == NULL || strncmp(middleware->path, request.path() + urlShift, prefixLength) == 0) {
-        routeFound = middleware->router->m_dispatchMiddleware(request, response, shift);
+        middleware->router->m_dispatchMiddleware(request, response, shift);
       }
     } else if (middleware->type == request.method() || middleware->type == Request::USE) {
       if (middleware->path == NULL || m_routeMatch(request.path() + urlShift, middleware->path)) {
-        routeFound = middleware->type != Request::USE && middleware->path != NULL;
         request.m_setRoute(urlShift, middleware->path);
         middleware->middleware(request, response);
       }
@@ -1389,8 +1387,6 @@ bool Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
 
     middleware = middleware->next;
   }
-
-  return routeFound;
 }
 
 bool Router::m_routeMatch(const char* route, const char* pattern) {
@@ -1599,8 +1595,9 @@ void Application::m_process() {
     m_response.m_disableBody();
   }
 
-  if (!m_defaultRouter.m_dispatchMiddleware(m_request, m_response) &&
-      !m_response.ended() && !m_response.headersSent()) {
+  m_defaultRouter.m_dispatchMiddleware(m_request, m_response);
+
+  if (!m_response.statusSent()) {
     return m_response.sendStatus(404);
   }
 
