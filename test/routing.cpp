@@ -60,28 +60,6 @@ void testHandler(Request &req, Response &res) {
   res.print("test");
 }
 
-unittest(get_route) {
-  char const *request =
-    "GET /whatever HTTP/1.0" CRLF
-    CRLF;
-
-  char const *expected =
-    "HTTP/1.1 200 OK" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "test";
-
-  MockStream stream(request);
-  Application app;
-
-
-  app.get(&testHandler);
-  app.process(&stream);
-
-  assertEqual(expected, stream.response());
-}
-
 unittest(use_route_with_path) {
   char const *request =
     "POST /usepath HTTP/1.0" CRLF
@@ -99,6 +77,52 @@ unittest(use_route_with_path) {
 
 
   app.use("/usepath", &testHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
+unittest(use_route_without_path) {
+  char const *request =
+    "POST /usepath HTTP/1.0" CRLF
+    CRLF;
+
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "test";
+
+  MockStream stream(request);
+  Application app;
+
+
+  app.use(&testHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
+unittest(router_with_path) {
+  char const *request =
+    "GET /router/route HTTP/1.0" CRLF
+    CRLF;
+
+  char const *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "test";
+
+  MockStream stream(request);
+  Application app;
+  Router router;
+
+
+  router.get("/route", &testHandler);
+  app.use("/router", &router);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
@@ -123,30 +147,6 @@ unittest(router_without_path) {
 
   router.get("/route", &testHandler);
   app.use(&router);
-  app.process(&stream);
-
-  assertEqual(expected, stream.response());
-}
-
-unittest(router_handler_without_path) {
-  char const *request =
-    "GET /router/whatever HTTP/1.0" CRLF
-    CRLF;
-
-  char const *expected =
-    "HTTP/1.1 200 OK" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "test";
-
-  MockStream stream(request);
-  Application app;
-  Router router;
-
-
-  router.get(&testHandler);
-  app.use("/router", &router);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
