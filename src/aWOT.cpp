@@ -1355,7 +1355,7 @@ void Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
 
   while (middleware != NULL && !response.ended()) {
     if (middleware->router != NULL) {
-      int prefixLength = strlen(middleware->path);
+      int prefixLength = middleware->path ? strlen(middleware->path) : 0;
       int shift = urlShift + prefixLength;
 
       if (middleware->path == NULL || strncmp(middleware->path, request.path() + urlShift, prefixLength) == 0) {
