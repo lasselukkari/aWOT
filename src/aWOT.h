@@ -97,7 +97,6 @@ class Response : public Print {
   Response();
 
   void m_init(Stream* client);
-  void m_disableBody();
   void m_printCustomHeaders();
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
@@ -116,7 +115,6 @@ class Response : public Print {
   bool m_keepAlive;
   bool m_statusSent;
   bool m_headersSent;
-  bool m_noBody;
   bool m_sendingStatus;
   bool m_sendingHeaders;
   int m_headersCount;
@@ -210,6 +208,7 @@ class Router {
 
   void del(const char* path, Middleware* middleware);
   void get(const char* path, Middleware* middleware);
+  void head(const char* path, Middleware* middleware);
   void options(const char* path, Middleware* middleware);
   void patch(const char* path, Middleware* middleware);
   void post(const char* path, Middleware* middleware);
@@ -248,6 +247,7 @@ class Application {
 
   void del(const char* path, Router::Middleware* middleware);
   void get(const char* path, Router::Middleware* middleware);
+  void head(const char* path, Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
   void options(const char* path, Router::Middleware* middleware);
   void patch(const char* path, Router::Middleware* middleware);

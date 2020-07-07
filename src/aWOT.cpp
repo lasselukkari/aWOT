@@ -30,7 +30,6 @@ Response::Response()
       m_keepAlive(false),
       m_statusSent(false),
       m_headersSent(false),
-      m_noBody(false),
       m_sendingStatus(false),
       m_sendingHeaders(false),
       m_headersCount(0),
@@ -73,10 +72,6 @@ bool Response::headersSent() { return m_headersSent; }
 void Response::printP(const unsigned char *string) {
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
-  }
-
-  if(m_noBody && m_headersSent){
-    return;
   }
 
   while (uint8_t value = pgm_read_byte(string++)) {
@@ -156,10 +151,6 @@ size_t Response::write(uint8_t data) {
     m_printHeaders();
   }
 
-  if(m_noBody && m_headersSent){
-    return 0;
-  }
-
   m_buffer[m_bufFill++] = data;
 
   if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
@@ -187,10 +178,6 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
     m_printHeaders();
   }
 
-  if(m_noBody && m_headersSent){
-    return 0;
-  }
-
   m_flushBuf();
 
   if (m_headersSent && !m_contentLenghtSet) {
@@ -213,10 +200,6 @@ void Response::writeP(const unsigned char *data, size_t length) {
     m_printHeaders();
   }
 
-  if(m_noBody && m_headersSent){
-    return;
-  }
-
   while (length--) {
     write(pgm_read_byte(data++));
   }
@@ -229,15 +212,12 @@ void Response::m_init(Stream *client) {
   m_keepAlive = false;
   m_statusSent = false;
   m_headersSent = false;
-  m_noBody = false;
   m_sendingStatus = false;
   m_sendingHeaders = false;
   m_bytesSent = 0;
   m_headersCount = 0;
   m_ended = false;
 }
-
-void Response::m_disableBody() { m_noBody = true ; }
 
 void Response::m_printCustomHeaders() {
   for (int i = 0; i < m_headersCount; i++) {
@@ -1263,6 +1243,10 @@ void Router::get(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::GET, path, middleware);
 }
 
+void Router::head(const char *path, Middleware *middleware) {
+  m_addMiddleware(Request::HEAD, path, middleware);
+}
+
 void Router::options(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
 }
@@ -1433,6 +1417,10 @@ void Application::get(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
+void Application::head(const char *path, Router::Middleware *middleware) {
+  m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
+}
+
 void Application::options(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
@@ -1525,14 +1513,9 @@ void Application::m_process() {
     return m_response.sendStatus(431);
   }
 
-  if (m_request.method() == Request::HEAD) {
-    m_request.m_setMethod(Request::GET);
-    m_response.m_disableBody();
-  }
-
   m_defaultRouter.m_dispatchMiddleware(m_request, m_response);
 
-  if (!m_response.statusSent()) {
+  if (!m_response.statusSent() && !m_response.ended()) {
     return m_response.sendStatus(404);
   }
 
