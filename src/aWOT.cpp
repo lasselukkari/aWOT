@@ -71,10 +71,6 @@ const char *Response::get(const char *name) {
 bool Response::headersSent() { return m_headersSent; }
 
 void Response::printP(const unsigned char *string) {
-  if (m_ended) {
-    return;
-  }
-
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
@@ -156,10 +152,6 @@ void Response::status(int code) {
 bool Response::statusSent() { return m_statusSent; }
 
 size_t Response::write(uint8_t data) {
-  if (m_ended) {
-    return 0;
-  }
-
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
@@ -191,10 +183,6 @@ size_t Response::write(uint8_t data) {
 }
 
 size_t Response::write(uint8_t *buffer, size_t bufferLength) {
-  if (m_ended) {
-    return 0;
-  }
-
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
@@ -221,10 +209,6 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
 }
 
 void Response::writeP(const unsigned char *data, size_t length) {
-  if (m_ended) {
-    return;
-  }
-
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
@@ -1600,7 +1584,7 @@ void Application::m_process() {
     return m_response.sendStatus(404);
   }
 
-  if (!m_response.ended() && !m_response.headersSent()) {
+  if (!m_response.headersSent()) {
     m_response.m_printHeaders();
   }
 }
