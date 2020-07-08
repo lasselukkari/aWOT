@@ -88,7 +88,7 @@ class Response : public Print {
   void sendStatus(int code);
   void set(const char* name, const char* value);
   void status(int code);
-  bool statusSent();
+  int statusSent();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
@@ -113,7 +113,7 @@ class Response : public Print {
   bool m_contentLenghtSet;
   bool m_contentTypeSet;
   bool m_keepAlive;
-  bool m_statusSent;
+  int m_statusSent;
   bool m_headersSent;
   bool m_sendingStatus;
   bool m_sendingHeaders;

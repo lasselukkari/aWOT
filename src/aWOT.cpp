@@ -28,7 +28,7 @@ Response::Response()
       m_contentLenghtSet(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
-      m_statusSent(false),
+      m_statusSent(0),
       m_headersSent(false),
       m_sendingStatus(false),
       m_sendingHeaders(false),
@@ -133,7 +133,7 @@ void Response::status(int code) {
     m_sendingHeaders = false;
     m_printCRLF();
   } else {
-    m_statusSent = true;
+    m_statusSent = code;
 
     if (code == 204 || code == 304) {
       m_contentLenghtSet = true;
@@ -144,7 +144,7 @@ void Response::status(int code) {
   m_sendingStatus = false;
 }
 
-bool Response::statusSent() { return m_statusSent; }
+int Response::statusSent() { return m_statusSent; }
 
 size_t Response::write(uint8_t data) {
   if (m_shouldPrintHeaders()) {
@@ -210,7 +210,7 @@ void Response::m_init(Stream *client) {
   m_contentLenghtSet = false;
   m_contentTypeSet = false;
   m_keepAlive = false;
-  m_statusSent = false;
+  m_statusSent = 0;
   m_headersSent = false;
   m_sendingStatus = false;
   m_sendingHeaders = false;
