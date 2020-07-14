@@ -7,7 +7,7 @@ redirect_from: "/guide/json.html"
 ---
 # Working with JSON data
 
-The [Request](/{{ page.lang }}/2x/api.html#req) inherits from the Arduino [Stream](https://www.arduino.cc/reference/en/language/functions/communication/stream/) base class. This makes it possible to directly forward the request to Arduino JSON libraries for parsing and serializing. 
+The [Request](/{{ page.lang }}/3x/api.html#req) inherits from the Arduino [Stream](https://www.arduino.cc/reference/en/language/functions/communication/stream/) base class. This makes it possible to directly forward the request to Arduino JSON libraries for parsing and serializing. 
 
 The example uses the [aJSON](https://github.com/interactive-matter/aJson/) library. The app has two routes: one or reading the JSON encoded data and one for updating it.
 

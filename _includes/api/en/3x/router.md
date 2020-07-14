@@ -42,43 +42,43 @@ void setup() {
 <h3 id='router-types'>Types</h3>
 
 <section markdown="1">
-  {% include api/en/2x/router-Middleware.md %}
+  {% include api/en/3x/router-Middleware.md %}
 </section>
 
 <h3 id='router-methods'>Methods</h3>
 
 <section markdown="1">
-  {% include api/en/2x/router-Router.md %}
+  {% include api/en/3x/router-Router.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-all.md %}
+  {% include api/en/3x/router-del.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-del.md %}
+  {% include api/en/3x/router-get.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-get.md %}
+  {% include api/en/3x/router-head.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-options.md %}
+  {% include api/en/3x/router-options.md %}
 </section>
 <section markdown="1">
-  {% include api/en/2x/router-patch.md %}
-</section>
-
-<section markdown="1">
-  {% include api/en/2x/router-post.md %}
+  {% include api/en/3x/router-patch.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-put.md %}
+  {% include api/en/3x/router-post.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/router-use.md %}
+  {% include api/en/3x/router-put.md %}
+</section>
+
+<section markdown="1">
+  {% include api/en/3x/router-use.md %}
 </section>
 

@@ -45,7 +45,7 @@ $(function(){
   var branchPath = 'https://github.com/lasselukkari/aWOT';
   var pathName = document.location.pathname;
 
-  var currentVersion = pathName.split('/').splice(-2)[0] || '2x'; // defaults to current version
+  var currentVersion = pathName.split('/').splice(-2)[0] || '3x'; // defaults to current version
   var fileName = pathName.split('/').splice(-2)[1];
   var pagePath;
   var editPath;

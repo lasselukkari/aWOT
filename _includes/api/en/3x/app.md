@@ -40,41 +40,41 @@ void loop() {
 <h3 id='app-methods'>Methods</h3>
 
 <section markdown="1">
-  {% include api/en/2x/app-all.md %}
+  {% include api/en/3x/app-del.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-del.md %}
+  {% include api/en/3x/app-get.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-get.md %}
+  {% include api/en/3x/app-head.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-header.md %}
+  {% include api/en/3x/app-header.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-options.md %}
+  {% include api/en/3x/app-options.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-patch.md %}
+  {% include api/en/3x/app-patch.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-post.md %}
+  {% include api/en/3x/app-post.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-process.md %}
+  {% include api/en/3x/app-process.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-put.md %}
+  {% include api/en/3x/app-put.md %}
 </section>
 
 <section markdown="1">
-  {% include api/en/2x/app-use.md %}
+  {% include api/en/3x/app-use.md %}
 </section>
