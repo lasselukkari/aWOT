@@ -74,11 +74,11 @@ unittest(router_route_params) {
     "test1 test2";
 
   MockStream stream(request);
-  Router router("/router");
+  Router router;
   Application app;
 
   router.get("/route/:test1/params/:test2", &handler);
-  app.use(&router);
+  app.use("/router", &router);
 
   app.process(&stream);
 

@@ -4,6 +4,12 @@
 
 void handler(Request &req, Response &res) {
   res.set("Test", "Test");
+
+  if(req.method() == Request::MethodType::HEAD) {
+    res.end();
+    return;
+  }
+
   res.print("test");
 }
 
@@ -113,7 +119,7 @@ unittest(http_methods_head) {
   MockStream stream(request);
   Application app;
 
-  app.get("/test", &handler);
+  app.head("/test", &handler);
   app.process(&stream);
 
   assertEqual(noBody, stream.response());

@@ -88,7 +88,7 @@ class Response : public Print {
   void sendStatus(int code);
   void set(const char* name, const char* value);
   void status(int code);
-  bool statusSent();
+  int statusSent();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
@@ -97,7 +97,6 @@ class Response : public Print {
   Response();
 
   void m_init(Stream* client);
-  void m_disableBody();
   void m_printCustomHeaders();
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
@@ -114,9 +113,8 @@ class Response : public Print {
   bool m_contentLenghtSet;
   bool m_contentTypeSet;
   bool m_keepAlive;
-  bool m_statusSent;
+  int m_statusSent;
   bool m_headersSent;
-  bool m_noBody;
   bool m_sendingStatus;
   bool m_sendingHeaders;
   int m_headersCount;
@@ -132,7 +130,7 @@ class Request : public Stream {
   friend class Router;
 
  public:
-  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL, USE };
+  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, USE };
 
   int available();
   int availableForWrite();
@@ -173,7 +171,7 @@ class Request : public Stream {
   bool m_processHeaders();
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
-  void m_setRoute(int prefixLength, const char* route);
+  void m_setRoute(const char* route, const char* pattern);
   void m_setMethod(MethodType method);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
@@ -195,9 +193,8 @@ class Request : public Stream {
   bool m_timedout;
   char* m_path;
   int m_pathLength;
-  int m_prefixLength;
+  const char* m_pattern;
   const char* m_route;
-  bool m_next;
 };
 
 class Router {
@@ -206,17 +203,19 @@ class Router {
  public:
   typedef void Middleware(Request& request, Response& response);
 
-  Router(const char* urlPrefix = "");
+  Router();
   ~Router();
 
-  void all(const char* path, Middleware* middleware);
   void del(const char* path, Middleware* middleware);
   void get(const char* path, Middleware* middleware);
+  void head(const char* path, Middleware* middleware);
   void options(const char* path, Middleware* middleware);
   void patch(const char* path, Middleware* middleware);
   void post(const char* path, Middleware* middleware);
   void put(const char* path, Middleware* middleware);
+  void use(const char* path, Router* router);
   void use(Router* router);
+  void use(const char* path, Middleware* middleware);
   void use(Middleware* middleware);
 
  private:
@@ -233,12 +232,10 @@ class Router {
   void m_mountMiddleware(MiddlewareNode *tail);
   void m_setNext(Router* next);
   Router* m_getNext();
-  bool m_dispatchMiddleware(Request& request, Response& response, int urlShift = 0);
+  void m_dispatchMiddleware(Request& request, Response& response, int urlShift = 0);
   bool m_routeMatch(const char* route, const char* pattern);
 
   MiddlewareNode* m_head;
-  Router* m_next;
-  const char* m_urlPrefix;
 };
 
 class Application {
@@ -248,9 +245,9 @@ class Application {
 
   static int strcmpi(const char* s1, const char* s2);
 
-  void all(const char* path, Router::Middleware* middleware);
   void del(const char* path, Router::Middleware* middleware);
   void get(const char* path, Router::Middleware* middleware);
+  void head(const char* path, Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
   void options(const char* path, Router::Middleware* middleware);
   void patch(const char* path, Router::Middleware* middleware);
@@ -259,7 +256,9 @@ class Application {
   void process(Stream* client);
   void process(Stream* client, char* buffer, int bufferLength);
   void setTimeout(unsigned long timeoutMillis);
+  void use(const char* path, Router* router);
   void use(Router* router);
+  void use(const char* path, Router::Middleware* middleware);
   void use(Router::Middleware* middleware);
 
  private:
@@ -267,7 +266,6 @@ class Application {
 
   Request m_request;
   Response m_response;
-  Router* m_routerTail;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
   unsigned long m_timedout;

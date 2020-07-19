@@ -133,7 +133,7 @@ void setup() {
 ### Routers
 ```cpp
 Application app;
-Router cats("/cats");
+Router cats;
 
 void looooong(Request &req, Response &res) {
   res.print("looooong cat is long!");
@@ -156,7 +156,7 @@ void setup() {
   cats.get("/ceiling", &ceiling);
   cats.get("/nyan", &nyannyan);
 
-  app.use(&cats);
+  app.use("/cats", &cats);
 }
 ```
 
