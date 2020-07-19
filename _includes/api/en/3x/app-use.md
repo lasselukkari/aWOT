@@ -1,8 +1,13 @@
 <h3 id='app-use'>Application::use</h3>
+
+<h4 class='variant'>void use(const char* path, Middleware* middleware);</h4>
 <h4 class='variant'>void use(Router::Middleware* middleware);</h4>
+<h4 class='variant'>void use(const char* path, Router* router);</h4>
 <h4 class='variant'>void use(Router * router);</h4>
 
 This method is like any standard app.METHOD() methods, except it matches all HTTP verbs and routes. The overloaded version mounts a Router instance to the application.
+
+If the path parameter is not specified it's set to NULL the middleware or router will be executed on all requests.
 
 ##### Example Middleware
 
@@ -45,7 +50,7 @@ app.use(&logRequest);
 
 ```arduino
 Application app;
-Router cats("/cats");
+Router cats;
 
 void looooong(Request &req, Response &res) {
   res.print("looooong cat is long!");
@@ -65,5 +70,5 @@ cats.get("/long", &looooong);
 cats.get("/ceiling", &ceiling);
 cats.get("/nyan", &nyannyan);
 
-app.use(&cats);
+app.use("/cats", &cats);
 ```

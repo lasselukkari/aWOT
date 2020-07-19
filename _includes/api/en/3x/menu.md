@@ -3,12 +3,12 @@
         <ul id="app-menu">
             <li><em>Methods</em>
             </li>
-            <li><a href="#app-all">all</a>
-            </li>
             <li><a href="#app-del">del</a>
             </li>
             <li><a href="#app-get">get</a>
             </li>
+            <li><a href="#app-head">head</a>
+            </li>            
             <li><a href="#app-header">header</a>
             </li>
             <li><a href="#app-options">options</a>
@@ -135,12 +135,12 @@
             </li>
             <li><a href="#router-Router">Router</a>
             </li>           
-            <li><a href="#router-all">all</a>
-            </li>
             <li><a href="#router-del">del</a>
             </li>
             <li><a href="#router-get">get</a>
             </li>
+            <li><a href="#router-head">head</a>
+            </li>            
             <li><a href="#router-options">options</a>
             </li>
             <li><a href="#router-patch">patch</a>

@@ -1,7 +1,7 @@
 <h3 id='res-end'>Response::end</h3>
 <h4 class='variant'>void end();</h4>
 
-Ends the response process. All further write operations will be discarded. This will also prevent any pending Middleware functions in the chain from being executed.
+After calling end no further middleware functions will be executed.
 
 ##### Example
 ```arduino
