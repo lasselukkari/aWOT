@@ -1477,8 +1477,6 @@ void Application::use(Router *router) {
 }
 
 void Application::m_process() {
-  bool routeMatch = false;
-
   if (!m_request.m_processMethod()) {
     if (m_request.timedout()) {
       return m_response.sendStatus(408);
