@@ -3,14 +3,12 @@
 <section markdown="1">
 A `Router` is an isolated instance of middleware and routes. You can think of it
 as a "mini-application," capable only of performing middleware and routing
-functions. Every aWOT application has a built-in default router.
-
-Routers can also be nested. Use it as an argument to [router.use()](#router.use) method.
+functions. Every aWOT application has a built-in default router. Routers can also be nested.
 
 ##### Example
 ```arduino
 Application app;
-Router cats("/cats");
+Router cats;
 
 void looooong(Request &req, Response &res) {
   res.print("looooong cat is long!");
@@ -33,7 +31,7 @@ void setup() {
   cats.get("/ceiling", &ceiling);
   cats.get("/nyan", &nyannyan);
 
-  app.use(&cats);
+  app.use("/cats", &cats);
 }
 ```
 
