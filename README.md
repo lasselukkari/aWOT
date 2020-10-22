@@ -52,6 +52,7 @@ void loop() {
 
   if (client.connected()) {
     app.process(&client);
+    // If you are using the EthernetClient remember to call client.stop() here.
   }
 }
 ```
