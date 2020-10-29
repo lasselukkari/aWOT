@@ -1337,7 +1337,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
     return true;
   }
 
-  boolean match = false;
+  bool match = false;
   int i = 0;
   int j = 0;
 
