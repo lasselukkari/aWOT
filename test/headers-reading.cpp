@@ -16,13 +16,13 @@ unittest(headers_ok) {
   char test1Header[6]{};
   char test2Header[6]{};
 
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     "Test1: test1" CRLF
     "Test2:   test2" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -44,14 +44,14 @@ unittest(same_header_multiple_times) {
   char test1Header[12]{};
   char test2Header[6]{};
 
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     "Test1: test1" CRLF
     "Test1: test1" CRLF
     "Test2:   test2" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -73,13 +73,13 @@ unittest(headers_field_too_large) {
   char test1Header[6];
   char test2Header[6];
 
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     "Test1: test1" CRLF
     "Test2: 123456" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 431 Request Header Fields Too Large" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

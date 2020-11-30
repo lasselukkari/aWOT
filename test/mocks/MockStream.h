@@ -4,7 +4,7 @@
 
 class MockStream : public Stream {
  private:
-  char const *readBuffer;
+  const char *readBuffer;
   uint16_t readBufferLenght;
   uint16_t readPosition;
 

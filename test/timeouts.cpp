@@ -16,20 +16,20 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(timeouts) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 1" CRLF
     CRLF
     "1";
 
-  char const *okResponse =
+  const char *okResponse =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
     CRLF
     "/";
 
-  char const *timeoutResponse =
+  const char *timeoutResponse =
     "HTTP/1.1 408 Request Timeout" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

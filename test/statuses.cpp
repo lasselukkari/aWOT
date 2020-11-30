@@ -10,14 +10,14 @@ void handler(Request & req, Response & res) {
 }
 
 unittest(status_continue) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.1" CRLF
     "Expect: 100-continue" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "test";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 100 Continue" CRLF
     "Before-Continue: TestBefore" CRLF
     CRLF

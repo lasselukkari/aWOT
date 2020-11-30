@@ -22,14 +22,14 @@ void reqPrintHandler(Request &req, Response &res) {
 }
 
 unittest(req_available) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "test"
     "GET / HTT...";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -46,13 +46,13 @@ unittest(req_available) {
 }
 
 unittest(req_available_less_than_content_length) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "te";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -69,14 +69,14 @@ unittest(req_available_less_than_content_length) {
 }
 
 unittest(req_read_string) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "test"
     "GET / HTT...";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -93,14 +93,14 @@ unittest(req_read_string) {
 }
 
 unittest(req_read_bytes) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "test"
     "GET / HTT...";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -117,13 +117,13 @@ unittest(req_read_bytes) {
 }
 
 unittest(req_read_bytes_timeout) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 4" CRLF
     CRLF
     "te";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -140,11 +140,11 @@ unittest(req_read_bytes_timeout) {
 }
 
 unittest(req_print) {
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

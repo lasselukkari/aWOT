@@ -13,7 +13,7 @@ void handler(Request &req, Response &res) {
   res.print("test");
 }
 
-char const *expected =
+const char *expected =
   "HTTP/1.1 200 OK" CRLF
   "Test: Test" CRLF
   "Content-Type: text/plain" CRLF
@@ -22,7 +22,7 @@ char const *expected =
   "test";
 
 unittest(http_methods_get) {
-  char const *request =
+  const char *request =
     "GET /test HTTP/1.0" CRLF
     CRLF;
 
@@ -36,7 +36,7 @@ unittest(http_methods_get) {
 }
 
 unittest(http_methods_post) {
-  char const *request =
+  const char *request =
     "POST /test HTTP/1.0" CRLF
     CRLF;
 
@@ -50,7 +50,7 @@ unittest(http_methods_post) {
 }
 
 unittest(http_methods_put) {
-  char const *request =
+  const char *request =
     "PUT /test HTTP/1.0" CRLF
     CRLF;
 
@@ -63,7 +63,7 @@ unittest(http_methods_put) {
 }
 
 unittest(http_methods_patch) {
-  char const *request =
+  const char *request =
     "PATCH /test HTTP/1.0" CRLF
     CRLF;
 
@@ -77,7 +77,7 @@ unittest(http_methods_patch) {
 }
 
 unittest(http_methods_delete) {
-  char const *request =
+  const char *request =
     "DELETE /test HTTP/1.0" CRLF
     CRLF;
 
@@ -91,7 +91,7 @@ unittest(http_methods_delete) {
 }
 
 unittest(http_methods_options) {
-  char const *request =
+  const char *request =
     "OPTIONS /test HTTP/1.0" CRLF
     CRLF;
 
@@ -105,11 +105,11 @@ unittest(http_methods_options) {
 }
 
 unittest(http_methods_head) {
-  char const *request =
+  const char *request =
     "HEAD /test HTTP/1.0" CRLF
     CRLF;
 
-  char const *noBody =
+  const char *noBody =
     "HTTP/1.1 200 OK" CRLF
     "Test: Test" CRLF
     "Content-Type: text/plain" CRLF
