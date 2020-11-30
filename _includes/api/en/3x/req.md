@@ -105,9 +105,5 @@
 </section>
 
 <section markdown="1">
-  {% include api/en/3x/req-timedout.md %}
-</section>
-
-<section markdown="1">
   {% include api/en/3x/req-write.md %}
 </section>

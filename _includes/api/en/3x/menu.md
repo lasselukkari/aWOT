@@ -80,8 +80,6 @@
             <li><a href="#req-setTimeout">setTimeout</a>
             </li>
             <li><a href="#req-stream">stream</a>
-            </li>               
-            <li><a href="#req-timedout">timedout</a>
             </li>
             <li><a href="#req-write">write</a>
             </li>            
