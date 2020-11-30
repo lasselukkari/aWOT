@@ -268,7 +268,7 @@ class Application {
   Response m_response;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
-  unsigned long m_timedout;
+  unsigned long m_timeout;
 };
 
 #endif

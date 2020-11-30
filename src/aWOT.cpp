@@ -1372,7 +1372,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_headerTail(NULL), m_timedout(1000) {}
+    : m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1447,7 +1447,7 @@ void Application::process(Stream *stream, char *buffer, int bufferLength) {
     return;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timedout);
+  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout);
   m_response.m_init(stream);
 
   m_process();
@@ -1465,7 +1465,7 @@ void Application::use(Router::Middleware *middleware) {
 }
 
 void Application::setTimeout(unsigned long timeoutMillis) {
-  m_timedout = timeoutMillis;
+  m_timeout = timeoutMillis;
 }
 
 void Application::use(const char *path, Router *router) {
