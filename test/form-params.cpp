@@ -18,13 +18,13 @@ void handler(Request & req, Response & res) {
 }
 
 unittest(form_params) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 23" CRLF
     CRLF
     "test1=test1&test2=test2";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -42,13 +42,13 @@ unittest(form_params) {
 }
 
 unittest(form_params_name_too_long) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 23" CRLF
     CRLF
     "test1*=test1&test2=test2";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 400 Bad Request" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -65,13 +65,13 @@ unittest(form_params_name_too_long) {
 }
 
 unittest(form_params_value_too_long) {
-  char const *request =
+  const char *request =
     "POST / HTTP/1.0" CRLF
     "Content-Length: 23" CRLF
     CRLF
     "test1=test1*&test2=test2";
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 400 Bad Request" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

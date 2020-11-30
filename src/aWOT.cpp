@@ -717,7 +717,7 @@ Request::Request()
       m_headerTail(NULL),
       m_query(NULL),
       m_queryLength(0),
-      m_timedout(false),
+      m_readTimedout(false),
       m_path(NULL),
       m_pathLength(0),
       m_pattern(NULL),
@@ -761,7 +761,7 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
   memset(name, 0, nameLength);
   memset(value, 0, valueLength);
 
-  while ((ch = timedRead()) != -1) {
+  while ((ch = m_timedRead()) != -1) {
     foundSomething = true;
     if (ch == '+') {
       ch = ' ';
@@ -771,12 +771,12 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
     } else if (ch == '&') {
       return nameLength > 0 && valueLength > 0;
     } else if (ch == '%') {
-      int high = timedRead();
+      int high = m_timedRead();
       if (high == -1) {
         return false;
       }
 
-      int low = timedRead();
+      int low = m_timedRead();
       if (low == -1) {
         return false;
       }
@@ -870,15 +870,14 @@ int Request::read() {
 
   int ch = m_stream->read();
   if (ch == -1) {
-    m_timedout = true;
-  } else {
-    m_bytesRead++;
-
-    if (m_readingContent) {
-      m_left--;
-    }
+    return -1;
   }
 
+  if (m_readingContent) {
+    m_left--;
+  }
+
+  m_bytesRead++;
   return ch;
 }
 
@@ -930,8 +929,6 @@ bool Request::route(int number, char *buffer, int bufferLength) {
   return false;
 }
 
-bool Request::timedout() { return m_timedout; }
-
 int Request::minorVersion() { return m_minorVersion; }
 
 size_t Request::write(uint8_t data) {
@@ -952,7 +949,7 @@ void Request::m_init(Stream *client, Response *response, HeaderNode *headerTail,
   m_pathLength = bufferLength - 1;
   m_pushbackDepth = 0;
   m_left = 0;
-  m_timedout = false;
+  m_readTimedout = false;
   m_readingContent = false;
   m_method = GET;
   m_minorVersion = -1;
@@ -987,15 +984,15 @@ bool Request::m_readURL() {
   int bufferLeft = m_pathLength;
   int ch;
 
-  while ((ch = timedRead()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
+  while ((ch = m_timedRead()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
          --bufferLeft) {
     if (ch == '%') {
-      int high = timedRead();
+      int high = m_timedRead();
       if (high == -1) {
         return false;
       }
 
-      int low = timedRead();
+      int low = m_timedRead();
       if (low == -1) {
         return false;
       }
@@ -1029,7 +1026,7 @@ bool Request::m_readVersion() {
       m_minorVersion = 0;
     } else if (m_expect("1.1")) {
       m_minorVersion = 1;
-    } else if (timedRead() == -1) {
+    } else if (m_timedRead() == -1) {
       return false;
     }
   }
@@ -1081,7 +1078,7 @@ bool Request::m_processHeaders() {
 
     if (!canEnd) {
       while (!m_expect(CRLF)) {
-        if (timedRead() == -1) {
+        if (m_timedRead() == -1) {
           return false;
         }
       }
@@ -1109,7 +1106,7 @@ bool Request::m_headerValue(char *buffer, int bufferLength) {
     return false;
   }
 
-  while ((ch = timedRead()) != -1) {
+  while ((ch = m_timedRead()) != -1) {
     if (--bufferLength > 0) {
       *buffer++ = ch;
     }
@@ -1131,14 +1128,14 @@ bool Request::m_readInt(int &number) {
     return false;
   }
 
-  int ch = timedRead();
+  int ch = m_timedRead();
   if (ch == -1) {
     return false;
   }
 
   if (ch == '-') {
     negate = true;
-    ch = timedRead();
+    ch = m_timedRead();
     if (ch == -1) {
       return false;
     }
@@ -1149,7 +1146,7 @@ bool Request::m_readInt(int &number) {
   while (ch >= '0' && ch <= '9') {
     gotNumber = true;
     number = number * 10 + ch - '0';
-    ch = timedRead();
+    ch = m_timedRead();
     if (ch == -1) {
       return false;
     }
@@ -1176,7 +1173,7 @@ int Request::m_getUrlPathLength() { return m_pathLength; }
 bool Request::m_expect(const char *expected) {
   const char *candidate = expected;
   while (*candidate != 0) {
-    int ch = timedRead();
+    int ch = m_timedRead();
     if (ch == -1) {
       return false;
     }
@@ -1198,7 +1195,7 @@ bool Request::m_expect(const char *expected) {
 bool Request::m_skipSpace() {
   int ch;
 
-  while ((ch = timedRead()) != -1 && (ch == ' ' || ch == '\t'))
+  while ((ch = m_timedRead()) != -1 && (ch == ' ' || ch == '\t'))
     ;
 
   if (ch == -1) {
@@ -1216,6 +1213,17 @@ void Request::m_reset() {
     headerNode->buffer[0] = '\0';
     headerNode = headerNode->next;
   }
+}
+
+bool Request::m_timedout() { return m_readTimedout; }
+
+int Request::m_timedRead() {
+  int ch = timedRead();
+  if (ch == -1) {
+    m_readTimedout = true;
+  }
+
+  return ch;
 }
 
 Router::Router()
@@ -1372,7 +1380,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_headerTail(NULL), m_timedout(1000) {}
+    : m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1447,7 +1455,7 @@ void Application::process(Stream *stream, char *buffer, int bufferLength) {
     return;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timedout);
+  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout);
   m_response.m_init(stream);
 
   m_process();
@@ -1465,7 +1473,7 @@ void Application::use(Router::Middleware *middleware) {
 }
 
 void Application::setTimeout(unsigned long timeoutMillis) {
-  m_timedout = timeoutMillis;
+  m_timeout = timeoutMillis;
 }
 
 void Application::use(const char *path, Router *router) {
@@ -1478,7 +1486,7 @@ void Application::use(Router *router) {
 
 void Application::m_process() {
   if (!m_request.m_processMethod()) {
-    if (m_request.timedout()) {
+    if (m_request.m_timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1486,7 +1494,7 @@ void Application::m_process() {
   }
 
   if (!m_request.m_readURL()) {
-    if (m_request.timedout()) {
+    if (m_request.m_timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1496,7 +1504,7 @@ void Application::m_process() {
   m_request.m_processURL();
 
   if (!m_request.m_readVersion()) {
-    if (m_request.timedout()) {
+    if (m_request.m_timedout()) {
       return m_response.sendStatus(408);
     }
 
@@ -1504,7 +1512,7 @@ void Application::m_process() {
   }
 
   if (!m_request.m_processHeaders()) {
-    if (m_request.timedout()) {
+    if (m_request.m_timedout()) {
       return m_response.sendStatus(408);
     }
 

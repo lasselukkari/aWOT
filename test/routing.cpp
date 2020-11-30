@@ -25,11 +25,11 @@ void afterAll(Request &req, Response &res) {
 }
 
 unittest(nested_routers) {
-  char const *request =
+  const char *request =
     "GET /router1/router2/router3/route/test HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -61,11 +61,11 @@ void testHandler(Request &req, Response &res) {
 }
 
 unittest(use_route_with_path) {
-  char const *request =
+  const char *request =
     "POST /usepath HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -83,11 +83,11 @@ unittest(use_route_with_path) {
 }
 
 unittest(use_route_without_path) {
-  char const *request =
+  const char *request =
     "POST /usepath HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -105,11 +105,11 @@ unittest(use_route_without_path) {
 }
 
 unittest(router_with_path) {
-  char const *request =
+  const char *request =
     "GET /router/route HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -129,11 +129,11 @@ unittest(router_with_path) {
 }
 
 unittest(router_without_path) {
-  char const *request =
+  const char *request =
     "GET /route HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

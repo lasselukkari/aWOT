@@ -4,7 +4,7 @@
 
 class MockStream : public Stream {
  private:
-  char const *readBuffer;
+  const char *readBuffer;
   uint16_t readBufferLenght;
   uint16_t readPosition;
 
@@ -12,9 +12,9 @@ class MockStream : public Stream {
   uint16_t writePosition;
 
  public:
-  MockStream(const char *readBuffer)
+  MockStream(const char *readBuffer, int bufferLength = -1)
       : readBuffer(readBuffer),
-        readBufferLenght(strlen(readBuffer)),
+        readBufferLenght(bufferLength == -1 ? strlen(readBuffer) : bufferLength),
         readPosition(0),
         writePosition(0){};
 

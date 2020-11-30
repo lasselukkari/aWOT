@@ -8,11 +8,11 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(root_path) {
-  char const *request =
+  const char *request =
     "GET /notfound HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 404 Not Found" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

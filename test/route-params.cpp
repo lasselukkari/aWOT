@@ -20,11 +20,11 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(route_params_ok) {
-  char const *request =
+  const char *request =
     "GET /route/test1/params/test2 HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -41,11 +41,11 @@ unittest(route_params_ok) {
 }
 
 unittest(route_params_value_too_long) {
-  char const *request =
+  const char *request =
     "GET /route/morethantenchars/params/test2 HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 400 Bad Request" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF
@@ -62,11 +62,11 @@ unittest(route_params_value_too_long) {
 }
 
 unittest(router_route_params) {
-  char const *request =
+  const char *request =
     "GET /router/route/test1/params/test2 HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: text/plain" CRLF
     "Connection: close" CRLF

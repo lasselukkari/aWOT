@@ -149,7 +149,6 @@ class Request : public Stream {
   int read();
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
-  bool timedout();
   int minorVersion();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
@@ -177,6 +176,8 @@ class Request : public Stream {
   bool m_expect(const char* expected);
   bool m_skipSpace();
   void m_reset();
+  int m_timedRead();
+  bool m_timedout();
 
   Stream* m_stream;
   Response* m_response;
@@ -190,7 +191,7 @@ class Request : public Stream {
   HeaderNode* m_headerTail;
   char* m_query;
   int m_queryLength;
-  bool m_timedout;
+  bool m_readTimedout;
   char* m_path;
   int m_pathLength;
   const char* m_pattern;
@@ -268,7 +269,7 @@ class Application {
   Response m_response;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
-  unsigned long m_timedout;
+  unsigned long m_timeout;
 };
 
 #endif

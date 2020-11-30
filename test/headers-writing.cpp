@@ -25,11 +25,11 @@ void keepAliveContentLengthHandler(Request & req, Response & res) {
 }
 
 unittest(custom_headers) {
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Test1: test1" CRLF
     "Test1: test2" CRLF
@@ -48,11 +48,11 @@ unittest(custom_headers) {
 }
 
 unittest(content_type) {
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Content-Type: test/type" CRLF
     "Connection: close" CRLF
@@ -69,13 +69,13 @@ unittest(content_type) {
 }
 
 unittest(connection_keep_alive) {
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     CRLF
     "GET / HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Connection: keep-alive" CRLF
     "Content-Type: text/plain" CRLF
@@ -106,11 +106,11 @@ unittest(connection_keep_alive) {
 }
 
 unittest(connection_keep_alive_content_length) {
-  char const *request =
+  const char *request =
     "GET / HTTP/1.0" CRLF
     CRLF;
 
-  char const *expected =
+  const char *expected =
     "HTTP/1.1 200 OK" CRLF
     "Connection: keep-alive" CRLF
     "Content-Length: 1" CRLF
