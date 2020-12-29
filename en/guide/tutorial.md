@@ -905,12 +905,17 @@ redirect_from: "/guide/tutorial.html"
 </p>
 <p>
   <img src="../../images/tutorial/start.jpg" alt="Web app screenshot." class="img-fluid" />
-</p>
+</p>  
 <p>
   As instructed, open up the App.js and do the following modifications.
     <a href="https://github.com/lasselukkari/led-blink/commit/9b23e6c13056d05a277a96d14531982926a01623"><i
+    class="fab fa-github"></i></a>. 
+</p>
+<p>
+  <b>Update:</b> After writing this tutorial React has introduced <a href="https://reactjs.org/docs/components-and-props.html#function-and-class-components">function components</a> and this is what the Create React App also uses in the generated code. You can either replace the whole App.js with the class based component or use the new function compoent style if you know how to do it. If you decide to use the class component just copy the App.js content from here:     <a href="https://github.com/lasselukkari/LedBlink/blob/master/src/App.js"><i
     class="fab fa-github"></i></a>
 </p>
+
 <div class="diff">
   <div class="d2h-file-list-wrapper">
     <div class="d2h-file-list-header">
