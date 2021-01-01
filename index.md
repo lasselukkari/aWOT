@@ -14,7 +14,7 @@ redirect_from: "/en/index.html"
   <div id="homepage-rightpane" class="pane">
     <section id="description">
       <div class="awot"><a href="/">aWOT</a></div>
-      <span class="description">Fast, unopinionated, minimalist web framework for <a href='https://arduino.cc'>Arduino</a>.
+      <span class="description">Fast, unopinionated, minimalist web server library for <a href='https://arduino.cc'>Arduino</a>.
       </span>
     </section>
   </div>
