@@ -1,6 +1,6 @@
 ---
 layout: home
-title: aWOT - Arduino web application framework
+title: aWOT - Arduino web server library
 menu: home
 lang: en
 redirect_from: "/en/index.html"
