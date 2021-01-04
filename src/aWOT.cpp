@@ -48,19 +48,6 @@ void Response::beginHeaders() {
     status(200);
   }
 
-  if (!m_contentTypeSet) {
-    set("Content-Type", "text/plain");
-  }
-
-  if (m_keepAlive && !m_contentLenghtSet) {
-    set("Transfer-Encoding", "chunked");
-  }
-
-  if (!m_keepAlive) {
-    m_contentLenghtSet = true;
-    set("Connection", "close");
-  }
-
   m_sendingHeaders = true;
 
   for (int i = 0; i < m_headersCount; i++) {
@@ -148,10 +135,27 @@ void Response::set(const char *name, const char *value) {
   }
 }
 
+void Response::setDefaults() {
+  if (!m_contentTypeSet) {
+    set("Content-Type", "text/plain");
+  }
+
+  if (m_keepAlive && !m_contentLenghtSet) {
+    set("Transfer-Encoding", "chunked");
+  }
+
+  if (!m_keepAlive) {
+    m_contentLenghtSet = true;
+    set("Connection", "close");
+  }
+}
+
 void Response::status(int code) {
   if (m_statusSent) {
     return;
   }
+
+  m_statusSent = code;
 
   m_sendingStatus = true;
   P(httpVersion) = "HTTP/1.1 ";
@@ -163,14 +167,12 @@ void Response::status(int code) {
   m_printCRLF();
 
   if (code < 200) {
-    m_printHeaders();
-  } else {
-    m_statusSent = code;
-
-    if (code == 204 || code == 304) {
-      m_contentLenghtSet = true;
-      m_contentTypeSet = true;
-    }
+    beginHeaders();
+    endHeaders();
+    m_statusSent = 0;
+  } else if (code == 204 || code == 304) {
+    m_contentLenghtSet = true;
+    m_contentTypeSet = true;
   }
 
   m_sendingStatus = false;
@@ -669,6 +671,7 @@ bool Response::m_shouldPrintHeaders() {
 }
 
 void Response::m_printHeaders() {
+  setDefaults();
   beginHeaders();
   endHeaders();
 }

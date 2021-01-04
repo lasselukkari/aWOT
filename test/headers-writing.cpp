@@ -10,6 +10,7 @@ void customHeadersHandler(Request & req, Response & res) {
 
 void manualHeadersHandler(Request & req, Response & res) {
   res.set("Test1", "test1");
+  res.setDefaults();
   res.beginHeaders();
   res.print("Test1: test2" CRLF);
   res.endHeaders();

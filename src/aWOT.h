@@ -89,6 +89,7 @@ class Response : public Print {
   void printP(const char* string);
   void sendStatus(int code);
   void set(const char* name, const char* value);
+  void setDefaults();
   void status(int code);
   int statusSent();
   size_t write(uint8_t data);
