@@ -22,6 +22,7 @@ unittest(status_continue) {
     "Before-Continue: TestBefore" CRLF
     CRLF
     "HTTP/1.1 204 No Content" CRLF
+    "Before-Continue: TestBefore" CRLF
     "After-Continue: TestAfter" CRLF
     "Connection: close" CRLF
     CRLF;

@@ -78,7 +78,9 @@ class Response : public Print {
  public:
   int availableForWrite();
   int bytesSent();
+  void beginHeaders();
   void end();
+  void endHeaders();
   bool ended();
   void flush();
   const char* get(const char* name);
@@ -97,7 +99,6 @@ class Response : public Print {
   Response();
 
   void m_init(Stream* client);
-  void m_printCustomHeaders();
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();

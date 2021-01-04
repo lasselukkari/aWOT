@@ -8,6 +8,14 @@ void customHeadersHandler(Request & req, Response & res) {
   res.print("/");
 }
 
+void manualHeadersHandler(Request & req, Response & res) {
+  res.set("Test1", "test1");
+  res.beginHeaders();
+  res.print("Test1: test2" CRLF);
+  res.endHeaders();
+  res.print("/");
+}
+
 void contentTypeHandler(Request & req, Response & res) {
   res.set("Content-Type", "test/type");
   res.print("/");
@@ -42,6 +50,29 @@ unittest(custom_headers) {
   Application app;
 
   app.get("/", &customHeadersHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
+unittest(manual_headers) {
+  const char *request =
+    "GET / HTTP/1.0" CRLF
+    CRLF;
+
+  const char *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Test1: test1" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    "Test1: test2" CRLF
+    CRLF
+    "/";
+
+  MockStream stream(request);
+  Application app;
+
+  app.get("/", &manualHeadersHandler);
   app.process(&stream);
 
   assertEqual(expected, stream.response());

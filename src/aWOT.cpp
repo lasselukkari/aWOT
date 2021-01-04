@@ -43,10 +43,45 @@ int Response::availableForWrite() {
   return SERVER_OUTPUT_BUFFER_SIZE - m_bufFill - 1;
 }
 
+void Response::beginHeaders() {
+  if (!m_statusSent) {
+    status(200);
+  }
+
+  if (!m_contentTypeSet) {
+    set("Content-Type", "text/plain");
+  }
+
+  if (m_keepAlive && !m_contentLenghtSet) {
+    set("Transfer-Encoding", "chunked");
+  }
+
+  if (!m_keepAlive) {
+    m_contentLenghtSet = true;
+    set("Connection", "close");
+  }
+
+  m_sendingHeaders = true;
+
+  for (int i = 0; i < m_headersCount; i++) {
+    print(m_headers[i].name);
+    print(": ");
+    print(m_headers[i].value);
+    m_printCRLF();
+  }
+}
+
 int Response::bytesSent() { return m_bytesSent; }
 
 void Response::end() {
   m_ended = true;
+}
+
+void Response::endHeaders() {
+  m_printCRLF();
+  m_flushBuf();
+  m_sendingHeaders = false;
+  m_headersSent = true;
 }
 
 bool Response::ended() { return m_ended; }
@@ -128,10 +163,7 @@ void Response::status(int code) {
   m_printCRLF();
 
   if (code < 200) {
-    m_sendingHeaders = true;
-    m_printCustomHeaders();
-    m_sendingHeaders = false;
-    m_printCRLF();
+    m_printHeaders();
   } else {
     m_statusSent = code;
 
@@ -217,17 +249,6 @@ void Response::m_init(Stream *client) {
   m_bytesSent = 0;
   m_headersCount = 0;
   m_ended = false;
-}
-
-void Response::m_printCustomHeaders() {
-  for (int i = 0; i < m_headersCount; i++) {
-    print(m_headers[i].name);
-    print(": ");
-    print(m_headers[i].value);
-    m_printCRLF();
-  }
-
-  m_headersCount = 0;
 }
 
 void Response::m_printStatus(int code) {
@@ -648,31 +669,8 @@ bool Response::m_shouldPrintHeaders() {
 }
 
 void Response::m_printHeaders() {
-  m_sendingHeaders = true;
-
-  if (!m_statusSent) {
-    status(200);
-  }
-
-  if (!m_contentTypeSet) {
-    set("Content-Type", "text/plain");
-  }
-
-  if (m_keepAlive && !m_contentLenghtSet) {
-    set("Transfer-Encoding", "chunked");
-  }
-
-  if (!m_keepAlive) {
-    m_contentLenghtSet = true;
-    set("Connection", "close");
-  }
-
-  m_printCustomHeaders();
-
-  m_printCRLF();
-  m_flushBuf();
-  m_sendingHeaders = false;
-  m_headersSent = true;
+  beginHeaders();
+  endHeaders();
 }
 
 void Response::m_printCRLF() { print(CRLF); }
