@@ -67,6 +67,7 @@ void fileHandler(Request &req, Response &res) {
 
   dataFile.seek(offset);
 
+  res.set("Connection", "close");
   res.beginHeaders();
   while (length > 0) {
     int toRead = length > READ_BUFFER_SIZE ? READ_BUFFER_SIZE : length;
