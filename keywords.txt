@@ -28,7 +28,9 @@ route	KEYWORD2
 
 Response	KEYWORD1
 bytesSent	KEYWORD2
+beginHeaders	KEYWORD2
 end	KEYWORD2
+endHeaders  KEYWORD2
 ended	KEYWORD2
 flush	KEYWORD2
 get	KEYWORD2
@@ -36,6 +38,7 @@ headersSent	KEYWORD2
 printP	KEYWORD2
 sendStatus	KEYWORD2
 set	KEYWORD2
+setDefaults	KEYWORD2
 status	KEYWORD2
 statusSent	KEYWORD2
 write	KEYWORD2
