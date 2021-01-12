@@ -32,13 +32,16 @@ uint32_t calculateHash(const char * string, uint32_t value = 0x811C9DC5) {
 };
 
 uint32_t readNumber(uint32_t address) {
-  uint8_t buf[4];
   dataFile.seek(address);
-  dataFile.read(buf, 4);
-  return ((buf[0] << 0) & 0xFF) +
-         ((buf[1] << 8) & 0xFFFF) +
-         ((buf[2] << 16) & 0xFFFFFF) +
-         ((buf[3] << 24) & 0xFFFFFFFF);
+  long four = dataFile.read();
+  long three = dataFile.read();
+  long two = dataFile.read();
+  long one = dataFile.read();
+
+  return ((four << 0) & 0xFF) +
+         ((three << 8) & 0xFFFF) +
+         ((two << 16) & 0xFFFFFF) +
+         ((one << 24) & 0xFFFFFFFF);
 }
 
 uint32_t lookupTableIndex(const char * key, uint32_t length) {
