@@ -7,6 +7,10 @@
 </section>
 
 <section markdown="1">
+  {% include api/en/3x/res-beginHeaders.md %}
+</section>
+
+<section markdown="1">
   {% include api/en/3x/res-bytesSent.md %}
 </section>
 
@@ -16,6 +20,10 @@
 
 <section markdown="1">
   {% include api/en/3x/res-ended.md %}
+</section>
+
+<section markdown="1">
+  {% include api/en/3x/res-endHeaders.md %}
 </section>
 
 <section markdown="1">
@@ -48,6 +56,10 @@
 
 <section markdown="1">
   {% include api/en/3x/res-set.md %}
+</section>
+
+<section markdown="1">
+  {% include api/en/3x/res-setDefaults.md %}
 </section>
 
 <section markdown="1">
