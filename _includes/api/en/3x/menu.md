@@ -90,12 +90,16 @@
             <li><em>Methods</em>
             </li>
             <li><a href="#res-availableForWrite">availabeForWrite</a>
-             </li>            
+            </li>
+            <li><a href="#res-beginHeaders">beginHeaders</a>
+            </li>
             <li><a href="#res-bytesSent">bytesSent</a>
-             </li>           
+            </li>
             <li><a href="#res-end">end</a>
             </li>
             <li><a href="#res-ended">ended</a>
+            </li>
+            <li><a href="#res-endHeaders">endHeaders</a>
             </li>
             <li><a href="#res-flush">flush</a>
             </li>
@@ -112,6 +116,8 @@
             <li><a href="#res-sendStatus">sendStatus</a>
             </li>
             <li><a href="#res-set">set</a>
+            </li>
+            <li><a href="#res-setDefaults">setDefaults</a>
             </li>
             <li><a href="#res-status">status</a>
             </li>
