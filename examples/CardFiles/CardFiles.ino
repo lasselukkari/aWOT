@@ -11,7 +11,7 @@
 #define WIFI_PASSWORD ""
 
 // Generate static.bin using awot-scripts and copy it to your SD card
-#define STATIC_FILES "static.bin"
+#define STATIC_FILES "/static.bin"
 #define READ_BUFFER_SIZE 128
 
 WiFiServer server(80);
