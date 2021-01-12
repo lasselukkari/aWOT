@@ -11,6 +11,7 @@
 #define WIFI_PASSWORD ""
 
 // Generate static.bin using awot-scripts and copy it to your SD card
+// You also try it out with this file https://github.com/lasselukkari/aWOT/files/5802036/static.bin.zip
 #define STATIC_FILES "/static.bin"
 #define READ_BUFFER_SIZE 128
 
