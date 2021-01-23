@@ -888,6 +888,7 @@ int Request::read(uint8_t* buf, size_t size) {
   while (m_pushbackDepth > 0) {
     *buf++ = m_pushback[--m_pushbackDepth];
     size--;
+    ret++;
   }
 
   int read = m_stream->read(buf, (size < m_left ? size : m_left));
