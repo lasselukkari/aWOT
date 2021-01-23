@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Stream.h"
+#include "Client.h"
 
 #define CRLF "\r\n"
 
@@ -71,6 +71,40 @@
 #define P(name) static const unsigned char name[] PROGMEM
 #define SIZE(array) (sizeof(array) / sizeof(*array))
 
+class StreamClient : public Client {
+ private:
+  Stream* s;
+
+ public:
+  StreamClient(Stream* stream) : s(stream){};
+  int connect(IPAddress ip, uint16_t port){return 1;};
+  int connect(const char* host, uint16_t port){return 1;};
+  size_t write(uint8_t byte){return s->write(byte);};
+  size_t write(const uint8_t* buffer, size_t length){return s->write(buffer, length);};
+  int available(){return s->available();};
+  int read() {return s->read();};
+  int read(uint8_t* buffer, size_t length) {
+    size_t count = 0;
+
+    while (count < length) {
+      int c = read();
+      if (c < 0) {
+        break;
+      }
+
+      *buffer++ = (uint8_t)c;
+      count++;
+    }
+
+    return count;
+  }
+  int peek(){return s->peek();};
+  void flush(){return s->flush();};
+  void stop(){};
+  uint8_t connected(){return 1;};
+  operator bool(){return true;};
+};
+
 class Response : public Print {
   friend class Application;
   friend class Router;
@@ -99,7 +133,7 @@ class Response : public Print {
  private:
   Response();
 
-  void m_init(Stream* client);
+  void m_init(Client* client);
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();
@@ -107,7 +141,7 @@ class Response : public Print {
   void m_flushBuf();
   void m_reset();
 
-  Stream* m_stream;
+  Client* m_stream;
   struct Headers {
     const char* name;
     const char* value;
@@ -149,6 +183,7 @@ class Request : public Stream {
   char* query();
   bool query(const char* name, char* buffer, int bufferLength);
   int read();
+  int read(uint8_t* buf, size_t size);
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
   int minorVersion();
@@ -164,7 +199,7 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Stream* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
+  void m_init(Client* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
   bool m_processMethod();
   bool m_readURL();
   bool m_readVersion();
@@ -181,7 +216,7 @@ class Request : public Stream {
   int m_timedRead();
   bool m_timedout();
 
-  Stream* m_stream;
+  Client* m_stream;
   Response* m_response;
   MethodType m_method;
   int m_minorVersion;
@@ -256,6 +291,8 @@ class Application {
   void patch(const char* path, Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
+  void process(Client* client);
+  void process(Client* client, char* buffer, int bufferLength);
   void process(Stream* client);
   void process(Stream* client, char* buffer, int bufferLength);
   void setTimeout(unsigned long timeoutMillis);

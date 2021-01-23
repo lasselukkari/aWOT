@@ -20,6 +20,34 @@ Arduino web server library.
  * [Response](https://awot.net/en/2x/api.html#res)
  * [Router](https://awot.net/en/2x/api.html#router)
 
+## Compatibility
+
+The aWOT web server library has been designed to work with all Arduino compatible development boards and networking options. This also means that switching the board or changing from WiFi to Ethernet will require minimal changes. The examples directory shows you how to use the library with the most popular Ethernet and WiFi libraries 
+
+However there are few subtle differences that need to be taken into account. Also unfortunately some of the WiFi and Ethernet libraries have bugs that prevent the library from working properly. 
+
+### ESP32 and ESP8266 WiFi
+
+In both of the ESP Arduino cores the WiFiClient closes the connection automatically in the class destructor. This means that the client.stop(), does not need to be explicitly called but you will need to take extra steps if you want to keep the connection alive.
+
+### ESP32 + Wiznet W5500
+The current version of the ESP32 Arduino core uses a non standard version of the Server class. Until the ESP32 core is fixed you need to manually modify the begin function in the Server.h if you want to use the Ethernet library that is shipped with the core.
+
+Bug report: https://github.com/espressif/arduino-esp32/issues/2704
+
+### WifiNina
+The WifiNina firmware currently has a bug that causes large writes with the client to fail randomly. The fix is already implemented but it has not yet been merged to the master or released.
+
+Bug report: https://github.com/arduino/nina-fw/issues/61
+
+### Teensy 4.1 + Ethernet
+The Teensy 4.1 Ethernet library currently has a bug that causes the connection to stall and reset when connections to the server are opened in fast phase. The bug has been verified but not fixed yet.
+
+Bug report: https://github.com/vjmuzik/NativeEthernet/issues/7
+
+### Arduino UNO
+Because of the limited RAM and ROM Arduino UNO is on the edge of being usable for anything more complicated. If you want to use this library together with the SD card or any JSON parsing library, pay attention that you do not run out of memory.
+
 ## Examples
 ### Hello World
 ```cpp
@@ -52,7 +80,7 @@ void loop() {
 
   if (client.connected()) {
     app.process(&client);
-    // If you are using the EthernetClient remember to call client.stop() here.
+    client.stop();
   }
 }
 ```

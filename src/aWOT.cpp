@@ -239,7 +239,7 @@ void Response::writeP(const unsigned char *data, size_t length) {
   }
 }
 
-void Response::m_init(Stream *client) {
+void Response::m_init(Client *client) {
   m_stream = client;
   m_contentLenghtSet = false;
   m_contentTypeSet = false;
@@ -882,6 +882,30 @@ int Request::read() {
   return ch;
 }
 
+int Request::read(uint8_t* buf, size_t size) {
+  int ret = 0;
+
+  while (m_pushbackDepth > 0) {
+    *buf++ = m_pushback[--m_pushbackDepth];
+    size--;
+  }
+
+  int read = m_stream->read(buf, (size < m_left ? size : m_left));
+  if (read == -1) {
+    if (ret > 0) {
+      return ret;
+    }
+
+    return -1;
+  }
+
+  ret += read;
+  m_bytesRead += read;
+  m_left -= read;
+
+  return ret;
+}
+
 bool Request::route(const char *name, char *buffer, int bufferLength) {
   int part = 0;
   int i = 1;
@@ -940,7 +964,7 @@ size_t Request::write(uint8_t* buffer, size_t bufferLength) {
   return m_response->write(buffer, bufferLength);
 }
 
-void Request::m_init(Stream *client, Response *response, HeaderNode *headerTail, char *buffer,
+void Request::m_init(Client *client, Response *response, HeaderNode *headerTail, char *buffer,
                      int bufferLength, unsigned long timeout) {
   m_stream = client;
   m_response = response;
@@ -1446,12 +1470,12 @@ void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Stream *stream) {
+void Application::process(Client *stream) {
   char request[SERVER_URL_BUFFER_SIZE];
   process(stream, request, SERVER_URL_BUFFER_SIZE);
 }
 
-void Application::process(Stream *stream, char *buffer, int bufferLength) {
+void Application::process(Client *stream, char *buffer, int bufferLength) {
   if (stream == NULL) {
     return;
   }
@@ -1463,6 +1487,16 @@ void Application::process(Stream *stream, char *buffer, int bufferLength) {
 
   m_request.m_reset();
   m_response.m_reset();
+}
+
+void Application::process(Stream *stream) {
+  StreamClient client(stream);
+  process(&client);
+}
+
+void Application::process(Stream *stream, char *buffer, int bufferLength) {
+  StreamClient client(stream);
+  process(&client, buffer, bufferLength);
 }
 
 void Application::use(const char *path, Router::Middleware *middleware) {

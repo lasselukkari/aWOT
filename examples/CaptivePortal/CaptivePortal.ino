@@ -48,6 +48,7 @@ void loop() {
 
   if (client.connected()) {
     app.process(&client);
+    client.stop();
   }
 
   dnsServer.processNextRequest();
