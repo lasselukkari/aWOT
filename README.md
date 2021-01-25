@@ -27,7 +27,6 @@ The aWOT web server library has been designed to work with all Arduino compatibl
 However there are few subtle differences that need to be taken into account. Also unfortunately some of the WiFi and Ethernet libraries have bugs that prevent the library from working properly.
 
 Previously the library has been tested with:
-
 - Adafruit Feather M0 WiFi
 - Arduino UNO + WIZnet W5100
 - Arduino Mega + WIZnet W5100
