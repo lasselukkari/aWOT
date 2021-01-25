@@ -15,10 +15,10 @@ Arduino web server library.
  * [Working with JSON data](https://awot.net/en/guide/json.html)
  * [Tutorial: Deploying a React app on the ESP32](https://awot.net/en/guide/tutorial.html)
 #### 3. API Reference
- * [Application](https://awot.net/en/2x/api.html#app)
- * [Request](https://awot.net/en/2x/api.html#req)
- * [Response](https://awot.net/en/2x/api.html#res)
- * [Router](https://awot.net/en/2x/api.html#router)
+ * [Application](https://awot.net/en/3x/api.html#app)
+ * [Request](https://awot.net/en/3x/api.html#req)
+ * [Response](https://awot.net/en/3x/api.html#res)
+ * [Router](https://awot.net/en/3x/api.html#router)
 
 ## Compatibility
 
