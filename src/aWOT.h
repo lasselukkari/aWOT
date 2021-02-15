@@ -167,6 +167,7 @@ class Request : public Stream {
 
  public:
   enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, USE };
+  void* context;
 
   int available();
   int availableForWrite();
@@ -199,7 +200,7 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Client* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
+  void m_init(Client* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout, void* context);
   bool m_processMethod();
   bool m_readURL();
   bool m_readVersion();
@@ -291,10 +292,10 @@ class Application {
   void patch(const char* path, Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
-  void process(Client* client);
-  void process(Client* client, char* buffer, int bufferLength);
-  void process(Stream* client);
-  void process(Stream* client, char* buffer, int bufferLength);
+  void* process(Client* client, void* context = NULL);
+  void* process(Client* client, char* buffer, int bufferLength, void* context = NULL);
+  void* process(Stream* client, void* context = NULL);
+  void* process(Stream* client, char* buffer, int bufferLength, void* context = NULL);
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);
   void use(Router* router);

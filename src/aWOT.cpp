@@ -966,7 +966,7 @@ size_t Request::write(uint8_t* buffer, size_t bufferLength) {
 }
 
 void Request::m_init(Client *client, Response *response, HeaderNode *headerTail, char *buffer,
-                     int bufferLength, unsigned long timeout) {
+                     int bufferLength, unsigned long timeout, void* context) {
   m_stream = client;
   m_response = response;
   m_bytesRead = 0;
@@ -981,6 +981,8 @@ void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
   m_minorVersion = -1;
 
   _timeout = timeout;
+
+  this->context = context;
 }
 
 bool Request::m_processMethod() {
@@ -1471,33 +1473,35 @@ void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Client *stream) {
+void* Application::process(Client *stream, void* context) {
   char request[SERVER_URL_BUFFER_SIZE];
-  process(stream, request, SERVER_URL_BUFFER_SIZE);
+  return process(stream, request, SERVER_URL_BUFFER_SIZE, context);
 }
 
-void Application::process(Client *stream, char *buffer, int bufferLength) {
+void* Application::process(Client *stream, char *buffer, int bufferLength, void* context) {
   if (stream == NULL) {
-    return;
+    return NULL;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout);
+  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout, context);
   m_response.m_init(stream);
 
   m_process();
 
   m_request.m_reset();
   m_response.m_reset();
+
+  return m_request.context;
 }
 
-void Application::process(Stream *stream) {
+void* Application::process(Stream *stream, void* context) {
   StreamClient client(stream);
-  process(&client);
+  return process(&client, context);
 }
 
-void Application::process(Stream *stream, char *buffer, int bufferLength) {
+void* Application::process(Stream *stream, char *buffer, int bufferLength, void* context) {
   StreamClient client(stream);
-  process(&client, buffer, bufferLength);
+  return process(&client, buffer, bufferLength, context);
 }
 
 void Application::use(const char *path, Router::Middleware *middleware) {
