@@ -69,7 +69,6 @@
 #endif
 
 #define P(name) static const unsigned char name[] PROGMEM
-#define SIZE(array) (sizeof(array) / sizeof(*array))
 
 class StreamClient : public Client {
  private:
