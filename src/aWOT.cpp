@@ -114,7 +114,7 @@ void Response::sendStatus(int code) {
 }
 
 void Response::set(const char *name, const char *value) {
-  if (m_headersCount >= SIZE(m_headers)) {
+  if (m_headersCount >= SERVER_MAX_HEADERS) {
     return;
   }
 
@@ -827,8 +827,8 @@ void Request::push(uint8_t ch) {
   m_pushback[m_pushbackDepth++] = ch;
 
   // can't raise error here, so just replace last char over and over
-  if (m_pushbackDepth == SIZE(m_pushback)) {
-    m_pushbackDepth = SIZE(m_pushback) - 1;
+  if (m_pushbackDepth == SERVER_PUSHBACK_BUFFER_SIZE) {
+    m_pushbackDepth = SERVER_PUSHBACK_BUFFER_SIZE - 1;
   }
 }
 
