@@ -64,10 +64,6 @@
 #define SERVER_MAX_HEADERS 10
 #endif
 
-#ifdef _VARIANT_ARDUINO_DUE_X_
-#define pgm_read_byte(ptr) (unsigned char)(*ptr)
-#endif
-
 #define P(name) static const unsigned char name[] PROGMEM
 
 class StreamClient : public Client {
@@ -76,8 +72,8 @@ class StreamClient : public Client {
 
  public:
   StreamClient(Stream* stream) : s(stream){};
-  int connect(IPAddress ip, uint16_t port){return 1;};
-  int connect(const char* host, uint16_t port){return 1;};
+  int connect(IPAddress, uint16_t){return 1;};
+  int connect(const char*, uint16_t){return 1;};
   size_t write(uint8_t byte){return s->write(byte);};
   size_t write(const uint8_t* buffer, size_t length){return s->write(buffer, length);};
   int available(){return s->available();};
