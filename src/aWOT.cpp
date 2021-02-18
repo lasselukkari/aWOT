@@ -891,7 +891,7 @@ int Request::read(uint8_t* buf, size_t size) {
     ret++;
   }
 
-  int read = m_stream->read(buf, (size < m_left ? size : m_left));
+  int read = m_stream->read(buf, (size < (unsigned)m_left ? size : m_left));
   if (read == -1) {
     if (ret > 0) {
       return ret;
