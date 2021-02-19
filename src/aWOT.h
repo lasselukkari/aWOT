@@ -161,7 +161,8 @@ class Request : public Stream {
   friend class Router;
 
  public:
-  enum MethodType { GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, USE };
+  enum MethodType { UNKNOWN, GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL };
+  void* context;
 
   int available();
   int availableForWrite();
@@ -194,7 +195,9 @@ class Request : public Stream {
   };
 
   Request();
-  void m_init(Client* client, Response* m_response, HeaderNode *headerTail, char* buffer, int bufferLength, unsigned long timeout);
+  void m_init(Client* client, Response* m_response, HeaderNode* headerTail,
+              char* buffer, int bufferLength, unsigned long timeout,
+              void* context);
   bool m_processMethod();
   bool m_readURL();
   bool m_readVersion();
@@ -203,7 +206,6 @@ class Request : public Stream {
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
   void m_setRoute(const char* route, const char* pattern);
-  void m_setMethod(MethodType method);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
   bool m_skipSpace();
@@ -279,6 +281,7 @@ class Application {
   static int strcmpi(const char* s1, const char* s2);
 
   void del(const char* path, Router::Middleware* middleware);
+  void finally(Router::Middleware* middleware);
   void get(const char* path, Router::Middleware* middleware);
   void head(const char* path, Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
@@ -286,10 +289,10 @@ class Application {
   void patch(const char* path, Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
-  void process(Client* client);
-  void process(Client* client, char* buffer, int bufferLength);
-  void process(Stream* client);
-  void process(Stream* client, char* buffer, int bufferLength);
+  void process(Client* client, void* context = NULL);
+  void process(Client* client, char* buffer, int bufferLength, void* context = NULL);
+  void process(Stream* client, void* context = NULL);
+  void process(Stream* client, char* buffer, int bufferLength, void* context = NULL);
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);
   void use(Router* router);
@@ -299,6 +302,7 @@ class Application {
  private:
   void m_process();
 
+  Router::Middleware* m_final;
   Request m_request;
   Response m_response;
   Router m_defaultRouter;
