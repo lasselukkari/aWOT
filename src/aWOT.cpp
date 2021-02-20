@@ -1501,7 +1501,7 @@ void Application::process(Client *stream, char *buffer, int bufferLength, void* 
 
 void Application::process(Stream *stream, void* context) {
   StreamClient client(stream);
-  process(&client), context;
+  process(&client, context);
 }
 
 void Application::process(Stream *stream, char *buffer, int bufferLength, void* context) {
