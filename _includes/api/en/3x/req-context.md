@@ -15,7 +15,7 @@ void index(Request &req, Response &res) {
   res.println(ctx->ip);
 }
 
-context ctx = { ip: client.remoteIP(), start: millis() };
+context ctx = { ip: client.remoteIP() };
 
 app.process(&client, &ctx);
 ```
