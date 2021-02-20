@@ -5,6 +5,8 @@
             </li>
             <li><a href="#app-del">del</a>
             </li>
+            <li><a href="#app-finally">finally</a>
+            </li>
             <li><a href="#app-get">get</a>
             </li>
             <li><a href="#app-head">head</a>
@@ -30,6 +32,10 @@
             <li><em>Types</em>
             </li>
             <li><a href="#req-methodType">MethodType</a>
+            </li>
+            <li><em>Variables</em>
+            </li>
+            <li><a href="#req-context">context</a>
             </li>
             <li><em>Methods</em>
             </li>

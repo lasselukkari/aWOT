@@ -6,6 +6,12 @@
   {% include api/en/3x/req-methodType.md %}
 </section>
 
+<h3 id='req-variables'>Variables</h3>
+
+<section markdown="1">
+  {% include api/en/3x/req-context.md %}
+</section>
+
 <h3 id='req-methods'>Methods</h3>
 
 <section markdown="1">
