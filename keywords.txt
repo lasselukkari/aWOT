@@ -1,5 +1,5 @@
 Application	KEYWORD1
-all	KEYWORD2
+finally	KEYWORD2
 del	KEYWORD2
 get	KEYWORD2
 header	KEYWORD2
@@ -45,7 +45,6 @@ write	KEYWORD2
 writeP	KEYWORD2
 
 Router	KEYWORD1
-all	KEYWORD2
 del	KEYWORD2
 get	KEYWORD2
 options	KEYWORD2

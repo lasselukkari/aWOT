@@ -708,7 +708,7 @@ void Response::m_reset() {
 Request::Request()
     : m_stream(NULL),
       m_response(NULL),
-      m_method(GET),
+      m_method(UNKNOWN),
       m_minorVersion(-1),
       m_pushback(),
       m_pushbackDepth(0),
@@ -965,8 +965,9 @@ size_t Request::write(uint8_t* buffer, size_t bufferLength) {
   return m_response->write(buffer, bufferLength);
 }
 
-void Request::m_init(Client *client, Response *response, HeaderNode *headerTail, char *buffer,
-                     int bufferLength, unsigned long timeout) {
+void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
+                     char *buffer, int bufferLength, unsigned long timeout,
+                     void *context) {
   m_stream = client;
   m_response = response;
   m_bytesRead = 0;
@@ -977,10 +978,12 @@ void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
   m_left = 0;
   m_readTimedout = false;
   m_readingContent = false;
-  m_method = GET;
+  m_method = UNKNOWN;
   m_minorVersion = -1;
 
   _timeout = timeout;
+
+  this->context = context;
 }
 
 bool Request::m_processMethod() {
@@ -1192,8 +1195,6 @@ void Request::m_setRoute(const char *route, const char *pattern) {
   m_pattern = pattern;
 }
 
-void Request::m_setMethod(MethodType method) { m_method = method; }
-
 int Request::m_getUrlPathLength() { return m_pathLength; }
 
 bool Request::m_expect(const char *expected) {
@@ -1298,7 +1299,7 @@ void Router::patch(const char *path, Middleware *middleware) {
 }
 
 void Router::use(const char *path, Middleware *middleware) {
-  m_addMiddleware(Request::USE, path, middleware);
+  m_addMiddleware(Request::ALL, path, middleware);
 }
 
 void Router::use(Middleware *middleware) {
@@ -1355,7 +1356,7 @@ void Router::m_dispatchMiddleware(Request &request, Response &response, int urlS
       if (middleware->path == NULL || strncmp(middleware->path, request.path() + urlShift, prefixLength) == 0) {
         middleware->router->m_dispatchMiddleware(request, response, shift);
       }
-    } else if (middleware->type == request.method() || middleware->type == Request::USE) {
+    } else if (middleware->type == request.method() || middleware->type == Request::ALL) {
       if (middleware->path == NULL || m_routeMatch(request.path() + urlShift, middleware->path)) {
         request.m_setRoute(request.path() + urlShift, middleware->path);
         middleware->middleware(request, response);
@@ -1406,7 +1407,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_headerTail(NULL), m_timeout(1000) {}
+    : m_final(NULL), m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1447,6 +1448,10 @@ void Application::del(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
+void Application::finally(Router::Middleware *final) {
+  m_final = final;
+}
+
 void Application::get(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
@@ -1471,37 +1476,41 @@ void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::process(Client *stream) {
+void Application::process(Client *stream, void *context) {
   char request[SERVER_URL_BUFFER_SIZE];
-  process(stream, request, SERVER_URL_BUFFER_SIZE);
+  process(stream, request, SERVER_URL_BUFFER_SIZE, context);
 }
 
-void Application::process(Client *stream, char *buffer, int bufferLength) {
+void Application::process(Client *stream, char *buffer, int bufferLength, void* context) {
   if (stream == NULL) {
     return;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout);
+  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout, context);
   m_response.m_init(stream);
 
   m_process();
+
+  if(m_final != NULL) {
+    m_final(m_request, m_response);
+  }
 
   m_request.m_reset();
   m_response.m_reset();
 }
 
-void Application::process(Stream *stream) {
+void Application::process(Stream *stream, void* context) {
   StreamClient client(stream);
-  process(&client);
+  process(&client), context;
 }
 
-void Application::process(Stream *stream, char *buffer, int bufferLength) {
+void Application::process(Stream *stream, char *buffer, int bufferLength, void* context) {
   StreamClient client(stream);
-  process(&client, buffer, bufferLength);
+  process(&client, buffer, bufferLength, context);
 }
 
 void Application::use(const char *path, Router::Middleware *middleware) {
-  m_defaultRouter.m_addMiddleware(Request::USE, path, middleware);
+  m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
 }
 
 void Application::use(Router::Middleware *middleware) {
