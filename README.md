@@ -48,11 +48,6 @@ The current version of the ESP32 Arduino core uses a non standard version of the
 
 Bug report: https://github.com/espressif/arduino-esp32/issues/2704
 
-#### WifiNina
-The WifiNina firmware currently has a bug that causes large writes with the client to fail randomly. The fix is already implemented but it has not yet been merged to the master or released.
-
-Bug report: https://github.com/arduino/nina-fw/issues/61
-
 #### Teensy 4.1 + Ethernet
 The Teensy 4.1 Ethernet library currently has a bug that causes the connection to stall and reset when connections to the server are opened in fast phase. The bug has been verified but not fixed yet.
 
