@@ -122,16 +122,16 @@ void Response::set(const char *name, const char *value) {
   m_headers[m_headersCount].value = value;
   m_headersCount++;
 
-  if (Application::strcmpi(name, "Content-Type") == 0) {
+  if (Application::strcmpi(name, F("Content-Type")) == 0) {
     m_contentTypeSet = true;
   }
 
-  if (Application::strcmpi(name, "Content-Length") == 0) {
+  if (Application::strcmpi(name, F("Content-Length")) == 0) {
     m_contentLenghtSet = true;
   }
 
-  if (Application::strcmpi(name, "Connection") == 0) {
-    m_keepAlive = Application::strcmpi(value, "keep-alive") == 0;
+  if (Application::strcmpi(name, F("Connection")) == 0) {
+    m_keepAlive = Application::strcmpi(value, F("keep-alive")) == 0;
   }
 }
 
@@ -1350,6 +1350,8 @@ int Application::strcmpi(const char *s1, const char *s2) {
 
   return 1;
 }
+
+int Application::strcmpi(const char *s1, const __FlashStringHelper *s2)  { return strcmpi(s1, String(s2).c_str()); }
 
 Application::~Application() {
   Request::HeaderNode *current = m_headerTail;

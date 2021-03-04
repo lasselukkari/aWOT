@@ -280,6 +280,7 @@ class Application {
   ~Application();
 
   static int strcmpi(const char* s1, const char* s2);
+  static int strcmpi(const char *s1, const __FlashStringHelper *s2);
 
   void del(const char* path, Router::Middleware* middleware);
   void finally(Router::Middleware* middleware);
