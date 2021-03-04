@@ -905,19 +905,19 @@ void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
 }
 
 bool Request::m_processMethod() {
-  if (m_expect("GET ")) {
+  if (m_expect(F("GET "))) {
     m_method = GET;
-  } else if (m_expect("HEAD ")) {
+  } else if (m_expect(F("HEAD "))) {
     m_method = HEAD;
-  } else if (m_expect("POST ")) {
+  } else if (m_expect(F("POST "))) {
     m_method = POST;
-  } else if (m_expect("PUT ")) {
+  } else if (m_expect(F("PUT "))) {
     m_method = PUT;
-  } else if (m_expect("DELETE ")) {
+  } else if (m_expect(F("DELETE "))) {
     m_method = DELETE;
-  } else if (m_expect("PATCH ")) {
+  } else if (m_expect(F("PATCH "))) {
     m_method = PATCH;
-  } else if (m_expect("OPTIONS ")) {
+  } else if (m_expect(F("OPTIONS "))) {
     m_method = OPTIONS;
   } else {
     return false;
@@ -969,9 +969,9 @@ bool Request::m_readURL() {
 
 bool Request::m_readVersion() {
   while (!m_expect(CRLF)) {
-    if (m_expect("1.0")) {
+    if (m_expect(F("1.0"))) {
       m_minorVersion = 0;
-    } else if (m_expect("1.1")) {
+    } else if (m_expect(F("1.1"))) {
       m_minorVersion = 1;
     } else if (m_timedRead() == -1) {
       return false;
@@ -1000,7 +1000,7 @@ bool Request::m_processHeaders() {
   while (!(canEnd && m_expect(CRLF))) {
     canEnd = false;
 
-    if (m_expect("Content-Length:")) {
+    if (m_expect(F("Content-Length:"))) {
       if (!m_readInt(m_left) || !m_expect(CRLF)) {
         return false;
       }
@@ -1010,7 +1010,7 @@ bool Request::m_processHeaders() {
       HeaderNode *headerNode = m_headerTail;
 
       while (headerNode != NULL) {
-        if (m_expect(headerNode->name) && m_expect(":")) {
+        if (m_expect(headerNode->name) && m_expect(F(":"))) {
           if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
             return false;
           }
@@ -1136,6 +1136,8 @@ bool Request::m_expect(const char *expected) {
 
   return true;
 }
+
+bool Request::m_expect(const __FlashStringHelper *expected) { return m_expect( String(expected).c_str()); }
 
 bool Request::m_skipSpace() {
   int ch;

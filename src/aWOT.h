@@ -208,6 +208,7 @@ class Request : public Stream {
   void m_setRoute(const char* route, const char* pattern);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
+  bool m_expect(const __FlashStringHelper *expected);
   bool m_skipSpace();
   void m_reset();
   int m_timedRead();
