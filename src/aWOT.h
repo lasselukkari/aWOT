@@ -285,6 +285,7 @@ class Application {
   void get(const char* path, Router::Middleware* middleware);
   void head(const char* path, Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
+  void notFound(Router::Middleware* middleware);
   void options(const char* path, Router::Middleware* middleware);
   void patch(const char* path, Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
@@ -303,6 +304,7 @@ class Application {
   void m_process();
 
   Router::Middleware* m_final;
+  Router::Middleware* m_notFound;
   Request m_request;
   Response m_response;
   Router m_defaultRouter;

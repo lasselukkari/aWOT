@@ -1407,7 +1407,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_final(NULL), m_headerTail(NULL), m_timeout(1000) {}
+    : m_final(NULL), m_notFound(NULL), m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1458,6 +1458,10 @@ void Application::get(const char *path, Router::Middleware *middleware) {
 
 void Application::head(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
+}
+
+void Application::notFound(Router::Middleware *notFound) {
+  m_notFound = notFound;
 }
 
 void Application::options(const char *path, Router::Middleware *middleware) {
@@ -1567,6 +1571,11 @@ void Application::m_process() {
   m_defaultRouter.m_dispatchMiddleware(m_request, m_response);
 
   if (!m_response.statusSent() && !m_response.ended()) {
+    if(m_notFound != NULL) {
+      m_response.status(404);
+      return m_notFound(m_request, m_response);
+    }
+
     return m_response.sendStatus(404);
   }
 
