@@ -16,11 +16,6 @@ void index(Request &req, Response &res) {
 }
 
 void notFound(Request &req, Response &res) {
-  if (res.statusSent()) {
-    return;
-  }
-
-  res.status(404);
   res.set("Content-Type", "application/json");
   res.print("{\"error\":\"This is not the page you are looking for.\"}");
 }
@@ -36,7 +31,7 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   app.get("/", &index);
-  app.use(&notFound);
+  app.notFound(&notFound);
 
   server.begin();
 }

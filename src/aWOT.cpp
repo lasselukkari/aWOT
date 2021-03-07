@@ -1194,28 +1194,56 @@ void Router::del(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::DELETE, path, middleware);
 }
 
+void Router::del(Middleware *middleware) {
+  del(NULL, middleware);
+}
+
 void Router::get(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::GET, path, middleware);
+}
+
+void Router::get(Middleware *middleware) {
+  get(NULL, middleware);
 }
 
 void Router::head(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::HEAD, path, middleware);
 }
 
+void Router::head(Middleware *middleware) {
+  head(NULL, middleware);
+}
+
 void Router::options(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
+}
+
+void Router::options(Middleware *middleware) {
+  options(NULL, middleware);
 }
 
 void Router::post(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::POST, path, middleware);
 }
 
+void Router::post(Middleware *middleware) {
+  post(NULL, middleware);
+}
+
 void Router::put(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PUT, path, middleware);
 }
 
+void Router::put(Middleware *middleware) {
+  put(NULL, middleware);
+}
+
 void Router::patch(const char *path, Middleware *middleware) {
   m_addMiddleware(Request::PATCH, path, middleware);
+}
+
+void Router::patch(Middleware *middleware) {
+  patch(NULL, middleware);
 }
 
 void Router::use(const char *path, Middleware *middleware) {
@@ -1327,7 +1355,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
 }
 
 Application::Application()
-    : m_final(NULL), m_headerTail(NULL), m_timeout(1000) {}
+    : m_final(NULL), m_notFound(NULL), m_headerTail(NULL), m_timeout(1000) {}
 
 int Application::strcmpi(const char *s1, const char *s2) {
   int i;
@@ -1370,6 +1398,10 @@ void Application::del(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
+void Application::del(Router::Middleware *middleware) {
+  del(NULL, middleware);
+}
+
 void Application::finally(Router::Middleware *final) {
   m_final = final;
 }
@@ -1378,24 +1410,52 @@ void Application::get(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
+void Application::get(Router::Middleware *middleware) {
+  get(NULL, middleware);
+}
+
 void Application::head(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
+}
+
+void Application::head(Router::Middleware *middleware) {
+  head(NULL, middleware);
+}
+
+void Application::notFound(Router::Middleware *notFound) {
+  m_notFound = notFound;
 }
 
 void Application::options(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
+void Application::options(Router::Middleware *middleware) {
+  options(NULL, middleware);
+}
+
 void Application::patch(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
+}
+
+void Application::patch(Router::Middleware *middleware) {
+  patch(NULL, middleware);
 }
 
 void Application::post(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
+void Application::post(Router::Middleware *middleware) {
+  post(NULL, middleware);
+}
+
 void Application::put(const char *path, Router::Middleware *middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
+}
+
+void Application::put(Router::Middleware *middleware) {
+  put(NULL, middleware);
 }
 
 void Application::process(Client *stream, void *context) {
@@ -1489,6 +1549,11 @@ void Application::m_process() {
   m_defaultRouter.m_dispatchMiddleware(m_request, m_response);
 
   if (!m_response.statusSent() && !m_response.ended()) {
+    if(m_notFound != NULL) {
+      m_response.status(404);
+      return m_notFound(m_request, m_response);
+    }
+
     return m_response.sendStatus(404);
   }
 

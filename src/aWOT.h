@@ -243,12 +243,19 @@ class Router {
   ~Router();
 
   void del(const char* path, Middleware* middleware);
+  void del(Middleware* middleware);
   void get(const char* path, Middleware* middleware);
+  void get(Middleware* middleware);
   void head(const char* path, Middleware* middleware);
+  void head(Middleware* middleware);
   void options(const char* path, Middleware* middleware);
+  void options(Middleware* middleware);
   void patch(const char* path, Middleware* middleware);
+  void patch(Middleware* middleware);
   void post(const char* path, Middleware* middleware);
+  void post(Middleware* middleware);
   void put(const char* path, Middleware* middleware);
+  void put(Middleware* middleware);
   void use(const char* path, Router* router);
   void use(Router* router);
   void use(const char* path, Middleware* middleware);
@@ -283,14 +290,22 @@ class Application {
   static int strcmpi(const char *s1, const __FlashStringHelper *s2);
 
   void del(const char* path, Router::Middleware* middleware);
+  void del(Router::Middleware* middleware);
   void finally(Router::Middleware* middleware);
   void get(const char* path, Router::Middleware* middleware);
+  void get(Router::Middleware* middleware);
   void head(const char* path, Router::Middleware* middleware);
+  void head(Router::Middleware* middleware);
   void header(const char* name, char* buffer, int bufferLength);
+  void notFound(Router::Middleware* middleware);
   void options(const char* path, Router::Middleware* middleware);
+  void options(Router::Middleware* middleware);
   void patch(const char* path, Router::Middleware* middleware);
+  void patch(Router::Middleware* middleware);
   void post(const char* path, Router::Middleware* middleware);
+  void post(Router::Middleware* middleware);
   void put(const char* path, Router::Middleware* middleware);
+  void put(Router::Middleware* middleware);
   void process(Client* client, void* context = NULL);
   void process(Client* client, char* buffer, int bufferLength, void* context = NULL);
   void process(Stream* client, void* context = NULL);
@@ -305,6 +320,7 @@ class Application {
   void m_process();
 
   Router::Middleware* m_final;
+  Router::Middleware* m_notFound;
   Request m_request;
   Response m_response;
   Router m_defaultRouter;
