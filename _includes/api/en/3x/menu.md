@@ -13,6 +13,8 @@
             </li>            
             <li><a href="#app-header">header</a>
             </li>
+            <li><a href="#app-notFound">notFound</a>
+            </li>
             <li><a href="#app-options">options</a>
             </li>
             <li><a href="#app-patch">patch</a>
