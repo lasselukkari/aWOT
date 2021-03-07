@@ -104,6 +104,28 @@ unittest(use_route_without_path) {
   assertEqual(expected, stream.response());
 }
 
+unittest(get_route_without_path) {
+  const char *request =
+    "GET /somepath HTTP/1.0" CRLF
+    CRLF;
+
+  const char *expected =
+    "HTTP/1.1 200 OK" CRLF
+    "Content-Type: text/plain" CRLF
+    "Connection: close" CRLF
+    CRLF
+    "test";
+
+  MockStream stream(request);
+  Application app;
+
+
+  app.get(&testHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
 unittest(router_with_path) {
   const char *request =
     "GET /router/route HTTP/1.0" CRLF
