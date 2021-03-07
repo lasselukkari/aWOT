@@ -123,10 +123,6 @@ class Response : public Print {
   int statusSent();
   size_t write(uint8_t data);
   size_t write(uint8_t* buffer, size_t bufferLength);
-  /**
-   * Write from program memory via a 32 bit AVR "far pointer".
-   */
-  size_t write(const uint_farptr_t data, size_t length);
   void writeP(const unsigned char* data, size_t length);
 
  private:
