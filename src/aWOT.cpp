@@ -256,6 +256,7 @@ void Response::m_printStatus(int code) {
   switch (code) {
 #ifndef LOW_SRAM_MCU
     case 100: {
+      print(F("Continue"));
       break;
     }
     case 101: {
