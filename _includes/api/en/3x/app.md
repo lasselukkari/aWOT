@@ -60,6 +60,10 @@ void loop() {
 </section>
 
 <section markdown="1">
+  {% include api/en/3x/app-notFound.md %}
+</section>
+
+<section markdown="1">
   {% include api/en/3x/app-options.md %}
 </section>
 

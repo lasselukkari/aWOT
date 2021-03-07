@@ -1,7 +1,8 @@
 <h3 id='app-post'>Application::post</h3>
 <h4 class='variant'>void post(const char* path, Router::Middleware* middleware);</h4>
+<h4 class='variant'>void post(Router::Middleware* middleware);</h4>
 
-Routes HTTP POST requests to the specified path with the specified Middleware function.
+Routes HTTP POST requests to the specified path with the specified Middleware function. If no path is specified the matching is done based on the HTTP verb.
 
 For more information, see the [routing guide](/guide/routing.html).
 
