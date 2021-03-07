@@ -229,6 +229,18 @@ size_t Response::write(uint8_t *buffer, size_t bufferLength) {
   return bufferLength;
 }
 
+size_t Response::write(const uint_farptr_t data, size_t length) {
+    uint_farptr_t ptr = data;
+    if (m_shouldPrintHeaders()) {
+        m_printHeaders();
+    }
+
+    while (length--) {
+        write(pgm_read_byte_far(ptr++));
+    }
+    return length;
+}
+
 void Response::writeP(const unsigned char *data, size_t length) {
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
