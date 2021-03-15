@@ -50,9 +50,10 @@ void Response::beginHeaders() {
 
   m_sendingHeaders = true;
 
+  P(headerSeprator) = ": ";
   for (int i = 0; i < m_headersCount; i++) {
     print(m_headers[i].name);
-    print(F(": "));
+    printP(headerSeprator);
     print(m_headers[i].value);
     m_printCRLF();
   }
@@ -122,16 +123,20 @@ void Response::set(const char *name, const char *value) {
   m_headers[m_headersCount].value = value;
   m_headersCount++;
 
-  if (Application::strcmpi(name, F("Content-Type")) == 0) {
+  P(contentType) = "Content-Type";
+  if (Application::strcmpiP(name, contentType) == 0) {
     m_contentTypeSet = true;
   }
 
-  if (Application::strcmpi(name, F("Content-Length")) == 0) {
+  P(contentLength) = "Content-Length";
+  if (Application::strcmpiP(name, contentLength) == 0) {
     m_contentLenghtSet = true;
   }
 
-  if (Application::strcmpi(name, F("Connection")) == 0) {
-    m_keepAlive = Application::strcmpi(value, F("keep-alive")) == 0;
+  P(connection) = "Connection";
+  if (Application::strcmpiP(name, connection) == 0) {
+    P(keepAlive) = "keep-alive";
+    m_keepAlive = Application::strcmpiP(value, keepAlive) == 0;
   }
 }
 
@@ -158,9 +163,11 @@ void Response::status(int code) {
   m_statusSent = code;
 
   m_sendingStatus = true;
-  print(F("HTTP/1.1 "));
+  P(httpVersion) = "HTTP/1.1 ";
+  printP(httpVersion);
   print(code);
-  print(F(" "));
+  P(space) = " ";
+  printP(space);
   m_printStatus(code);
 
   m_printCRLF();
@@ -256,325 +263,405 @@ void Response::m_printStatus(int code) {
   switch (code) {
 #ifndef LOW_SRAM_MCU
     case 100: {
-      print(F("Continue"));
+      P(Continue) = "Continue";
+      printP(Continue);
       break;
     }
     case 101: {
-      print(F("Switching Protocols"));
+      P(SwitchingProtocols) = "Switching Protocols";
+      printP(SwitchingProtocols);
       break;
     }
     case 102: {
-      print(F("Processing"));
+      P(Processing) = "Processing";
+      printP(Processing);
       break;
     }
     case 103: {
-      print(F("Early Hints"));
+      P(EarlyHints) = "Early Hints";
+      printP(EarlyHints);
       break;
     }
     case 200: {
-      print(F("OK"));
+      P(OK) = "OK";
+      printP(OK);
       break;
     }
     case 201: {
-      print(F("Created"));
+      P(Created) = "Created";
+      printP(Created);
       break;
     }
     case 202: {
-      print(F("Accepted"));
+      P(Accepted) = "Accepted";
+      printP(Accepted);
       break;
     }
     case 203: {
-      print(F("Non-Authoritative Information"));
+      P(NonAuthoritativeInformation) = "Non-Authoritative Information";
+      printP(NonAuthoritativeInformation);
       break;
     }
     case 204: {
-      print(F("No Content"));
+      P(NoContent) = "No Content";
+      printP(NoContent);
       break;
     }
     case 205: {
-      print(F("Reset Content"));
+      P(ResetContent) = "Reset Content";
+      printP(ResetContent);
       break;
     }
     case 206: {
-      print(F("Partial Content"));
+      P(PartialContent) = "Partial Content";
+      printP(PartialContent);
       break;
     }
     case 207: {
-      print(F("Multi-Status"));
+      P(MultiStatus) = "Multi-Status";
+      printP(MultiStatus);
       break;
     }
     case 208: {
-      print(F("Already Reported"));
+      P(AlreadyReported) = "Already Reported";
+      printP(AlreadyReported);
       break;
     }
     case 226: {
-      print(F("IM Used"));
+      P(IMUsed) = "IM Used";
+      printP(IMUsed);
       break;
     }
     case 300: {
-      print(F("Multiple Choices"));
+      P(MultipleChoices) = "Multiple Choices";
+      printP(MultipleChoices);
       break;
     }
     case 301: {
-      print(F("Moved Permanently"));
+      P(MovedPermanently) = "Moved Permanently";
+      printP(MovedPermanently);
       break;
     }
     case 302: {
-      print(F("Found"));
+      P(Found) = "Found";
+      printP(Found);
       break;
     }
     case 303: {
-      print(F("See Other"));
+      P(SeeOther) = "See Other";
+      printP(SeeOther);
       break;
     }
     case 304: {
-      print(F("Not Modified"));
+      P(NotModified) = "Not Modified";
+      printP(NotModified);
       break;
     }
     case 305: {
-      print(F("Use Proxy"));
+      P(UseProxy) = "Use Proxy";
+      printP(UseProxy);
       break;
     }
     case 306: {
-      print(F("(Unused)"));
+      P(Unused) = "(Unused)";
+      printP(Unused);
       break;
     }
     case 307: {
-      print(F("Temporary Redirect"));
+      P(TemporaryRedirect) = "Temporary Redirect";
+      printP(TemporaryRedirect);
       break;
     }
     case 308: {
-      print(F("Permanent Redirect"));
+      P(PermanentRedirect) = "Permanent Redirect";
+      printP(PermanentRedirect);
       break;
     }
     case 400: {
-      print(F("Bad Request"));
+      P(BadRequest) = "Bad Request";
+      printP(BadRequest);
       break;
     }
     case 401: {
-      print(F("Unauthorized"));
+      P(Unauthorized) = "Unauthorized";
+      printP(Unauthorized);
       break;
     }
     case 402: {
-      print(F("Payment Required"));
+      P(PaymentRequired) = "Payment Required";
+      printP(PaymentRequired);
       break;
     }
     case 403: {
-      print(F("Forbidden"));
+      P(Forbidden) = "Forbidden";
+      printP(Forbidden);
       break;
     }
     case 404: {
-      print(F("Not Found"));
+      P(NotFound) = "Not Found";
+      printP(NotFound);
       break;
     }
     case 405: {
-      print(F("Method Not Allowed"));
+      P(MethodNotAllowed) = "Method Not Allowed";
+      printP(MethodNotAllowed);
       break;
     }
     case 406: {
-      print(F("Not Acceptable"));
+      P(NotAcceptable) = "Not Acceptable";
+      printP(NotAcceptable);
       break;
     }
     case 407: {
-      print(F("Proxy Authentication Required"));
+      P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
+      printP(ProxyAuthenticationRequired);
       break;
     }
     case 408: {
-      print(F("Request Timeout"));
+      P(RequestTimeout) = "Request Timeout";
+      printP(RequestTimeout);
       break;
     }
     case 409: {
-      print(F("Conflict"));
+      P(Conflict) = "Conflict";
+      printP(Conflict);
       break;
     }
     case 410: {
-      print(F("Gone"));
+      P(Gone) = "Gone";
+      printP(Gone);
       break;
     }
     case 411: {
-      print(F("Length Required"));
+      P(LengthRequired) = "Length Required";
+      printP(LengthRequired);
       break;
     }
     case 412: {
-      print(F("Precondition Failed"));
+      P(PreconditionFailed) = "Precondition Failed";
+      printP(PreconditionFailed);
       break;
     }
     case 413: {
-      print(F("Payload Too Large"));
+      P(PayloadTooLarge) = "Payload Too Large";
+      printP(PayloadTooLarge);
       break;
     }
     case 414: {
-      print(F("URI Too Long"));
+      P(URITooLong) = "URI Too Long";
+      printP(URITooLong);
       break;
     }
     case 415: {
-      print(F("Unsupported Media Type"));
+      P(UnsupportedMediaType) = "Unsupported Media Type";
+      printP(UnsupportedMediaType);
       break;
     }
     case 416: {
-      print(F("Range Not Satisfiable"));
+      P(RangeNotSatisfiable) = "Range Not Satisfiable";
+      printP(RangeNotSatisfiable);
       break;
     }
     case 417: {
-      print(F("Expectation Failed"));
+      P(ExpectationFailed) = "Expectation Failed";
+      printP(ExpectationFailed);
       break;
     }
     case 421: {
-      print(F("Misdirected Request"));
+      P(MisdirectedRequest) = "Misdirected Request";
+      printP(MisdirectedRequest);
       break;
     }
     case 422: {
-      print(F("Unprocessable Entity"));
+      P(UnprocessableEntity) = "Unprocessable Entity";
+      printP(UnprocessableEntity);
       break;
     }
     case 423: {
-      print(F("Locked"));
+      P(Locked) = "Locked";
+      printP(Locked);
       break;
     }
     case 424: {
-      print(F("Failed Dependency"));
+      P(FailedDependency) = "Failed Dependency";
+      printP(FailedDependency);
       break;
     }
     case 425: {
-      print(F("Too Early"));
+      P(TooEarly) = "Too Early";
+      printP(TooEarly);
       break;
     }
     case 426: {
-      print(F("Upgrade Required"));
+      P(UpgradeRequired) = "Upgrade Required";
+      printP(UpgradeRequired);
       break;
     }
     case 428: {
-      print(F("Precondition Required"));
+      P(PreconditionRequired) = "Precondition Required";
+      printP(PreconditionRequired);
       break;
     }
     case 429: {
-      print(F("Too Many Requests"));
+      P(TooManyRequests) = "Too Many Requests";
+      printP(TooManyRequests);
       break;
     }
     case 431: {
-      print(F("Request Header Fields Too Large"));
+      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
+      printP(RequestHeaderFieldsTooLarge);
       break;
     }
     case 451: {
-      print(F("Unavailable For Legal Reasons"));
+      P(UnavailableForLegalReasons) = "Unavailable For Legal Reasons";
+      printP(UnavailableForLegalReasons);
       break;
     }
     case 500: {
-      print(F("Internal Server Error"));
+      P(InternalServerError) = "Internal Server Error";
+      printP(InternalServerError);
       break;
     }
     case 501: {
-      print(F("Not Implemented"));
+      P(NotImplemented) = "Not Implemented";
+      printP(NotImplemented);
       break;
     }
     case 502: {
-      print(F("Bad Gateway"));
+      P(BadGateway) = "Bad Gateway";
+      printP(BadGateway);
       break;
     }
     case 503: {
-      print(F("Service Unavailable"));
+      P(ServiceUnavailable) = "Service Unavailable";
+      printP(ServiceUnavailable);
       break;
     }
     case 504: {
-      print(F("Gateway Timeout"));
+      P(GatewayTimeout) = "Gateway Timeout";
+      printP(GatewayTimeout);
       break;
     }
     case 505: {
-      print(F("HTTP Version Not Supported"));
+      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
+      printP(HTTPVersionNotSupported);
       break;
     }
     case 506: {
-      print(F("Variant Also Negotiates"));
+      P(VariantAlsoNegotiates) = "Variant Also Negotiates";
+      printP(VariantAlsoNegotiates);
       break;
     }
     case 507: {
-      print(F("Insufficient Storage"));
+      P(InsufficientStorage) = "Insufficient Storage";
+      printP(InsufficientStorage);
       break;
     }
     case 508: {
-      print(F("Loop Detected"));
+      P(LoopDetected) = "Loop Detected";
+      printP(LoopDetected);
       break;
     }
     case 510: {
-      print(F("Not Extended"));
+      P(NotExtended) = "Not Extended";
+      printP(NotExtended);
       break;
     }
     case 511: {
-      print(F("Network Authentication Required"));
+      P(NetworkAuthenticationRequired) = "Network Authentication Required";
+      printP(NetworkAuthenticationRequired);
       break;
     }
 #else
     case 200: {
-      print(F("OK"));
+      P(OK) = "OK";
+      printP(OK);
       break;
     }
     case 201: {
-      print(F("Created"));
+      P(Created) = "Created";
+      printP(Created);
       break;
     }
     case 202: {
-      print(F("Accepted"));
+      P(Accepted) = "Accepted";
+      printP(Accepted);
       break;
     }
     case 204: {
-      print(F("No Content"));
+      P(NoContent) = "No Content";
+      printP(NoContent);
       break;
     }
     case 303: {
-      print(F("See Other"));
+      P(SeeOther) = "See Other";
+      printP(SeeOther);
       break;
     }
     case 304: {
-      print(F("Not Modified"));
+      P(NotModified) = "Not Modified";
+      printP(NotModified);
       break;
     }
     case 400: {
-      print(F("Bad Request"));
+      P(BadRequest) = "Bad Request";
+      printP(BadRequest);
       break;
     }
     case 401: {
-      print(F("Unauthorized"));
+      P(Unauthorized) = "Unauthorized";
+      printP(Unauthorized);
       break;
     }
     case 402: {
-      print(F("Payment Required"));
+      P(PaymentRequired) = "Payment Required";
+      printP(PaymentRequired);
       break;
     }
     case 403: {
-      print(F("Forbidden"));
+      P(Forbidden) = "Forbidden";
+      printP(Forbidden);
       break;
     }
     case 404: {
-      print(F("Not Found"));
+      P(NotFound) = "Not Found";
+      printP(NotFound);
       break;
     }
     case 405: {
-      print(F("Method Not Allowed"));
+      P(MethodNotAllowed) = "Method Not Allowed";
+      printP(MethodNotAllowed);
       break;
     }
     case 406: {
-      print(F("Not Acceptable"));
+      P(NotAcceptable) = "Not Acceptable";
+      printP(NotAcceptable);
       break;
     }
     case 407: {
-      print(F("Proxy Authentication Required"));
+      P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
+      printP(ProxyAuthenticationRequired);
       break;
     }
     case 408: {
-      print(F("Request Timeout"));
+      P(RequestTimeout) = "Request Timeout";
+      printP(RequestTimeout);
       break;
     }
 
     case 431: {
-      print(F("Request Header Fields Too Large"));
+      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
+      printP(RequestHeaderFieldsTooLarge);
       break;
     }
     case 500: {
-      print(F("Internal Server Error"));
+      P(InternalServerError) = "Internal Server Error";
+      printP(InternalServerError);
       break;
     }
     case 505: {
-      print(F("HTTP Version Not Supported"));
+      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
+      printP(HTTPVersionNotSupported);
       break;
     }
 #endif
@@ -906,19 +993,27 @@ void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
 }
 
 bool Request::m_processMethod() {
-  if (m_expect(F("GET "))) {
+  P(GET_VERB) = "GET ";
+  P(HEAD_VERB) = "HEAD ";
+  P(POST_VERB) = "POST ";
+  P(PUT_VERB) = "PUT ";
+  P(DELETE_VERB) = "DELETE ";
+  P(PATCH_VERB) = "PATCH ";
+  P(OPTIONS_VERB) = "OPTIONS ";
+
+  if (m_expectP(GET_VERB)) {
     m_method = GET;
-  } else if (m_expect(F("HEAD "))) {
+  } else if (m_expectP(HEAD_VERB)) {
     m_method = HEAD;
-  } else if (m_expect(F("POST "))) {
+  } else if (m_expectP(POST_VERB)) {
     m_method = POST;
-  } else if (m_expect(F("PUT "))) {
+  } else if (m_expectP(PUT_VERB)) {
     m_method = PUT;
-  } else if (m_expect(F("DELETE "))) {
+  } else if (m_expectP(DELETE_VERB)) {
     m_method = DELETE;
-  } else if (m_expect(F("PATCH "))) {
+  } else if (m_expectP(PATCH_VERB)) {
     m_method = PATCH;
-  } else if (m_expect(F("OPTIONS "))) {
+  } else if (m_expectP(OPTIONS_VERB)) {
     m_method = OPTIONS;
   } else {
     return false;
@@ -970,9 +1065,12 @@ bool Request::m_readURL() {
 
 bool Request::m_readVersion() {
   while (!m_expect(CRLF)) {
-    if (m_expect(F("1.0"))) {
+    P(HTTP_10) = "1.0";
+    P(HTTP_11) = "1.1";
+
+    if (m_expectP(HTTP_10)) {
       m_minorVersion = 0;
-    } else if (m_expect(F("1.1"))) {
+    } else if (m_expectP(HTTP_11)) {
       m_minorVersion = 1;
     } else if (m_timedRead() == -1) {
       return false;
@@ -1000,8 +1098,8 @@ bool Request::m_processHeaders() {
 
   while (!(canEnd && m_expect(CRLF))) {
     canEnd = false;
-
-    if (m_expect(F("Content-Length:"))) {
+    P(ContentLength) = "Content-Length:";
+    if (m_expectP(ContentLength)) {
       if (!m_readInt(m_left) || !m_expect(CRLF)) {
         return false;
       }
@@ -1011,7 +1109,8 @@ bool Request::m_processHeaders() {
       HeaderNode *headerNode = m_headerTail;
 
       while (headerNode != NULL) {
-        if (m_expect(headerNode->name) && m_expect(F(":"))) {
+        P(headerSeparator) = ":";
+        if (m_expect(headerNode->name) && m_expectP(headerSeparator)) {
           if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
             return false;
           }
@@ -1118,6 +1217,7 @@ int Request::m_getUrlPathLength() { return m_pathLength; }
 
 bool Request::m_expect(const char *expected) {
   const char *candidate = expected;
+
   while (*candidate != 0) {
     int ch = m_timedRead();
     if (ch == -1) {
@@ -1138,7 +1238,28 @@ bool Request::m_expect(const char *expected) {
   return true;
 }
 
-bool Request::m_expect(const __FlashStringHelper *expected) { return m_expect( String(expected).c_str()); }
+bool Request::m_expectP(const unsigned char *expected) {
+  const unsigned char *candidate = expected;
+
+  while (pgm_read_byte(candidate) != 0) {
+    int ch = m_timedRead();
+    if (ch == -1) {
+      return false;
+    }
+
+    if (tolower(ch) != tolower(pgm_read_byte(candidate++))) {
+      push(ch);
+
+      while (--candidate != expected) {
+        push(pgm_read_byte(candidate-1));
+      }
+
+      return false;
+    }
+  }
+
+  return true;
+}
 
 bool Request::m_skipSpace() {
   int ch;
@@ -1380,7 +1501,27 @@ int Application::strcmpi(const char *s1, const char *s2) {
   return 1;
 }
 
-int Application::strcmpi(const char *s1, const __FlashStringHelper *s2)  { return strcmpi(s1, String(s2).c_str()); }
+int Application::strcmpiP(const char *s1, const unsigned char *s2) {
+  int i = 0;
+
+  for (i = 0; s1[i] && pgm_read_byte(s2 + i); ++i) {
+    if (s1[i] == pgm_read_byte(s2 + i) || (s1[i] ^ 32) == pgm_read_byte(s2 + i)) {
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  if (s1[i] ==  pgm_read_byte(s2 + i)) {
+    return 0;
+  }
+
+  if ((s1[i] | 32) < (pgm_read_byte(s2 + i) | 32)) {
+    return -1;
+  }
+
+  return 1;
+}
 
 Application::~Application() {
   Request::HeaderNode *current = m_headerTail;

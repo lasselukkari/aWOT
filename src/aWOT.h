@@ -64,7 +64,11 @@
 #define SERVER_MAX_HEADERS 10
 #endif
 
+#ifdef __AVR__
+#define P(name) static const unsigned char name[] __attribute__(( section(".progmem." #name) ))
+#else
 #define P(name) static const unsigned char name[] PROGMEM
+#endif
 
 class StreamClient : public Client {
  private:
@@ -208,7 +212,7 @@ class Request : public Stream {
   void m_setRoute(const char* route, const char* pattern);
   int m_getUrlPathLength();
   bool m_expect(const char* expected);
-  bool m_expect(const __FlashStringHelper *expected);
+  bool m_expectP(const unsigned char* expected);
   bool m_skipSpace();
   void m_reset();
   int m_timedRead();
@@ -287,7 +291,7 @@ class Application {
   ~Application();
 
   static int strcmpi(const char* s1, const char* s2);
-  static int strcmpi(const char *s1, const __FlashStringHelper *s2);
+  static int strcmpiP(const char* s1, const unsigned char* s2);
 
   void del(const char* path, Router::Middleware* middleware);
   void del(Router::Middleware* middleware);
