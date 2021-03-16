@@ -33,11 +33,11 @@
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_Atmega32U4__) || \
     defined(__AVR_ATmega16U4__) || defined(_AVR_ATmega328__)
-#define LOW_SRAM_MCU
+#define LOW_MEMORY_MCU
 #endif
 
 #ifndef SERVER_URL_BUFFER_SIZE
-#if defined(LOW_SRAM_MCU)
+#if defined(LOW_MEMORY_MCU)
 #define SERVER_URL_BUFFER_SIZE 64
 #else
 #define SERVER_URL_BUFFER_SIZE 256
@@ -45,7 +45,7 @@
 #endif
 
 #ifndef SERVER_PUSHBACK_BUFFER_SIZE
-#if defined(LOW_SRAM_MCU)
+#if defined(LOW_MEMORY_MCU)
 #define SERVER_PUSHBACK_BUFFER_SIZE 32
 #else
 #define SERVER_PUSHBACK_BUFFER_SIZE 128
@@ -53,7 +53,7 @@
 #endif
 
 #ifndef SERVER_OUTPUT_BUFFER_SIZE
-#if defined(LOW_SRAM_MCU)
+#if defined(LOW_MEMORY_MCU)
 #define SERVER_OUTPUT_BUFFER_SIZE 32
 #else
 #define SERVER_OUTPUT_BUFFER_SIZE 1024

@@ -261,7 +261,7 @@ void Response::m_init(Client *client) {
 
 void Response::m_printStatus(int code) {
   switch (code) {
-#ifndef LOW_SRAM_MCU
+#ifndef LOW_MEMORY_MCU
     case 100: {
       P(Continue) = "Continue";
       printP(Continue);
