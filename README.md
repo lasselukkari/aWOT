@@ -197,6 +197,16 @@ void setup() {
 }
 ```
 
+### Reducing memory usage
+If you need to reduce the memory consumption add `#define LOW_SRAM_MCU` before you import the library. This will reduce the size of a few internal buffers. Normally this is only used for the smallest AVR boards but it can be enabled for other boards if needed.
+
+Also use the `P` macro to place any string in to the program memory instead of wasting the precious RAM
+
+```
+P(longSrting) = "Lots of text here...";
+res.printP(longSrting);
+```
+
 ## Acknowledgements
 Based on Webduino, Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes, Francisco M Cuenca-Acuna
 
