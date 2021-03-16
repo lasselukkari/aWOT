@@ -70,6 +70,8 @@
 #define P(name) static const unsigned char name[] PROGMEM
 #endif
 
+namespace awot {
+
 class StreamClient : public Client {
  private:
   Stream* s;
@@ -331,5 +333,11 @@ class Application {
   Request::HeaderNode* m_headerTail;
   unsigned long m_timeout;
 };
+
+}
+
+#ifndef ENABLE_AWOT_NAMESPACE
+using namespace awot;
+#endif
 
 #endif
