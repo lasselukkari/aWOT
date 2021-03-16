@@ -198,7 +198,7 @@ void setup() {
 ```
 
 ### Reducing memory usage
-If you need to reduce the memory consumption add `#define LOW_SRAM_MCU` before you import the library. This will reduce the size of a few internal buffers. Normally this is only used for the smallest AVR boards but it can be enabled for others if needed.
+If you need to reduce the memory consumption add `#define LOW_MEMORY_MCU` before you import the library. This will reduce the size of a few internal buffers. Normally this is only used for the smallest AVR boards but it can be enabled for others if needed.
 
 Also use the `P` macro to place any strings in to the program memory instead of wasting the precious RAM.
 
