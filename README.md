@@ -203,8 +203,8 @@ If you need to reduce the memory consumption add `#define LOW_MEMORY_MCU` before
 Also use the `P` macro to place any strings in to the program memory instead of wasting the precious RAM.
 
 ```
-P(longSrting) = "Lots of text here...";
-res.printP(longSrting);
+P(longString) = "Lots of text here...";
+res.printP(longString);
 ```
 
 ## Acknowledgements
