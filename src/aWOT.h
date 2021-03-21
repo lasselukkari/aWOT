@@ -132,15 +132,14 @@ class Response : public Print {
   void writeP(const unsigned char* data, size_t length);
 
  private:
-  Response();
+  Response(Client* client,   uint8_t * writeBuffer, int writeBufferLength);
 
-  void m_init(Client* client);
   void m_printStatus(int code);
   bool m_shouldPrintHeaders();
   void m_printHeaders();
   void m_printCRLF();
   void m_flushBuf();
-  void m_reset();
+  void m_finalize();
 
   Client* m_stream;
   struct Headers {
@@ -158,7 +157,8 @@ class Response : public Print {
   char* m_mime;
   int m_bytesSent;
   bool m_ended;
-  uint8_t m_buffer[SERVER_OUTPUT_BUFFER_SIZE];
+  uint8_t * m_buffer;
+  int m_bufferLength;
   int m_bufFill;
 };
 
@@ -200,9 +200,8 @@ class Request : public Stream {
     HeaderNode* next;
   };
 
-  Request();
-  void m_init(Client* client, Response* m_response, HeaderNode* headerTail,
-              char* buffer, int bufferLength, unsigned long timeout,
+  Request(Client* client, Response* m_response, HeaderNode* headerTail,
+              char* urlBuffer, int urlBufferLength, unsigned long timeout,
               void* context);
   bool m_processMethod();
   bool m_readURL();
@@ -313,9 +312,12 @@ class Application {
   void put(const char* path, Router::Middleware* middleware);
   void put(Router::Middleware* middleware);
   void process(Client* client, void* context = NULL);
-  void process(Client* client, char* buffer, int bufferLength, void* context = NULL);
-  void process(Stream* client, void* context = NULL);
-  void process(Stream* client, char* buffer, int bufferLength, void* context = NULL);
+  void process(Client* client, char* urlbuffer, int urlBufferLength, void* context = NULL);
+  void process(Client* client, char* urlBuffer, int urlBufferLength, uint8_t * writeBuffer, int writeBufferLength, void* context = NULL);
+  void process(Stream* stream, void* context = NULL);
+  void process(Stream* stream, char* urlbuffer, int urlBufferLength, void* context = NULL);
+  void process(Stream* stream, char* urlBuffer, int urlBufferLength, uint8_t * writeBuffer, int writeBufferLength, void* context = NULL);
+
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);
   void use(Router* router);
@@ -323,12 +325,10 @@ class Application {
   void use(Router::Middleware* middleware);
 
  private:
-  void m_process();
+  void m_process(Request &req, Response &res);
 
   Router::Middleware* m_final;
   Router::Middleware* m_notFound;
-  Request m_request;
-  Response m_response;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
   unsigned long m_timeout;
