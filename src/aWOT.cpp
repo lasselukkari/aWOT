@@ -22,8 +22,8 @@
 
 #include "aWOT.h"
 
-Response::Response()
-    : m_stream(NULL),
+Response::Response(Client* client, uint8_t * writeBuffer, int writeBufferLength)
+    : m_stream(client),
       m_headers(),
       m_contentLenghtSet(false),
       m_contentTypeSet(false),
@@ -36,7 +36,8 @@ Response::Response()
       m_mime(NULL),
       m_bytesSent(0),
       m_ended(false),
-      m_buffer(),
+      m_buffer(writeBuffer),
+      m_bufferLength(writeBufferLength),
       m_bufFill(0) {}
 
 int Response::availableForWrite() {
@@ -243,20 +244,6 @@ void Response::writeP(const unsigned char *data, size_t length) {
   while (length--) {
     write(pgm_read_byte(data++));
   }
-}
-
-void Response::m_init(Client *client) {
-  m_stream = client;
-  m_contentLenghtSet = false;
-  m_contentTypeSet = false;
-  m_keepAlive = false;
-  m_statusSent = 0;
-  m_headersSent = false;
-  m_sendingStatus = false;
-  m_sendingHeaders = false;
-  m_bytesSent = 0;
-  m_headersCount = 0;
-  m_ended = false;
 }
 
 void Response::m_printStatus(int code) {
@@ -701,7 +688,7 @@ void Response::m_flushBuf() {
   };
 }
 
-void Response::m_reset() {
+void Response::m_finalize() {
   m_flushBuf();
 
   if (m_headersSent && !m_contentLenghtSet) {
@@ -711,9 +698,12 @@ void Response::m_reset() {
   }
 }
 
-Request::Request()
-    : m_stream(NULL),
-      m_response(NULL),
+Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
+              char* urlBuffer, int urlBufferLength, unsigned long timeout,
+              void* context)
+    : context(context),
+      m_stream(client),
+      m_response(m_response),
       m_method(UNKNOWN),
       m_minorVersion(-1),
       m_pushback(),
@@ -721,14 +711,16 @@ Request::Request()
       m_readingContent(false),
       m_left(0),
       m_bytesRead(0),
-      m_headerTail(NULL),
+      m_headerTail(headerTail),
       m_query(NULL),
       m_queryLength(0),
       m_readTimedout(false),
-      m_path(NULL),
-      m_pathLength(0),
+      m_path(urlBuffer),
+      m_pathLength(urlBufferLength - 1),
       m_pattern(NULL),
-      m_route(NULL) {}
+      m_route(NULL){
+        _timeout = timeout;
+      }
 
 int Request::availableForWrite() {
   return m_response->availableForWrite();
@@ -969,27 +961,6 @@ size_t Request::write(uint8_t data) {
 
 size_t Request::write(uint8_t* buffer, size_t bufferLength) {
   return m_response->write(buffer, bufferLength);
-}
-
-void Request::m_init(Client *client, Response *response, HeaderNode *headerTail,
-                     char *buffer, int bufferLength, unsigned long timeout,
-                     void *context) {
-  m_stream = client;
-  m_response = response;
-  m_bytesRead = 0;
-  m_headerTail = headerTail;
-  m_path = buffer;
-  m_pathLength = bufferLength - 1;
-  m_pushbackDepth = 0;
-  m_left = 0;
-  m_readTimedout = false;
-  m_readingContent = false;
-  m_method = UNKNOWN;
-  m_minorVersion = -1;
-
-  _timeout = timeout;
-
-  this->context = context;
 }
 
 bool Request::m_processMethod() {
@@ -1600,27 +1571,39 @@ void Application::put(Router::Middleware *middleware) {
   put(NULL, middleware);
 }
 
-void Application::process(Client *stream, void *context) {
-  char request[SERVER_URL_BUFFER_SIZE];
-  process(stream, request, SERVER_URL_BUFFER_SIZE, context);
+void Application::process(Client *client, void *context) {
+  char urlBuffer[SERVER_URL_BUFFER_SIZE];
+  process(client, urlBuffer, SERVER_URL_BUFFER_SIZE, context);
 }
 
-void Application::process(Client *stream, char *buffer, int bufferLength, void* context) {
-  if (stream == NULL) {
+
+void Application::process(Client *client, char *urlBuffer, int urlBufferLength, void *context) {
+  uint8_t  writeBuffer[SERVER_OUTPUT_BUFFER_SIZE];
+  process(client, urlBuffer, urlBufferLength, writeBuffer, SERVER_OUTPUT_BUFFER_SIZE, context);
+}
+
+void Application::process(Client *client, char *urlBuffer, int urlBufferLength,   uint8_t * writeBuffer, int writeBufferLength, void* context) {
+  if (!client) {
     return;
   }
 
-  m_request.m_init(stream, &m_response, m_headerTail, buffer, bufferLength, m_timeout, context);
-  m_response.m_init(stream);
+  Response response(client, writeBuffer, writeBufferLength);
+  Request request(client, &response, m_headerTail, urlBuffer, urlBufferLength,
+                  m_timeout, context);
 
-  m_process();
+  m_process(request, response);
 
-  if(m_final != NULL) {
-    m_final(m_request, m_response);
+  if (m_final != NULL) {
+    m_final(request, response);
   }
 
-  m_request.m_reset();
-  m_response.m_reset();
+  response.m_finalize();
+
+  Request::HeaderNode *headerNode = m_headerTail;
+  while (headerNode != NULL) {
+    headerNode->buffer[0] = '\0';
+    headerNode = headerNode->next;
+  }
 }
 
 void Application::process(Stream *stream, void* context) {
@@ -1631,6 +1614,11 @@ void Application::process(Stream *stream, void* context) {
 void Application::process(Stream *stream, char *buffer, int bufferLength, void* context) {
   StreamClient client(stream);
   process(&client, buffer, bufferLength, context);
+}
+
+void Application::process(Stream *stream, char *urlBuffer, int urlBufferLength, uint8_t * writeBuffer, int writeBufferLength, void* context) {
+  StreamClient client(stream);
+  process(&client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength, context);
 }
 
 void Application::use(const char *path, Router::Middleware *middleware) {
@@ -1653,54 +1641,54 @@ void Application::use(Router *router) {
   use(NULL, router);
 }
 
-void Application::m_process() {
-  if (!m_request.m_processMethod()) {
-    if (m_request.m_timedout()) {
-      return m_response.sendStatus(408);
+void Application::m_process(Request &request, Response &response) {
+  if (!request.m_processMethod()) {
+    if (request.m_timedout()) {
+      return response.sendStatus(408);
     }
 
-    return m_response.sendStatus(400);
+    return response.sendStatus(400);
   }
 
-  if (!m_request.m_readURL()) {
-    if (m_request.m_timedout()) {
-      return m_response.sendStatus(408);
+  if (!request.m_readURL()) {
+    if (request.m_timedout()) {
+      return response.sendStatus(408);
     }
 
-    return m_response.sendStatus(414);
+    return response.sendStatus(414);
   }
 
-  m_request.m_processURL();
+  request.m_processURL();
 
-  if (!m_request.m_readVersion()) {
-    if (m_request.m_timedout()) {
-      return m_response.sendStatus(408);
+  if (!request.m_readVersion()) {
+    if (request.m_timedout()) {
+      return response.sendStatus(408);
     }
 
-    return m_response.sendStatus(505);
+    return response.sendStatus(505);
   }
 
-  if (!m_request.m_processHeaders()) {
-    if (m_request.m_timedout()) {
-      return m_response.sendStatus(408);
+  if (!request.m_processHeaders()) {
+    if (request.m_timedout()) {
+      return response.sendStatus(408);
     }
 
-    return m_response.sendStatus(431);
+    return response.sendStatus(431);
   }
 
-  m_defaultRouter.m_dispatchMiddleware(m_request, m_response);
+  m_defaultRouter.m_dispatchMiddleware(request, response);
 
-  if (!m_response.statusSent() && !m_response.ended()) {
+  if (!response.statusSent() && !response.ended()) {
     if(m_notFound != NULL) {
-      m_response.status(404);
-      return m_notFound(m_request, m_response);
+      response.status(404);
+      return m_notFound(request, response);
     }
 
-    return m_response.sendStatus(404);
+    return response.sendStatus(404);
   }
 
-  if (!m_response.headersSent()) {
-    m_response.m_printHeaders();
+  if (!response.headersSent()) {
+    response.m_printHeaders();
   }
 }
 
