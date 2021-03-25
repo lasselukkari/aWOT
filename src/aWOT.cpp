@@ -1572,12 +1572,20 @@ void Application::put(Router::Middleware *middleware) {
 }
 
 void Application::process(Client *client, void *context) {
+  if (!client) {
+    return;
+  }
+
   char urlBuffer[SERVER_URL_BUFFER_SIZE];
   process(client, urlBuffer, SERVER_URL_BUFFER_SIZE, context);
 }
 
 
 void Application::process(Client *client, char *urlBuffer, int urlBufferLength, void *context) {
+  if (!client) {
+    return;
+  }
+
   uint8_t  writeBuffer[SERVER_OUTPUT_BUFFER_SIZE];
   process(client, urlBuffer, urlBufferLength, writeBuffer, SERVER_OUTPUT_BUFFER_SIZE, context);
 }
@@ -1607,16 +1615,28 @@ void Application::process(Client *client, char *urlBuffer, int urlBufferLength, 
 }
 
 void Application::process(Stream *stream, void* context) {
+  if (!stream) {
+    return;
+  }
+
   StreamClient client(stream);
   process(&client, context);
 }
 
 void Application::process(Stream *stream, char *buffer, int bufferLength, void* context) {
+  if (!stream) {
+    return;
+  }
+
   StreamClient client(stream);
   process(&client, buffer, bufferLength, context);
 }
 
 void Application::process(Stream *stream, char *urlBuffer, int urlBufferLength, uint8_t * writeBuffer, int writeBufferLength, void* context) {
+  if (!stream) {
+    return;
+  }
+
   StreamClient client(stream);
   process(&client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength, context);
 }
