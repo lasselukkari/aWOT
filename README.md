@@ -34,7 +34,7 @@ Previously the library has been tested with:
 - Arduino MKR WiFi 1010 (see notes)
 - Teensy 3.0 + WIZnet W5200
 - Teensy 4.1 Ethernet (see notes)
-- ESP32 + Wiznet W5500 Ethernet
+- ESP32 + Wiznet W5500 Ethernet (see notes)
 - ESP32 + LAN8270 Ethernet
 - ESP32 WiFi
 - ESP8266 WiFi
