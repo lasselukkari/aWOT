@@ -1,4 +1,4 @@
-aWOT [![Build Status](https://travis-ci.com/lasselukkari/aWOT.svg?branch=master)](https://travis-ci.com/lasselukkari/aWOT)
+aWOT [![Build Status](https://travis-ci.com/lasselukkari/aWOT.svg?branch=master)](https://app.travis-ci.com/github/lasselukkari/aWOT)
 ==========
 
 Arduino web server library.
