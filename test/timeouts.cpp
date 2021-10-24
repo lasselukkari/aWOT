@@ -18,6 +18,7 @@ void handler(Request &req, Response &res) {
 unittest(timeouts) {
   const char *request =
     "POST / HTTP/1.0" CRLF
+    "Transfer-Encoding: gzip" CRLF
     "Content-Length: 1" CRLF
     CRLF
     "1";

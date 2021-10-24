@@ -173,10 +173,14 @@ class Request : public Stream {
   int available();
   int availableForWrite();
   int bytesRead();
+  bool chunked();
+  bool compressed();
+  bool deflated();
   Stream* stream();
   void flush();
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
+  bool gzipped();
   int left();
   MethodType method();
   char* path();
@@ -228,6 +232,10 @@ class Request : public Stream {
   bool m_readingContent;
   int m_left;
   int m_bytesRead;
+  bool m_chunked;
+  bool m_compressed;
+  bool m_deflated;
+  bool m_gzipped;
   HeaderNode* m_headerTail;
   char* m_query;
   int m_queryLength;

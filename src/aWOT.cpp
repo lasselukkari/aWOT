@@ -711,6 +711,10 @@ Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
       m_readingContent(false),
       m_left(0),
       m_bytesRead(0),
+      m_chunked(false),
+      m_compressed(false),
+      m_deflated(false),
+      m_gzipped(false),
       m_headerTail(headerTail),
       m_query(NULL),
       m_queryLength(0),
@@ -732,6 +736,12 @@ int Request::available() {
 
 int Request::bytesRead() { return m_bytesRead; }
 
+bool Request::chunked() { return m_chunked; }
+
+bool Request::compressed() { return m_compressed; }
+
+bool Request::deflated() { return m_deflated; }
+
 Stream *Request::stream() { return m_stream; }
 
 char *Request::get(const char *name) {
@@ -747,6 +757,8 @@ char *Request::get(const char *name) {
 
   return NULL;
 }
+
+bool Request::gzipped() { return m_gzipped; }
 
 void Request::flush() { 
   return m_response->flush(); 
@@ -1070,12 +1082,35 @@ bool Request::m_processHeaders() {
   while (!(canEnd && m_expect(CRLF))) {
     canEnd = false;
     P(ContentLength) = "Content-Length:";
+    P(TransferEncoding) = "Transfer-Encoding:";
+
     if (m_expectP(ContentLength)) {
       if (!m_readInt(m_left) || !m_expect(CRLF)) {
         return false;
       }
 
       canEnd = true;
+    } else if (m_expectP(TransferEncoding)) {
+      P(chunked) = "chunked";
+      P(compress) = "compress";
+      P(deflate) = "deflate";
+      P(gzip) = "gzip";
+
+      while (!canEnd){
+        if(m_expectP(chunked)){
+          m_chunked = true;
+        } else if (m_expectP(compress)) {
+          m_compressed = true;
+        } else if (m_expectP(deflate)) {
+          m_deflated = true;
+        } else if (m_expectP(gzip)) {
+          m_gzipped = true;
+        } else if (m_expect(CRLF)) {
+          canEnd = true;
+        } else if (m_timedRead() == -1) {
+          return false;
+        }
+      }
     } else {
       HeaderNode *headerNode = m_headerTail;
 
