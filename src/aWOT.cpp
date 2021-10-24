@@ -817,7 +817,13 @@ bool Request::form(char *name, int nameLength, char *value, int valueLength) {
   return foundSomething && nameLength > 0 && valueLength > 0;
 }
 
-int Request::left() { return m_left + m_pushbackDepth; }
+int Request::left() {
+  if (m_chunked && !m_left) {
+    m_updateLeft();
+  }
+
+  return m_left + m_pushbackDepth;
+}
 
 Request::MethodType Request::method() { return m_method; }
 
@@ -874,6 +880,10 @@ int Request::read() {
     return m_pushback[--m_pushbackDepth];
   }
 
+  if(m_readingContent && m_chunked && !m_left){
+    m_updateLeft();
+  }
+
   if (m_readingContent && !m_left) {
     _timeout = 0;
     return -1;
@@ -899,6 +909,10 @@ int Request::read(uint8_t* buf, size_t size) {
     *buf++ = m_pushback[--m_pushbackDepth];
     size--;
     ret++;
+  }
+
+  if(m_readingContent && m_chunked && !m_left){
+    m_updateLeft();
   }
 
   int read = m_stream->read(buf, (size < (unsigned)m_left ? size : m_left));
@@ -1299,6 +1313,40 @@ int Request::m_timedRead() {
   }
 
   return ch;
+}
+
+void Request::m_updateLeft() {
+  m_readingContent = false;
+
+  if(m_bytesRead){
+    m_expect(CRLF);
+  }
+
+  int base = 1;
+  int hexVal[8];
+  int len = 0;
+
+  while (!m_expect(CRLF) && len <= 8) {
+    int ch = m_timedRead();
+    if (ch == -1) {
+      m_readingContent = true;
+      return;
+    }
+
+    hexVal[len++] = ch;
+  }
+
+  for (int i = len - 1; i >= 0; i--) {
+    if (hexVal[i] >= '0' && hexVal[i] <= '9') {
+      m_left += (int(hexVal[i]) - 48) * base;
+      base = base * 16;
+    } else if (hexVal[i] >= 'A' && hexVal[i] <= 'F') {
+      m_left += (int(hexVal[i]) - 55) * base;
+      base = base * 16;
+    }
+  }
+
+  m_readingContent = true;
 }
 
 Router::Router()

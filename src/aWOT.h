@@ -222,6 +222,7 @@ class Request : public Stream {
   void m_reset();
   int m_timedRead();
   bool m_timedout();
+  void m_updateLeft();
 
   Client* m_stream;
   Response* m_response;
