@@ -33,7 +33,6 @@ Response::Response(Client* client, uint8_t * writeBuffer, int writeBufferLength)
       m_sendingStatus(false),
       m_sendingHeaders(false),
       m_headersCount(0),
-      m_mime(NULL),
       m_bytesSent(0),
       m_ended(false),
       m_buffer(writeBuffer),

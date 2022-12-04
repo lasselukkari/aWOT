@@ -163,7 +163,6 @@ class Response : public Print {
   bool m_sendingStatus;
   bool m_sendingHeaders;
   int m_headersCount;
-  char* m_mime;
   int m_bytesSent;
   bool m_ended;
   uint8_t * m_buffer;
