@@ -29,6 +29,15 @@
 
 #include "Client.h"
 
+#if defined(STD_FUNCTION_MIDDLEWARE)
+#include <functional>
+#define MIDDLEWARE_PARAM  Middleware
+#define MIDDLEWARE_FUNCTION std::function<void(Request& request, Response& response)> Middleware
+#else
+#define MIDDLEWARE_PARAM  Middleware*
+#define MIDDLEWARE_FUNCTION void Middleware(Request& request, Response& response)
+#endif
+
 #define CRLF "\r\n"
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_Atmega32U4__) || \
@@ -242,41 +251,41 @@ class Router {
   friend class Application;
 
  public:
-  typedef void Middleware(Request& request, Response& response);
+  typedef MIDDLEWARE_FUNCTION;
 
   Router();
   ~Router();
 
-  void del(const char* path, Middleware* middleware);
-  void del(Middleware* middleware);
-  void get(const char* path, Middleware* middleware);
-  void get(Middleware* middleware);
-  void head(const char* path, Middleware* middleware);
-  void head(Middleware* middleware);
-  void options(const char* path, Middleware* middleware);
-  void options(Middleware* middleware);
-  void patch(const char* path, Middleware* middleware);
-  void patch(Middleware* middleware);
-  void post(const char* path, Middleware* middleware);
-  void post(Middleware* middleware);
-  void put(const char* path, Middleware* middleware);
-  void put(Middleware* middleware);
+  void del(const char* path, MIDDLEWARE_PARAM middleware);
+  void del(MIDDLEWARE_PARAM middleware);
+  void get(const char* path, MIDDLEWARE_PARAM middleware);
+  void get(MIDDLEWARE_PARAM middleware);
+  void head(const char* path, MIDDLEWARE_PARAM middleware);
+  void head(MIDDLEWARE_PARAM middleware);
+  void options(const char* path, MIDDLEWARE_PARAM middleware);
+  void options(MIDDLEWARE_PARAM middleware);
+  void patch(const char* path, MIDDLEWARE_PARAM middleware);
+  void patch(MIDDLEWARE_PARAM middleware);
+  void post(const char* path, MIDDLEWARE_PARAM middleware);
+  void post(MIDDLEWARE_PARAM middleware);
+  void put(const char* path, MIDDLEWARE_PARAM middleware);
+  void put(MIDDLEWARE_PARAM middleware);
   void use(const char* path, Router* router);
   void use(Router* router);
-  void use(const char* path, Middleware* middleware);
-  void use(Middleware* middleware);
+  void use(const char* path, MIDDLEWARE_PARAM middleware);
+  void use(MIDDLEWARE_PARAM middleware);
 
  private:
   struct MiddlewareNode {
     const char* path;
-    Middleware* middleware;
+    MIDDLEWARE_PARAM middleware;
     Router* router;
     Request::MethodType type;
     MiddlewareNode* next;
   };
 
   void m_addMiddleware(Request::MethodType type, const char* path,
-                       Middleware* middleware);
+                       MIDDLEWARE_PARAM middleware);
   void m_mountMiddleware(MiddlewareNode *tail);
   void m_setNext(Router* next);
   Router* m_getNext();
@@ -294,23 +303,23 @@ class Application {
   static int strcmpi(const char* s1, const char* s2);
   static int strcmpiP(const char* s1, const unsigned char* s2);
 
-  void del(const char* path, Router::Middleware* middleware);
-  void del(Router::Middleware* middleware);
-  void finally(Router::Middleware* middleware);
-  void get(const char* path, Router::Middleware* middleware);
-  void get(Router::Middleware* middleware);
-  void head(const char* path, Router::Middleware* middleware);
-  void head(Router::Middleware* middleware);
+  void del(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void del(Router::MIDDLEWARE_PARAM middleware);
+  void finally(Router::MIDDLEWARE_PARAM middleware);
+  void get(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void get(Router::MIDDLEWARE_PARAM middleware);
+  void head(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void head(Router::MIDDLEWARE_PARAM middleware);
   void header(const char* name, char* buffer, int bufferLength);
-  void notFound(Router::Middleware* middleware);
-  void options(const char* path, Router::Middleware* middleware);
-  void options(Router::Middleware* middleware);
-  void patch(const char* path, Router::Middleware* middleware);
-  void patch(Router::Middleware* middleware);
-  void post(const char* path, Router::Middleware* middleware);
-  void post(Router::Middleware* middleware);
-  void put(const char* path, Router::Middleware* middleware);
-  void put(Router::Middleware* middleware);
+  void notFound(Router::MIDDLEWARE_PARAM middleware);
+  void options(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void options(Router::MIDDLEWARE_PARAM middleware);
+  void patch(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void patch(Router::MIDDLEWARE_PARAM middleware);
+  void post(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void post(Router::MIDDLEWARE_PARAM middleware);
+  void put(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void put(Router::MIDDLEWARE_PARAM middleware);
   void process(Client* client, void* context = NULL);
   void process(Client* client, char* urlbuffer, int urlBufferLength, void* context = NULL);
   void process(Client* client, char* urlBuffer, int urlBufferLength, uint8_t * writeBuffer, int writeBufferLength, void* context = NULL);
@@ -321,14 +330,14 @@ class Application {
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);
   void use(Router* router);
-  void use(const char* path, Router::Middleware* middleware);
-  void use(Router::Middleware* middleware);
+  void use(const char* path, Router::MIDDLEWARE_PARAM middleware);
+  void use(Router::MIDDLEWARE_PARAM middleware);
 
  private:
   void m_process(Request &req, Response &res);
 
-  Router::Middleware* m_final;
-  Router::Middleware* m_notFound;
+  Router::MIDDLEWARE_PARAM m_final;
+  Router::MIDDLEWARE_PARAM m_notFound;
   Router m_defaultRouter;
   Request::HeaderNode* m_headerTail;
   unsigned long m_timeout;

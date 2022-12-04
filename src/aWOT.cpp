@@ -1283,67 +1283,67 @@ Router::~Router() {
   m_head = NULL;
 }
 
-void Router::del(const char *path, Middleware *middleware) {
+void Router::del(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void Router::del(Middleware *middleware) {
+void Router::del(MIDDLEWARE_PARAM middleware) {
   del(NULL, middleware);
 }
 
-void Router::get(const char *path, Middleware *middleware) {
+void Router::get(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::GET, path, middleware);
 }
 
-void Router::get(Middleware *middleware) {
+void Router::get(MIDDLEWARE_PARAM middleware) {
   get(NULL, middleware);
 }
 
-void Router::head(const char *path, Middleware *middleware) {
+void Router::head(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::HEAD, path, middleware);
 }
 
-void Router::head(Middleware *middleware) {
+void Router::head(MIDDLEWARE_PARAM middleware) {
   head(NULL, middleware);
 }
 
-void Router::options(const char *path, Middleware *middleware) {
+void Router::options(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void Router::options(Middleware *middleware) {
+void Router::options(MIDDLEWARE_PARAM middleware) {
   options(NULL, middleware);
 }
 
-void Router::post(const char *path, Middleware *middleware) {
+void Router::post(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::POST, path, middleware);
 }
 
-void Router::post(Middleware *middleware) {
+void Router::post(MIDDLEWARE_PARAM middleware) {
   post(NULL, middleware);
 }
 
-void Router::put(const char *path, Middleware *middleware) {
+void Router::put(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Router::put(Middleware *middleware) {
+void Router::put(MIDDLEWARE_PARAM middleware) {
   put(NULL, middleware);
 }
 
-void Router::patch(const char *path, Middleware *middleware) {
+void Router::patch(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Router::patch(Middleware *middleware) {
+void Router::patch(MIDDLEWARE_PARAM middleware) {
   patch(NULL, middleware);
 }
 
-void Router::use(const char *path, Middleware *middleware) {
+void Router::use(const char *path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void Router::use(Middleware *middleware) {
+void Router::use(MIDDLEWARE_PARAM middleware) {
   use(NULL, middleware);
 }
 
@@ -1361,7 +1361,7 @@ void Router::use(Router *router) {
 }
 
 void Router::m_addMiddleware(Request::MethodType type, const char *path,
-                             Middleware *middleware) {
+                             MIDDLEWARE_PARAM middleware) {
   MiddlewareNode *tail = new MiddlewareNode();
   tail->path = path;
   tail->middleware = middleware;
@@ -1507,67 +1507,67 @@ Application::~Application() {
   m_headerTail = NULL;
 }
 
-void Application::del(const char *path, Router::Middleware *middleware) {
+void Application::del(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void Application::del(Router::Middleware *middleware) {
+void Application::del(Router::MIDDLEWARE_PARAM middleware) {
   del(NULL, middleware);
 }
 
-void Application::finally(Router::Middleware *final) {
+void Application::finally(Router::MIDDLEWARE_PARAM final) {
   m_final = final;
 }
 
-void Application::get(const char *path, Router::Middleware *middleware) {
+void Application::get(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
-void Application::get(Router::Middleware *middleware) {
+void Application::get(Router::MIDDLEWARE_PARAM middleware) {
   get(NULL, middleware);
 }
 
-void Application::head(const char *path, Router::Middleware *middleware) {
+void Application::head(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
 }
 
-void Application::head(Router::Middleware *middleware) {
+void Application::head(Router::MIDDLEWARE_PARAM middleware) {
   head(NULL, middleware);
 }
 
-void Application::notFound(Router::Middleware *notFound) {
+void Application::notFound(Router::MIDDLEWARE_PARAM notFound) {
   m_notFound = notFound;
 }
 
-void Application::options(const char *path, Router::Middleware *middleware) {
+void Application::options(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void Application::options(Router::Middleware *middleware) {
+void Application::options(Router::MIDDLEWARE_PARAM middleware) {
   options(NULL, middleware);
 }
 
-void Application::patch(const char *path, Router::Middleware *middleware) {
+void Application::patch(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Application::patch(Router::Middleware *middleware) {
+void Application::patch(Router::MIDDLEWARE_PARAM middleware) {
   patch(NULL, middleware);
 }
 
-void Application::post(const char *path, Router::Middleware *middleware) {
+void Application::post(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
-void Application::post(Router::Middleware *middleware) {
+void Application::post(Router::MIDDLEWARE_PARAM middleware) {
   post(NULL, middleware);
 }
 
-void Application::put(const char *path, Router::Middleware *middleware) {
+void Application::put(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::put(Router::Middleware *middleware) {
+void Application::put(Router::MIDDLEWARE_PARAM middleware) {
   put(NULL, middleware);
 }
 
@@ -1641,11 +1641,11 @@ void Application::process(Stream *stream, char *urlBuffer, int urlBufferLength, 
   process(&client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength, context);
 }
 
-void Application::use(const char *path, Router::Middleware *middleware) {
+void Application::use(const char *path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void Application::use(Router::Middleware *middleware) {
+void Application::use(Router::MIDDLEWARE_PARAM middleware) {
   use(NULL, middleware);
 }
 
