@@ -4,8 +4,8 @@
 #include <WiFi.h>
 #endif
 
-#define STD_FUNCTION_MIDDLEWARE
-#include "aWOT.h"
+// Manually add "#define STD_FUNCTION_MIDDLEWARE" to the top of the aWOT.h file
+#include <aWOT.h>
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
