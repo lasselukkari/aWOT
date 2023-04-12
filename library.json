@@ -17,5 +17,13 @@
     "atmelsam",
     "espressif",
     "teensy"
+  ],
+  "exclude": [
+    "Gemfile",
+    "Gemfile.lock",
+    "*.bin",
+    "*.bin.dSYM",
+    "test",
+    "vendor"
   ]
 }
