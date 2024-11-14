@@ -1,5 +1,5 @@
 /*
-  aWOT, Express.js inspired microcontreller web framework for the Web of Things
+  aWOT, Express.js inspired microcontroller web framework for the Web of Things
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -155,7 +155,7 @@ class Response : public Print {
     const char* name;
     const char* value;
   } m_headers[SERVER_MAX_HEADERS];
-  bool m_contentLenghtSet;
+  bool m_contentLengthSet;
   bool m_contentTypeSet;
   bool m_keepAlive;
   int m_statusSent;
