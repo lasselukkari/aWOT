@@ -40,7 +40,7 @@
 
 #define CRLF "\r\n"
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_Atmega32U4__) || \
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega32U4__) || \
     defined(__AVR_ATmega16U4__) || defined(_AVR_ATmega328__)
 #define LOW_MEMORY_MCU
 #endif
