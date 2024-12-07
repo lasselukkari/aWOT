@@ -1,0 +1,137 @@
+
+# Description: 'Run the Arduino CLI to compile example sketches and check if they compile correctly for multiple boards'
+# Author: 'Jorge Rivera' #url: 'https://github.com/latchdevel' 
+
+# This is the name of the workflow, visible on GitHub UI.
+name: Compile examples
+
+# Controls when the action will run. 
+# Here we tell GitHub to run the workflow when a commit.
+on:
+  # Triggers the workflow on push or pull request events
+  push:
+    paths:
+      - "src/**"
+      - "examples/**"
+      - ".github/workflows/CompileExamples.yml"
+
+  pull_request:
+    paths:
+      - "src/**"
+      - "examples/**"
+      - ".github/workflows/CompileExamples.yml"
+  
+  # Scheduled the first day of every month at 00:00h UTC
+  schedule:
+    - cron:  '0 0 1 * *'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  repository_dispatch:
+
+# This is the list of jobs that will be run concurrently.
+# Since we use a build matrix, the actual number of jobs
+# started depends on how many configurations the matrix
+# will produce.
+jobs:
+  boards:
+    # This is the name of the job
+    name: "Compile for ${{ matrix.config.board }}"
+    
+    # This is the platform GitHub will use to run our workflow
+    runs-on: ubuntu-latest
+    
+    # Here we tell GitHub that the jobs must be determined
+    # dynamically depending on a matrix configuration.
+    strategy:
+      
+      # Set to false so that GitHub does not cancel all jobs
+      # in progress if any array job fails.
+      fail-fast: false
+      
+      # The matrix will produce one job for each configuration:
+      matrix:
+        config:
+          - board: "Arduino Uno"
+            fqbn: "arduino:avr:uno"
+            platform: "arduino:avr"
+
+          - board: "Arduino Leonardo"
+            fqbn: "arduino:avr:leonardo"
+            platform: "arduino:avr"
+
+          - board: "Arduino Mega2560"
+            fqbn: "arduino:avr:mega"
+            platform: "arduino:avr"
+
+          - board: "Arduino Due"
+            fqbn: "arduino:sam:arduino_due_x"
+            platform: "arduino:sam"
+            
+          - board: "ESP32 NodeMCU-32S"
+            fqbn: "esp32:esp32:nodemcu-32s"
+            platform: "esp32:esp32"
+            additional-url: "--additional-urls https://dl.espressif.com/dl/package_esp32_index.json"
+
+    # This is the list of steps this job will run.
+    steps:
+      # We use the "arduino/setup-arduino-cli" action to install and
+      # configure the Arduino CLI on the system.
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      # We then install the platform, which one will be determined
+      # dynamically by the build matrix.
+      - name: Install platform ${{ matrix.config.platform }} 
+        run: |
+          arduino-cli config init -v ${{ matrix.config.additional-url }}
+          arduino-cli core update-index -v 
+          arduino-cli core install -v ${{ matrix.config.platform }} --run-post-install
+
+      # Install generic libraries from Arduino library manager.
+      - name: Install Arduino libraries
+        run: |
+          arduino-cli lib update-index
+          arduino-cli lib install Ethernet
+          arduino-cli lib install LoRa
+
+      # First of all, we clone the repo using the "checkout" action.
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Finally, we compile the sketches, using the FQBN that was set in the boards matrix.
+      - name: Compile examples for ${{ matrix.config.board }}
+        id: compile
+        env: 
+          fqbn: ${{ matrix.config.fqbn }}
+        run: |
+          # Compile example sketches:
+          export errors=()
+          for sketch in $( find ./examples -name "*.ino"|sed "s/\ /__SPACE__/g" )
+          do
+            sketch_path=$( echo $sketch |sed "s/__SPACE__/\ /g" )
+            grep -qi 'WiFi' $sketch_path && grep -qiv '^esp' <<< $fqbn && echo -e "\033[33;1;4mSkip example sketch: $sketch_path for $fqbn board\033[0m" || \
+            {
+              echo -e "\033[34;1;4mCompile example sketch: $sketch_path\033[0m"
+              arduino-cli compile --fqbn ${{ matrix.config.fqbn }} --warnings none `grep -q 'STD_FUNCTION_MIDDLEWARE' $sketch_path && echo "--build-property build.extra_flags=-DSTD_FUNCTION_MIDDLEWARE"`  \
+                --library ../aWOT \
+                "$sketch_path" \
+              || { errors+=($sketch) ; echo -e "\033[31;1;4mERROR COMPILING SKETCH: $sketch_path\033[0m\r\n" ;} \
+            ;}
+          done
+          echo "errors=${errors[@]}" >> $GITHUB_OUTPUT
+
+      # Show errors
+      - name: Show errors
+        if: ${{ steps.compile.outputs.errors }}
+        env: 
+          errors: ${{ steps.compile.outputs.errors }}
+        run: |
+          #  Show errors
+          for sketch in $errors 
+          do
+            sketch_path=$( echo $sketch |sed "s/__SPACE__/\ /g" )
+            echo -e "\033[31;1;4mERROR COMPILING SKETCH: $sketch_path\033[0m"
+          done
+          exit 1
