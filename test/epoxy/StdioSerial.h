@@ -47,8 +47,6 @@ class StdioSerial: public Stream {
 
     int peek() override;
 
-    void flush() override; // Force sending of all buffered data
-
   private:
     int bufch;
     int outputFd; // Store the selected output 

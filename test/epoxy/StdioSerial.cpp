@@ -26,11 +26,6 @@ void StdioSerial::setOutput(StdioOutput output) {
   }
 }
 
-// Force sending of all buffered data
-void StdioSerial::flush() {
-  fsync(outputFd);
-}
-
 // Write to selected output
 size_t StdioSerial::write(uint8_t c) {
   ssize_t status = ::write(outputFd, &c, 1);
