@@ -53,6 +53,9 @@ add_library( ${PROJECT_NAME}-EpoxyDuino OBJECT ${EPOXY} )
 # Add include directory to use #include <file.h> or "file.h"
 target_include_directories( ${PROJECT_NAME}-EpoxyDuino PUBLIC epoxy )
 
+# Defines EPOXY_CORE_ESP8266 macro for EpoxyDuino Core
+target_compile_definitions( ${PROJECT_NAME}-EpoxyDuino PRIVATE EPOXY_CORE_ESP8266 )
+
 # Add Arduino Unit Test source files
 aux_source_directory( unittest UNITTEST )
 
