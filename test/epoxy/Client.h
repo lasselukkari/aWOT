@@ -48,7 +48,7 @@ class Client: public Stream {
         }
 
         #if defined(EPOXY_CORE_ESP8266)
-        const uint8_t* rawIPAddress(IPAddress& addr) const {
+        const uint8_t* rawIPAddress(const IPAddress& addr) {
             return addr.raw_address();
         }
         #endif
