@@ -137,6 +137,7 @@ class Response : public Print {
   void status(int code);
   int statusSent();
   size_t write(uint8_t data) override;
+  size_t write(const uint8_t* buffer, size_t bufferLength) override;
   size_t write(uint8_t* buffer, size_t bufferLength); // non-override
   void writeP(const unsigned char* data, size_t length);
 
@@ -198,6 +199,7 @@ class Request : public Stream {
   bool route(int number, char* buffer, int bufferLength);
   int minorVersion();
   size_t write(uint8_t data) override;
+  size_t write(const uint8_t* buffer, size_t bufferLength) override;
   size_t write(uint8_t* buffer, size_t bufferLength); // non-override
 
  private:

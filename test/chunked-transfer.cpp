@@ -18,9 +18,9 @@ void handler(Request & req, Response & res) {
   while (length > 0) {
     int toRead = length > READ_BUFFER_SIZE ? READ_BUFFER_SIZE : length;
     dataFile.readBytes(readBuffer, toRead);
-    // Explicit call to base class 'Print::write(const uint8_t *buffer, size_t size)' method
+    // Explicit call to new 'Response::write(const uint8_t *buffer, size_t size)' method
     // for SERVER_OUTPUT_BUFFER_SIZE-sized chunks response
-    res.Print::write(readBuffer, toRead);
+    res.write(const_cast<const uint8_t*>(readBuffer), toRead);
     length = length - toRead;
   }
   res.end();
