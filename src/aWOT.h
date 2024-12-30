@@ -138,7 +138,7 @@ class Response : public Print {
   int statusSent();
   size_t write(uint8_t data) override;
   size_t write(const uint8_t* buffer, size_t bufferLength) override;
-  size_t write(uint8_t* buffer, size_t bufferLength); // non-override
+  size_t writeF(uint8_t* buffer, size_t bufferLength); // flush buffer
   void writeP(const unsigned char* data, size_t length);
 
  private:

@@ -217,7 +217,7 @@ size_t Response::write(const uint8_t *buffer, size_t bufferLength) {
   return Print::write(buffer, bufferLength);
 }
 
-size_t Response::write(uint8_t *buffer, size_t bufferLength) {
+size_t Response::writeF(uint8_t *buffer, size_t bufferLength) {
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
