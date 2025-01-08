@@ -1,7 +1,7 @@
 #include <ETH.h>
 #include <aWOT.h>
 
-NetworkServer server(80); // ESP32 core ETH Library uses NetworkServer instead of WiFiServer
+NetworkServer server(80);
 Application app;
 
 void index(Request &req, Response &res) {
@@ -23,7 +23,7 @@ void setup() {
 }
 
 void loop() {
-  NetworkClient client = server.available(); // ESP32 core ETH Library uses NetworkClient instead of WiFiClient
+  NetworkClient client = server.available();
 
   if (client.connected()) {
     app.process(&client);
