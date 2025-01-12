@@ -1,5 +1,2 @@
-arduino-ci.yml  export-ignore
 /test/          export-ignore
 .git*           export-ignore
-.travis.yml     export-ignore
-Gemfile         export-ignore
