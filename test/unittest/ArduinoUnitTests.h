@@ -8,7 +8,7 @@ using namespace std;
 struct Results {
   int passed;
   int failed;
-  int skipped;  // TODO: not sure about this
+  int skipped;
 };
 
 struct TestData {
@@ -50,7 +50,7 @@ class Test
 
         void onTestRunInit(int numTests) {
           cerr << "TAP version 13" << endl;
-          cerr << 1 << ".." << numTests << endl; // we know how many tests, in advance
+          cerr << 1 << ".." << numTests << endl;
           mTestCounter = 0;
         }
 
@@ -69,7 +69,6 @@ class Test
           }
         }
 
-        // non-comparative assert
         void onAssert(
           const char* file,
           int line,
@@ -118,7 +117,6 @@ class Test
     ReporterTAP* mReporter;
     const char* mName;
 
-    // linked list structure for active tests
     static Test* sRoot;
     Test* mNext;
 
@@ -142,7 +140,6 @@ class Test
       return i;
     }
 
-    // current test result
     int mResult;
 
   public:
@@ -185,23 +182,17 @@ class Test
       return results;
     }
 
-    // TODO: figure out TAP output like
-    // https://api.travis-ci.org/v3/job/283745834/log.txt
-    // https://testanything.org/tap-specification.html
-    // parse input and decide how to report
     static int run_and_report(int argc, char *argv[]) {
-      // TODO: pick a reporter based on args
       ReporterTAP rep;
       Results results = run(&rep);
       return results.failed + results.skipped;
     }
 
     void prepare() {
-      mResult = RESULT_PASS;  // not None, and not fail unless we hear otherwise
+      mResult = RESULT_PASS;
     }
 
     void test() {
-      // thin wrapper.  nothing to do here for now
       task();
     }
 
@@ -259,11 +250,6 @@ class Test
 
 };
 
-/**
- * Extend the class into a struct.
- * The implementation of task() will follow the macro
- *
- */
 #define unittest(name)             \
   struct test_##name : Test        \
   {                                \
@@ -272,11 +258,6 @@ class Test
   } test_##name##_instance;        \
   void test_##name ::task()
 
-/**
- * The unittest_setup and unittest_teardown functions are intended to be used
- * to set up "external" dependencies that needs to present but are not directly
- * related to the functionality that you are testing, for instance a LCD.
- */
 #define unittest_setup()                          \
   class unittest_setup_class : public TestSetup { \
     public:                                       \

@@ -20,7 +20,6 @@ template  < typename A, typename B > struct Compare
   inline static bool moreOrEqual(const A &a,const B &b)   { return !(a<b); }
 };
 
-// helpers for macros
 inline static int arduinoCICompareBetween(const String &a,const __FlashStringHelper * const &b)
 {
   uint8_t a_buf[4],b_buf[4];
@@ -57,10 +56,6 @@ inline static int arduinoCICompareBetween(const __FlashStringHelper * const &a,c
   }
 }
 
-
-// this macro works for all the string-based comparisons
-// note that it substitutes equivalence for equality
-// but just in case, https://stackoverflow.com/a/13842784/2063546
 #define eqComparisonTemplateMacro(T1, T1m, T2, T2m, betweenImpl, ...)                                  \
   template  < __VA_ARGS__ > struct Compare<T1 T1m, T2 T2m>;                                             \
   template  < __VA_ARGS__ > struct Compare<T1 T1m, T2 T2m>                                              \
@@ -103,11 +98,8 @@ eqComparisonTemplateMacro(char, [N], String, ,                                  
 eqComparisonTemplateMacro(char, [N], const char *, ,                                     strcmp(a,b), size_t N)
 eqComparisonTemplateMacro(char, [N], char *, ,                                           strcmp(a,b), size_t N)
 eqComparisonTemplateMacro(char, [N], char, [M],                                          strcmp(a,b), size_t N, size_t M)
-
 eqComparisonTemplateMacro(A, , std::nullptr_t, ,                                         a ? 1 : 0, typename A)
 eqComparisonTemplateMacro(std::nullptr_t, , B, ,                                         b ? -1 : 0, typename B)
-
-// super general comparisons
 template <typename A, typename B> int  compareBetween(      const A &a, const B &b) { return Compare<A, B>::between(      a, b); }
 template <typename A, typename B> bool compareEqual(        const A &a, const B &b) { return Compare<A, B>::equal(        a, b); }
 template <typename A, typename B> bool compareNotEqual(     const A &a, const B &b) { return Compare<A, B>::notEqual(     a, b); }
