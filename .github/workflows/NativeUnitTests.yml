@@ -1,0 +1,86 @@
+# Run aWOT Unit Tests natively on MacOS and Linux systems.
+
+# This is the name of the workflow, visible on GitHub UI.
+name: Unit Tests
+
+# Controls when the action will run. 
+# Here we tell GitHub to run the workflow when a commit.
+on:
+  # Triggers the workflow on push or pull request events
+  push:
+    paths:
+      - "src/**"
+      - "test/**"
+      - ".github/workflows/NativeUnitTests.yml"
+
+  pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - ".github/workflows/NativeUnitTests.yml"
+  
+  # Scheduled the first day of every month at 00:00h UTC
+  schedule:
+    - cron:  '0 0 1 * *'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  repository_dispatch:
+
+# This is the list of jobs that will be run concurrently.
+# Since we use a build matrix, the actual number of jobs
+# started depends on how many configurations the matrix
+# will produce.
+jobs:
+  build:
+    # This is the name of the job
+    name: 'Build for ${{ matrix.config.name }}'
+
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows, Linux or Mac. 
+    runs-on: ${{ matrix.config.os }}
+
+    # Job env var for cmake build directory
+    env:
+      BUILD_DIR: ${{ github.workspace }}/test/build
+
+    # Here we tell GitHub that the jobs must be determined
+    # dynamically depending on a matrix configuration.
+    strategy:
+      
+      # Set to false so that GitHub does not cancel all jobs
+      # in progress if any array job fails.
+      fail-fast: false
+      
+      # The matrix will produce one job for each configuration:
+      matrix:
+        config:
+          - name: 'Linux x86_64'
+            os: 'ubuntu-latest'
+          
+          - name: 'macOS Universal'
+            os: 'macos-latest'
+
+    # This is the list of steps this job will run.
+    steps:
+        # Clone repo using the checkout action.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Build Environment
+        # Some projects don't allow in-source building, so create a separate build directory
+        # We'll use this as our working directory for all subsequent commands
+        run: cmake -E make_directory ${{ env.BUILD_DIR }}
+
+      - name: Running CMake 
+        working-directory: ${{ env.BUILD_DIR }}
+        run: cmake ..
+
+      - name: Build Unit Tests
+        working-directory: ${{ env.BUILD_DIR }}
+        run: cmake --build .
+
+      - name: Run Unit Tests
+        if: ${{ success() }}
+        working-directory: ${{ env.BUILD_DIR }}
+        run: ctest
