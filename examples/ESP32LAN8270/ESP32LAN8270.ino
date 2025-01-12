@@ -1,7 +1,7 @@
 #include <ETH.h>
 #include <aWOT.h>
 
-WiFiServer server(80);
+NetworkServer server(80);
 Application app;
 
 void index(Request &req, Response &res) {
@@ -23,7 +23,7 @@ void setup() {
 }
 
 void loop() {
-  WiFiClient client = server.available();
+  NetworkClient client = server.available();
 
   if (client.connected()) {
     app.process(&client);
