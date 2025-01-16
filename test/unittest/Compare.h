@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <pgmspace.h>
 #include <WString.h>
 
