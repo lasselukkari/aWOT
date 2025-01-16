@@ -38,6 +38,7 @@ unittest(timeouts) {
 
   Application app;
 
+  app.setTimeout(10);
   app.post("/", &handler);
   int requestLength = strlen(request);
 
