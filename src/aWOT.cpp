@@ -213,7 +213,11 @@ size_t Response::write(uint8_t data) {
   return bytesSent;
 }
 
-size_t Response::write(uint8_t *buffer, size_t bufferLength) {
+size_t Response::write(const uint8_t *buffer, size_t bufferLength) {
+  return Print::write(buffer, bufferLength);
+}
+
+size_t Response::writeF(uint8_t *buffer, size_t bufferLength) {
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
   }
@@ -956,6 +960,10 @@ int Request::minorVersion() { return m_minorVersion; }
 
 size_t Request::write(uint8_t data) {
   return m_response->write(data);
+}
+
+size_t Request::write(const uint8_t* buffer, size_t bufferLength) {
+  return m_response->write(buffer, bufferLength);
 }
 
 size_t Request::write(uint8_t* buffer, size_t bufferLength) {

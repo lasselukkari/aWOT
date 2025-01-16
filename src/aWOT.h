@@ -120,13 +120,13 @@ class Response : public Print {
   friend class Router;
 
  public:
-  int availableForWrite();
+  int availableForWrite() override;
   int bytesSent();
   void beginHeaders();
   void end();
   void endHeaders();
   bool ended();
-  void flush();
+  void flush() override;
   const char* get(const char* name);
   bool headersSent();
   void printP(const unsigned char* string);
@@ -136,8 +136,9 @@ class Response : public Print {
   void setDefaults();
   void status(int code);
   int statusSent();
-  size_t write(uint8_t data);
-  size_t write(uint8_t* buffer, size_t bufferLength);
+  size_t write(uint8_t data) override;
+  size_t write(const uint8_t* buffer, size_t bufferLength) override;
+  size_t writeF(uint8_t* buffer, size_t bufferLength); // flush buffer
   void writeP(const unsigned char* data, size_t length);
 
  private:
@@ -178,27 +179,28 @@ class Request : public Stream {
   enum MethodType { UNKNOWN, GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, ALL };
   void* context;
 
-  int available();
-  int availableForWrite();
+  int available() override;
+  int availableForWrite() override;
   int bytesRead();
   Stream* stream();
-  void flush();
+  void flush() override;
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
   int left();
   MethodType method();
   char* path();
-  int peek();
+  int peek() override;
   void push(uint8_t ch);
   char* query();
   bool query(const char* name, char* buffer, int bufferLength);
-  int read();
+  int read() override;
   int read(uint8_t* buf, size_t size);
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
   int minorVersion();
-  size_t write(uint8_t data);
-  size_t write(uint8_t* buffer, size_t bufferLength);
+  size_t write(uint8_t data) override;
+  size_t write(const uint8_t* buffer, size_t bufferLength) override;
+  size_t write(uint8_t* buffer, size_t bufferLength); // non-override
 
  private:
   struct HeaderNode {
