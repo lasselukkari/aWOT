@@ -227,6 +227,7 @@ class Request : public Stream {
   bool route(const char* name, char* buffer, int bufferLength);
   bool route(int number, char* buffer, int bufferLength);
   int minorVersion();
+  void next();
   size_t write(uint8_t data);
   size_t write(const uint8_t* buffer, size_t bufferLength);
 
@@ -267,6 +268,7 @@ class Request : public Stream {
   int m_pathLength;
   const char* m_pattern;
   const char* m_route;
+  bool m_next;
 };
 
 class Router {
@@ -523,50 +525,21 @@ class Application {
                   std::placeholders::_2));
   }
 #endif
-  void process(Client* client, void* context = NULL);
-  void process(Client* client, Request::HeaderNode* headers,
-               void* context = NULL);
-  void process(Client* client, Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
-  void process(Client* client, char* urlbuffer, int urlBufferLength,
-               void* context = NULL);
-  void process(Client* client, char* urlbuffer, int urlBufferLength,
-               Request::HeaderNode* headers, void* context = NULL);
-  void process(Client* client, char* urlbuffer, int urlBufferLength,
-               Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
-  void process(Client* client, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               void* context = NULL);
-  void process(Client* client, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               Request::HeaderNode* headers, void* context = NULL);
-  void process(Client* client, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
-  void process(Stream* stream, void* context = NULL);
-  void process(Stream* stream, Request::HeaderNode* headers,
-               void* context = NULL);
-  void process(Stream* stream, Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
-  void process(Stream* stream, char* urlbuffer, int urlBufferLength,
-               void* context = NULL);
-  void process(Stream* stream, char* urlbuffer, int urlBufferLength,
-               Request::HeaderNode* headers, void* context = NULL);
-  void process(Stream* stream, char* urlbuffer, int urlBufferLength,
-               Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
-  void process(Stream* stream, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               void* context = NULL);
-  void process(Stream* stream, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               Request::HeaderNode* headers, void* context = NULL);
-  void process(Stream* stream, char* urlBuffer, int urlBufferLength,
-               uint8_t* writeBuffer, int writeBufferLength,
-               Request::HeaderNode* headers, int headerCount,
-               void* context = NULL);
+
+  struct ProcessOptions {
+    char* urlBuffer = nullptr;
+    int urlBufferLength = 0;
+    uint8_t* writeBuffer = nullptr;
+    int writeBufferLength = 0;
+    Request::HeaderNode* headers = nullptr;
+    int headerCount = 0;
+    void* context = nullptr;
+  };
+
+  void process(Client* client);
+  void process(Client* client, const ProcessOptions& options);
+  void process(Stream* stream);
+  void process(Stream* stream, const ProcessOptions& options);
 
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);

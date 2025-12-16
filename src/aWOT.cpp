@@ -722,7 +722,8 @@ Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
       m_path(urlBuffer),
       m_pathLength(urlBufferLength - 1),
       m_pattern(NULL),
-      m_route(NULL) {
+      m_route(NULL),
+      m_next(true) {
   _timeout = timeout;
 }
 
@@ -954,6 +955,8 @@ bool Request::route(int number, char* buffer, int bufferLength) {
 }
 
 int Request::minorVersion() { return m_minorVersion; }
+
+void Request::next() { m_next = true; }
 
 size_t Request::write(uint8_t data) { return m_response->write(data); }
 
@@ -1368,7 +1371,7 @@ void Router::m_dispatchMiddleware(Request& request, Response& response,
                                   int urlShift) {
   MiddlewareNode* middleware = m_head;
 
-  while (middleware != NULL && !response.ended()) {
+  while (middleware != NULL && !response.ended() && request.m_next) {
     if (middleware->router != NULL) {
       int prefixLength = middleware->path ? strlen(middleware->path) : 0;
       int shift = urlShift + prefixLength;
@@ -1383,6 +1386,7 @@ void Router::m_dispatchMiddleware(Request& request, Response& response,
       if (middleware->path == NULL ||
           m_routeMatch(request.path() + urlShift, middleware->path)) {
         request.m_setRoute(request.path() + urlShift, middleware->path);
+        request.m_next = false;
         middleware->middleware(request, response);
       }
     }
@@ -1481,70 +1485,40 @@ Application::~Application() {}
 
 // ...
 
-void Application::process(Client* client, void* context) {
-  process(client, NULL, context);
+void Application::process(Client* client) {
+  ProcessOptions options;
+  process(client, options);
 }
 
-// ... (previous process methods)
-
-void Application::process(Client* client, Request::HeaderNode* headers,
-                          void* context) {
+void Application::process(Client* client, const ProcessOptions& options) {
   if (!client) {
     return;
   }
 
-  char urlBuffer[SERVER_URL_BUFFER_SIZE];
-  process(client, urlBuffer, SERVER_URL_BUFFER_SIZE, headers, context);
-}
+  char defaultUrlBuffer[SERVER_URL_BUFFER_SIZE];
+  uint8_t defaultWriteBuffer[SERVER_OUTPUT_BUFFER_SIZE];
 
-void Application::process(Client* client, Request::HeaderNode* headers,
-                          int headerCount, void* context) {
-  if (!client) {
-    return;
-  }
+  char* urlBuffer = options.urlBuffer ? options.urlBuffer : defaultUrlBuffer;
+  int urlBufferLength = options.urlBufferLength ? options.urlBufferLength
+                                                : SERVER_URL_BUFFER_SIZE;
+  uint8_t* writeBuffer =
+      options.writeBuffer ? options.writeBuffer : defaultWriteBuffer;
+  int writeBufferLength = options.writeBufferLength ? options.writeBufferLength
+                                                    : SERVER_OUTPUT_BUFFER_SIZE;
 
-  char urlBuffer[SERVER_URL_BUFFER_SIZE];
-  process(client, urlBuffer, SERVER_URL_BUFFER_SIZE, headers, headerCount,
-          context);
-}
+  Request::HeaderNode* headers = options.headers;
+  int headerCount = options.headerCount;
 
-// ...
-
-void Application::process(Client* client, char* urlBuffer, int urlBufferLength,
-                          Request::HeaderNode* headers, void* context) {
-  if (!client) {
-    return;
-  }
-
-  uint8_t writeBuffer[SERVER_OUTPUT_BUFFER_SIZE];
-  process(client, urlBuffer, urlBufferLength, writeBuffer,
-          SERVER_OUTPUT_BUFFER_SIZE, headers, context);
-}
-
-void Application::process(Client* client, char* urlBuffer, int urlBufferLength,
-                          Request::HeaderNode* headers, int headerCount,
-                          void* context) {
-  if (!client) {
-    return;
-  }
-
-  uint8_t writeBuffer[SERVER_OUTPUT_BUFFER_SIZE];
-  process(client, urlBuffer, urlBufferLength, writeBuffer,
-          SERVER_OUTPUT_BUFFER_SIZE, headers, headerCount, context);
-}
-
-// ...
-
-void Application::process(Client* client, char* urlBuffer, int urlBufferLength,
-                          uint8_t* writeBuffer, int writeBufferLength,
-                          Request::HeaderNode* headers, void* context) {
-  if (!client) {
-    return;
+  if (headerCount > 0 && headers != nullptr) {
+    for (int i = 0; i < headerCount - 1; i++) {
+      headers[i].next = &headers[i + 1];
+    }
+    headers[headerCount - 1].next = NULL;
   }
 
   Response response(client, writeBuffer, writeBufferLength);
-  Request request(client, &response, headers, urlBuffer, urlBufferLength,
-                  m_timeout, context);
+  Request request(client, &response, headerCount > 0 ? headers : nullptr,
+                  urlBuffer, urlBufferLength, m_timeout, options.context);
 
   m_process(request, response);
 
@@ -1561,85 +1535,18 @@ void Application::process(Client* client, char* urlBuffer, int urlBufferLength,
   }
 }
 
-void Application::process(Client* client, char* urlBuffer, int urlBufferLength,
-                          uint8_t* writeBuffer, int writeBufferLength,
-                          Request::HeaderNode* headers, int headerCount,
-                          void* context) {
-  if (headerCount > 0) {
-    for (int i = 0; i < headerCount - 1; i++) {
-      headers[i].next = &headers[i + 1];
-    }
-    headers[headerCount - 1].next = NULL;
-  }
-
-  process(client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength,
-          headerCount > 0 ? headers : NULL, context);
+void Application::process(Stream* stream) {
+  ProcessOptions options;
+  process(stream, options);
 }
 
-// ...
-
-void Application::process(Stream* stream, Request::HeaderNode* headers,
-                          void* context) {
+void Application::process(Stream* stream, const ProcessOptions& options) {
   if (!stream) {
     return;
   }
 
   StreamClient client(stream);
-  process(&client, headers, context);
-}
-
-void Application::process(Stream* stream, Request::HeaderNode* headers,
-                          int headerCount, void* context) {
-  if (!stream) {
-    return;
-  }
-
-  StreamClient client(stream);
-  process(&client, headers, headerCount, context);
-}
-
-// ...
-
-void Application::process(Stream* stream, void* context) {
-  process(stream, NULL, context);
-}
-
-void Application::process(Stream* stream, char* buffer, int bufferLength,
-                          Request::HeaderNode* headers, int headerCount,
-                          void* context) {
-  if (!stream) {
-    return;
-  }
-
-  StreamClient client(stream);
-  process(&client, buffer, bufferLength, headers, headerCount, context);
-}
-
-// ...
-
-void Application::process(Stream* stream, char* urlBuffer, int urlBufferLength,
-                          uint8_t* writeBuffer, int writeBufferLength,
-                          Request::HeaderNode* headers, void* context) {
-  if (!stream) {
-    return;
-  }
-
-  StreamClient client(stream);
-  process(&client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength,
-          headers, context);
-}
-
-void Application::process(Stream* stream, char* urlBuffer, int urlBufferLength,
-                          uint8_t* writeBuffer, int writeBufferLength,
-                          Request::HeaderNode* headers, int headerCount,
-                          void* context) {
-  if (!stream) {
-    return;
-  }
-
-  StreamClient client(stream);
-  process(&client, urlBuffer, urlBufferLength, writeBuffer, writeBufferLength,
-          headers, headerCount, context);
+  process(&client, options);
 }
 
 void Application::del(const char* path, Router::MIDDLEWARE_PARAM middleware) {

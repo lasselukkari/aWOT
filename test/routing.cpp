@@ -3,17 +3,27 @@
 #include "../src/aWOT.h"
 #include "./mocks/MockStream.h"
 
-void beforeAll(Request& req, Response& res) { res.print("beforeAll-"); }
+void beforeAll(Request& req, Response& res) {
+  res.print("beforeAll-");
+  req.next();
+}
 
-void beforeRouter(Request& req, Response& res) { res.print("beforeRouter-"); }
+void beforeRouter(Request& req, Response& res) {
+  res.print("beforeRouter-");
+  req.next();
+}
 
 void handler(Request& req, Response& res) {
   char test1[10];
   req.route("test1", test1, 10);
   res.print(test1);
+  req.next();
 }
 
-void afterRouter(Request& req, Response& res) { res.print("-afterRouter"); }
+void afterRouter(Request& req, Response& res) {
+  res.print("-afterRouter");
+  req.next();
+}
 
 void afterAll(Request& req, Response& res) { res.print("-afterAll"); }
 

@@ -11,6 +11,7 @@ void handler(Request& req, Response& res) {
   res.print(test1);
   res.print(" ");
   res.print(test2);
+  req.next();
 }
 
 unittest(headers_ok) {
@@ -18,8 +19,8 @@ unittest(headers_ok) {
   char test2Header[6]{};
 
   Request::HeaderNode headers[] = {
-      {"Test1", test1Header, 6},
-      {"Test2", test2Header, 6},
+      {"Test1", test1Header, 6, nullptr},
+      {"Test2", test2Header, 6, nullptr},
   };
 
   const char* request =
@@ -32,7 +33,11 @@ unittest(headers_ok) {
   Application app;
 
   app.get("/", &handler);
-  app.process(&stream, headers, 2);
+
+  Application::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 2;
+  app.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }
@@ -42,8 +47,8 @@ unittest(same_header_multiple_times) {
   char test2Header[6]{};
 
   Request::HeaderNode headers[] = {
-      {"Test1", test1Header, 12},
-      {"Test2", test2Header, 6},
+      {"Test1", test1Header, 12, nullptr},
+      {"Test2", test2Header, 6, nullptr},
   };
 
   const char* request = "GET / HTTP/1.0" CRLF "Test1: test1" CRLF
@@ -56,7 +61,11 @@ unittest(same_header_multiple_times) {
   Application app;
 
   app.get("/", &handler);
-  app.process(&stream, headers, 2);
+
+  Application::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 2;
+  app.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }
@@ -66,8 +75,8 @@ unittest(headers_field_too_large) {
   char test2Header[6];
 
   Request::HeaderNode headers[] = {
-      {"Test1", test1Header, 6},
-      {"Test2", test2Header, 6},
+      {"Test1", test1Header, 6, nullptr},
+      {"Test2", test2Header, 6, nullptr},
   };
 
   const char* request =
@@ -82,7 +91,11 @@ unittest(headers_field_too_large) {
   Application app;
 
   app.get("/", &handler);
-  app.process(&stream, headers, 2);
+
+  Application::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 2;
+  app.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }

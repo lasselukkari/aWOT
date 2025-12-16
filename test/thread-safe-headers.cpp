@@ -20,13 +20,16 @@ unittest(custom_headers_stack_allocation) {
   // Define headers on stack
   char valueBuffer[20];
   Request::HeaderNode headers[] = {
-      {"X-Test", valueBuffer, sizeof(valueBuffer)},
+      {"X-Test", valueBuffer, sizeof(valueBuffer), nullptr},
   };
 
   app.get("/", &checkHeaderHandler);
 
   // Pass the custom headers to process
-  app.process(&stream, headers, 1);
+  Application::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 1;
+  app.process(&stream, options);
 
   String response = stream.response();
   assertTrue(response.endsWith("CustomValue"));
