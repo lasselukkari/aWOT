@@ -3,18 +3,19 @@
  * MIT License
  */
 
+#include "StdioSerial.h"
+
 #include <stdio.h>
 #include <unistd.h>
-#include "StdioSerial.h"
 
 // Set default output when compiling
 #ifndef STDERR_OUTPUT
 #define SERIAL_OUTPUT StdioOutput::STDOUT
-#else 
+#else
 #define SERIAL_OUTPUT StdioOutput::STDERR
 #endif
 
- // Constructor to set the output when an object is instantiated
+// Constructor to set the output when an object is instantiated
 StdioSerial::StdioSerial() { setOutput(SERIAL_OUTPUT); }
 
 // Select the output at runtime
@@ -50,7 +51,7 @@ int StdioSerial::peek() {
 
 int StdioSerial::available() {
   int ch = peek();
-  return (int) (ch != -1);
+  return (int)(ch != -1);
 }
 
 StdioSerial Serial;

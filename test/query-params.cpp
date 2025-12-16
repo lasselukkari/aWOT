@@ -1,8 +1,9 @@
 #include <ArduinoUnitTests.h>
+
 #include "../src/aWOT.h"
 #include "./mocks/MockStream.h"
 
-void handler(Request &req, Response &res) {
+void handler(Request& req, Response& res) {
   char test1[6];
   char test2[6];
 
@@ -21,16 +22,10 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(query_params_ok) {
-  const char *request =
-    "GET /query?test1=test1&test2=test2 HTTP/1.0" CRLF
-    CRLF;
+  const char* request = "GET /query?test1=test1&test2=test2 HTTP/1.0" CRLF CRLF;
 
-  const char *expected =
-    "HTTP/1.1 200 OK" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "test1 test2";
+  const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+                         "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
   Application app;
@@ -42,16 +37,12 @@ unittest(query_params_ok) {
 }
 
 unittest(query_params_value_too_long) {
-  const char *request =
-    "GET /query?test1=123456&test2=test2 HTTP/1.0" CRLF
-    CRLF;
+  const char* request =
+      "GET /query?test1=123456&test2=test2 HTTP/1.0" CRLF CRLF;
 
-  const char *expected =
-    "HTTP/1.1 400 Bad Request" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "Bad Request";
+  const char* expected =
+      "HTTP/1.1 400 Bad Request" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
   Application app;
@@ -63,16 +54,11 @@ unittest(query_params_value_too_long) {
 }
 
 unittest(router_query_params) {
-  const char *request =
-    "GET /router/query?test1=test1&test2=test2 HTTP/1.0" CRLF
-    CRLF;
+  const char* request =
+      "GET /router/query?test1=test1&test2=test2 HTTP/1.0" CRLF CRLF;
 
-  const char *expected =
-    "HTTP/1.1 200 OK" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "test1 test2";
+  const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+                         "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
   Router router;

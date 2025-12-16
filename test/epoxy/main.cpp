@@ -17,14 +17,15 @@
 
 #ifdef EPOXY_DUINO
 
-#include "Arduino.h"
-#include <inttypes.h>
-#include <signal.h> // SIGINT
-#include <stdlib.h> // exit()
-#include <stdio.h> // perror()
-#include <unistd.h> // isatty(), STDIN_FILENO, STDOUT_FILENO
 #include <fcntl.h>
+#include <inttypes.h>
+#include <signal.h>  // SIGINT
+#include <stdio.h>   // perror()
+#include <stdlib.h>  // exit()
 #include <termios.h>
+#include <unistd.h>  // isatty(), STDIN_FILENO, STDOUT_FILENO
+
+#include "Arduino.h"
 
 // -----------------------------------------------------------------------
 // Unix compatibility. Put STDIN into raw mode and hook it into the 'Serial'
@@ -44,14 +45,14 @@ static void die(const char* s) {
 static void disableRawMode() {
   if (inRawMode) {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
-      inRawMode = false; // prevent exit(1) from being called twice
+      inRawMode = false;  // prevent exit(1) from being called twice
       perror("disableRawMode(): tcsetattr() failure");
     }
   }
 
   if (inNonBlockingMode) {
     if (fcntl(STDIN_FILENO, F_SETFL, orig_stdin_flags) == -1) {
-      inNonBlockingMode = false; // prevent exit(1) from being called twice
+      inNonBlockingMode = false;  // prevent exit(1) from being called twice
       perror("enableRawMode(): fcntl() failure");
     }
   }
@@ -68,7 +69,6 @@ static void enableRawMode() {
   // I believe this fixes https://github.com/bxparks/EpoxyDuino/issues/2 and
   // https://github.com/bxparks/EpoxyDuino/issues/25 finally.
   if (isatty(STDOUT_FILENO) && isatty(STDIN_FILENO)) {
-
     // Save the original config.
     if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
       die("enableRawMode(): tcgetattr() failure");
@@ -142,13 +142,9 @@ void enableTerminalEcho() {
 }
 
 // Weak reference so that the calling code can provide its own main().
-int main(int argc, char** argv)
-__attribute__((weak));
+int main(int argc, char** argv) __attribute__((weak));
 
-int main(int argc, char** argv) {
-  return epoxyduino_main(argc, argv);
+int main(int argc, char** argv) { return epoxyduino_main(argc, argv); }
 }
 
-}
-
-#endif // #ifdef EPOXY_DUINO
+#endif  // #ifdef EPOXY_DUINO

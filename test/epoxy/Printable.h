@@ -30,12 +30,10 @@ class Print;
  * printed. By deriving from Printable and implementing the printTo method, it
  * will then be possible for users to print out instances of this class by
  * passing them into the usual Print::print and Print::println methods.
-*/
-class Printable
-{
-  public:
-    virtual size_t printTo(Print& p) const = 0;
+ */
+class Printable {
+ public:
+  virtual size_t printTo(Print& p) const = 0;
 };
 
 #endif
-

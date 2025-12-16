@@ -1,8 +1,9 @@
 #include <ArduinoUnitTests.h>
+
 #include "../src/aWOT.h"
 #include "./mocks/MockStream.h"
 
-void handler(Request &req, Response &res) {
+void handler(Request& req, Response& res) {
   req.setTimeout(0);
 
   char c;
@@ -16,25 +17,16 @@ void handler(Request &req, Response &res) {
 }
 
 unittest(timeouts) {
-  const char *request =
-    "POST / HTTP/1.0" CRLF
-    "Content-Length: 1" CRLF
-    CRLF
-    "1";
+  const char* request =
+      "POST / HTTP/1.0" CRLF "Content-Length: 1" CRLF CRLF "1";
 
-  const char *okResponse =
-    "HTTP/1.1 200 OK" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "/";
+  const char* okResponse =
+      "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "/";
 
-  const char *timeoutResponse =
-    "HTTP/1.1 408 Request Timeout" CRLF
-    "Content-Type: text/plain" CRLF
-    "Connection: close" CRLF
-    CRLF
-    "Request Timeout";
+  const char* timeoutResponse =
+      "HTTP/1.1 408 Request Timeout" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "Request Timeout";
 
   Application app;
 

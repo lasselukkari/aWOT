@@ -44,10 +44,10 @@
 #define A9 9
 
 // Define some arbitrary pins used by I2C and SPI.
-static const uint8_t SS   = 1;
+static const uint8_t SS = 1;
 static const uint8_t MOSI = 2;
 static const uint8_t MISO = 3;
-static const uint8_t SCK  = 4;
+static const uint8_t SCK = 4;
 static const uint8_t SDA = 5;
 static const uint8_t SCL = 6;
 

@@ -12,10 +12,11 @@
  *
  */
 
-#include <inttypes.h>
-#include <unistd.h> // usleep()
-#include <time.h> // clock_gettime()
 #include "Arduino.h"
+
+#include <inttypes.h>
+#include <time.h>    // clock_gettime()
+#include <unistd.h>  // usleep()
 
 // -----------------------------------------------------------------------
 // Arduino methods emulated in Unix
@@ -25,7 +26,7 @@ static uint32_t digitalReadPinValues = 0;
 static uint32_t digitalWritePinValues = 0;
 
 void yield() {
-  usleep(1000); // prevents program from consuming 100% CPU
+  usleep(1000);  // prevents program from consuming 100% CPU
 }
 
 void pinMode(uint8_t /*pin*/, uint8_t /*mode*/) {}
@@ -80,33 +81,29 @@ unsigned long micros() {
   return us;
 }
 
-void tone(uint8_t /*_pin*/, unsigned int /*frequency*/, unsigned long /*duration*/) {}
+void tone(uint8_t /*_pin*/, unsigned int /*frequency*/,
+          unsigned long /*duration*/) {}
 
 void noTone(uint8_t /*_pin*/) {}
 
-void delay(unsigned long ms) {
-  usleep(ms * 1000);
-}
+void delay(unsigned long ms) { usleep(ms * 1000); }
 
-void delayMicroseconds(unsigned int us) {
-  usleep(us);
-}
+void delayMicroseconds(unsigned int us) { usleep(us); }
 
-unsigned long pulseIn(
-    uint8_t /*pin*/, uint8_t /*state*/, unsigned long /*timeout*/) {
+unsigned long pulseIn(uint8_t /*pin*/, uint8_t /*state*/,
+                      unsigned long /*timeout*/) {
   return 0;
 }
 
-unsigned long pulseInLong(
-    uint8_t /*pin*/, uint8_t /*state*/, unsigned long /*timeout*/) {
+unsigned long pulseInLong(uint8_t /*pin*/, uint8_t /*state*/,
+                          unsigned long /*timeout*/) {
   return 0;
 }
 
-void shiftOut(
-    uint8_t /*dataPin*/, uint8_t /*clockPin*/, uint8_t /*bitOrder*/,
-    uint8_t /*val*/) {}
+void shiftOut(uint8_t /*dataPin*/, uint8_t /*clockPin*/, uint8_t /*bitOrder*/,
+              uint8_t /*val*/) {}
 
-uint8_t shiftIn(
-    uint8_t /*dataPin*/, uint8_t /*clockPin*/, uint8_t /*bitOrder*/) {
+uint8_t shiftIn(uint8_t /*dataPin*/, uint8_t /*clockPin*/,
+                uint8_t /*bitOrder*/) {
   return 0;
 }

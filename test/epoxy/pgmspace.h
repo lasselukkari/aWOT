@@ -15,29 +15,29 @@
 
 #include <string.h>
 
-#define PGM_P const char *
-#define PGM_VOID_P const void *
+#define PGM_P const char*
+#define PGM_VOID_P const void*
 #define PSTR(str) (str)
 
 #define PROGMEM
 
-#define pgm_read_byte(p) (* (const uint8_t*) (p))
-#define pgm_read_word(p) (* (const uint16_t*) (p))
-#define pgm_read_dword(p) (* (const uint32_t*) (p))
-#define pgm_read_float(p) (* (const float*) (p))
-#define pgm_read_ptr(p) (* (const void* const*) (p))
+#define pgm_read_byte(p) (*(const uint8_t*)(p))
+#define pgm_read_word(p) (*(const uint16_t*)(p))
+#define pgm_read_dword(p) (*(const uint32_t*)(p))
+#define pgm_read_float(p) (*(const float*)(p))
+#define pgm_read_ptr(p) (*(const void* const*)(p))
 
-#define pgm_read_byte_near(addr)  pgm_read_byte(addr)
-#define pgm_read_word_near(addr)  pgm_read_word(addr)
+#define pgm_read_byte_near(addr) pgm_read_byte(addr)
+#define pgm_read_word_near(addr) pgm_read_word(addr)
 #define pgm_read_dword_near(addr) pgm_read_dword(addr)
 #define pgm_read_float_near(addr) pgm_read_float(addr)
-#define pgm_read_ptr_near(addr)   pgm_read_ptr(addr)
+#define pgm_read_ptr_near(addr) pgm_read_ptr(addr)
 
-#define pgm_read_byte_far(addr)   pgm_read_byte(addr)
-#define pgm_read_word_far(addr)   pgm_read_word(addr)
-#define pgm_read_dword_far(addr)  pgm_read_dword(addr)
-#define pgm_read_float_far(addr)  pgm_read_float(addr)
-#define pgm_read_ptr_far(addr)    pgm_read_ptr(addr)
+#define pgm_read_byte_far(addr) pgm_read_byte(addr)
+#define pgm_read_word_far(addr) pgm_read_word(addr)
+#define pgm_read_dword_far(addr) pgm_read_dword(addr)
+#define pgm_read_float_far(addr) pgm_read_float(addr)
+#define pgm_read_ptr_far(addr) pgm_read_ptr(addr)
 
 #define memcmp_P memcmp
 #define memcpy_P memcpy

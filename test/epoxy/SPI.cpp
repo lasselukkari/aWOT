@@ -16,8 +16,8 @@
 
 SPIClass SPI;
 
-void SPIClass::end() { }
+void SPIClass::end() {}
 
-void SPIClass::usingInterrupt(uint8_t /*interruptNumber*/) { }
+void SPIClass::usingInterrupt(uint8_t /*interruptNumber*/) {}
 
-void SPIClass::notUsingInterrupt(uint8_t /*interruptNumber*/) { }
+void SPIClass::notUsingInterrupt(uint8_t /*interruptNumber*/) {}

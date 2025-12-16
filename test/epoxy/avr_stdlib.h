@@ -16,12 +16,11 @@
 
 extern "C" {
 
-char *itoa(int n, char *str, int base);
-char *utoa(unsigned n, char *str, int base);
-char *ltoa(long n, char *str, int base);
-char *ultoa(unsigned long n, char *str, int base);
-char *dtostrf(double val, signed char width, unsigned char prec, char *s);
-
+char* itoa(int n, char* str, int base);
+char* utoa(unsigned n, char* str, int base);
+char* ltoa(long n, char* str, int base);
+char* ultoa(unsigned long n, char* str, int base);
+char* dtostrf(double val, signed char width, unsigned char prec, char* s);
 }
 
 #endif

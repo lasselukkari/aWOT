@@ -1,13 +1,14 @@
 /*
  *  Udp.cpp: Library to send/receive UDP packets.
  *
- * NOTE: UDP is fast, but has some important limitations (thanks to Warren Gray for mentioning these)
- * 1) UDP does not guarantee the order in which assembled UDP packets are received. This
- * might not happen often in practice, but in larger network topologies, a UDP
- * packet can be received out of sequence.
- * 2) UDP does not guard against lost packets - so packets *can* disappear without the sender being
- * aware of it. Again, this may not be a concern in practice on small local networks.
- * For more information, see http://www.cafeaulait.org/course/week12/35.html
+ * NOTE: UDP is fast, but has some important limitations (thanks to Warren Gray
+ * for mentioning these) 1) UDP does not guarantee the order in which assembled
+ * UDP packets are received. This might not happen often in practice, but in
+ * larger network topologies, a UDP packet can be received out of sequence. 2)
+ * UDP does not guard against lost packets - so packets *can* disappear without
+ * the sender being aware of it. Again, this may not be a concern in practice on
+ * small local networks. For more information, see
+ * http://www.cafeaulait.org/course/week12/35.html
  *
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -41,48 +42,46 @@
 #ifndef EPOXY_DUINO_UDP_H
 #define EPOXY_DUINO_UDP_H
 
-#include <Stream.h>
 #include <IPAddress.h>
+#include <Stream.h>
 
 class UDP : public Stream {
-  public:
-  #if defined(EPOXY_CORE_ESP8266)
-    virtual ~UDP() {};
-  #endif
+ public:
+#if defined(EPOXY_CORE_ESP8266)
+  virtual ~UDP() {};
+#endif
 
-    virtual uint8_t begin(uint16_t) =0;
-  #if defined(EPOXY_CORE_AVR)
-    virtual uint8_t beginMulticast(IPAddress, uint16_t) { return 0; }
-  #endif
-    virtual void stop() =0;
+  virtual uint8_t begin(uint16_t) = 0;
+#if defined(EPOXY_CORE_AVR)
+  virtual uint8_t beginMulticast(IPAddress, uint16_t) { return 0; }
+#endif
+  virtual void stop() = 0;
 
-    virtual int beginPacket(IPAddress ip, uint16_t port) =0;
-    virtual int beginPacket(const char *host, uint16_t port) =0;
-    virtual int endPacket() =0;
-    virtual size_t write(uint8_t) =0;
-    virtual size_t write(const uint8_t *buffer, size_t size) =0;
+  virtual int beginPacket(IPAddress ip, uint16_t port) = 0;
+  virtual int beginPacket(const char* host, uint16_t port) = 0;
+  virtual int endPacket() = 0;
+  virtual size_t write(uint8_t) = 0;
+  virtual size_t write(const uint8_t* buffer, size_t size) = 0;
 
-    virtual int parsePacket() =0;
-    virtual int available() =0;
-    virtual int read() =0;
-    virtual int read(unsigned char* buffer, size_t len) =0;
-    virtual int read(char* buffer, size_t len) =0;
-    virtual int peek() =0;
-    virtual void flush() =0;
+  virtual int parsePacket() = 0;
+  virtual int available() = 0;
+  virtual int read() = 0;
+  virtual int read(unsigned char* buffer, size_t len) = 0;
+  virtual int read(char* buffer, size_t len) = 0;
+  virtual int peek() = 0;
+  virtual void flush() = 0;
 
-    virtual IPAddress remoteIP() =0;
-    virtual uint16_t remotePort() =0;
+  virtual IPAddress remoteIP() = 0;
+  virtual uint16_t remotePort() = 0;
 
-  protected:
-    uint8_t* rawIPAddress(IPAddress& addr) {
-      return addr.raw_address();
-    };
+ protected:
+  uint8_t* rawIPAddress(IPAddress& addr) { return addr.raw_address(); };
 
-  #if defined(EPOXY_CORE_ESP8266)
-    const uint8_t* rawIPAddress(const IPAddress& addr) {
-        return addr.raw_address();
-    }
-  #endif
+#if defined(EPOXY_CORE_ESP8266)
+  const uint8_t* rawIPAddress(const IPAddress& addr) {
+    return addr.raw_address();
+  }
+#endif
 };
 
 #endif
