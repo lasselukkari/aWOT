@@ -15,7 +15,7 @@ unittest(root_path) {
                          "Connection: close" CRLF CRLF "/";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &handler);
   app.process(&stream);

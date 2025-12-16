@@ -20,7 +20,7 @@ unittest(status_continue) {
       "After-Continue: TestAfter" CRLF "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &handler);
   app.process(&stream);

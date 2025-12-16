@@ -28,7 +28,7 @@ unittest(query_params_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/query", &handler);
   app.process(&stream);
@@ -45,7 +45,7 @@ unittest(query_params_value_too_long) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/query", &handler);
   app.process(&stream);
@@ -62,7 +62,7 @@ unittest(router_query_params) {
 
   MockStream stream(request);
   Router router;
-  Application app;
+  App app;
 
   router.get("/query", &handler);
   app.use("/router", &router);

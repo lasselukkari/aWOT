@@ -27,7 +27,7 @@ unittest(route_params_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/route/:test1/params/:test2", &handler);
   app.process(&stream);
@@ -45,7 +45,7 @@ unittest(route_params_value_too_long) {
   ;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/route/:test1/params/:test2", &handler);
   app.process(&stream);
@@ -62,7 +62,7 @@ unittest(router_route_params) {
 
   MockStream stream(request);
   Router router;
-  Application app;
+  App app;
 
   router.get("/route/:test1/params/:test2", &handler);
   app.use("/router", &router);

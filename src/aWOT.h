@@ -127,7 +127,7 @@ class StreamClient : public Client {
 };
 
 class Response : public Print {
-  friend class Application;
+  friend class App;
   friend class Router;
 
  public:
@@ -184,7 +184,7 @@ class Response : public Print {
 };
 
 class Request : public Stream {
-  friend class Application;
+  friend class App;
   friend class Router;
 
  public:
@@ -272,7 +272,7 @@ class Request : public Stream {
 };
 
 class Router {
-  friend class Application;
+  friend class App;
 
  public:
   typedef MIDDLEWARE_FUNCTION;
@@ -411,10 +411,10 @@ class Router {
   MiddlewareNode* m_head;
 };
 
-class Application {
+class App {
  public:
-  Application();
-  ~Application();
+  App();
+  ~App();
 
   static int strcmpi(const char* s1, const char* s2);
   static int strcmpiP(const char* s1, const unsigned char* s2);

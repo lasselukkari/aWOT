@@ -30,11 +30,11 @@ unittest(headers_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &handler);
 
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   options.headers = headers;
   options.headerCount = 2;
   app.process(&stream, options);
@@ -58,11 +58,11 @@ unittest(same_header_multiple_times) {
                          "Connection: close" CRLF CRLF "test1,test1 test2";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &handler);
 
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   options.headers = headers;
   options.headerCount = 2;
   app.process(&stream, options);
@@ -88,11 +88,11 @@ unittest(headers_field_too_large) {
       "Request Header Fields Too Large";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &handler);
 
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   options.headers = headers;
   options.headerCount = 2;
   app.process(&stream, options);

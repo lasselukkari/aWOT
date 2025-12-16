@@ -29,7 +29,7 @@ unittest(req_available) {
                          "Connection: close" CRLF CRLF "4";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &availableHandler);
   app.process(&stream);
@@ -45,7 +45,7 @@ unittest(req_available_less_than_content_length) {
                          "Connection: close" CRLF CRLF "2";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &availableHandler);
   app.process(&stream);
@@ -62,7 +62,7 @@ unittest(req_read_string) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &readStringHandler);
   app.process(&stream);
@@ -79,7 +79,7 @@ unittest(req_read_bytes) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &readBytesHandler);
   app.process(&stream);
@@ -95,7 +95,7 @@ unittest(req_read_bytes_timeout) {
                          "Connection: close" CRLF CRLF "te";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &readBytesHandler);
   app.process(&stream);
@@ -110,7 +110,7 @@ unittest(req_print) {
                          "Connection: close" CRLF CRLF "TEST";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &reqPrintHandler);
   app.process(&stream);

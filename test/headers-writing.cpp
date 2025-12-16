@@ -42,7 +42,7 @@ unittest(custom_headers) {
       "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF "/";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &customHeadersHandler);
   app.process(&stream);
@@ -58,7 +58,7 @@ unittest(manual_headers) {
       "Connection: close" CRLF "Test1: test2" CRLF CRLF "/";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &manualHeadersHandler);
   app.process(&stream);
@@ -73,7 +73,7 @@ unittest(content_type) {
                          "Connection: close" CRLF CRLF "/";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &contentTypeHandler);
   app.process(&stream);
@@ -92,7 +92,7 @@ unittest(connection_keep_alive) {
       "Transfer-Encoding: chunked" CRLF CRLF "1" CRLF "/" CRLF "0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &keepAliveHandler);
   app.process(&stream);
@@ -109,7 +109,7 @@ unittest(connection_keep_alive_content_length) {
       "Content-Length: 1" CRLF "Content-Type: text/plain" CRLF CRLF "/";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &keepAliveContentLengthHandler);
   app.process(&stream);

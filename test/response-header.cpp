@@ -18,7 +18,7 @@ unittest(response_header) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/", &handler);
   app.process(&stream);

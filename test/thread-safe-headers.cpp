@@ -15,7 +15,7 @@ void checkHeaderHandler(Request& req, Response& res) {
 unittest(custom_headers_stack_allocation) {
   const char* request = "GET / HTTP/1.1" CRLF "X-Test: CustomValue" CRLF CRLF;
   MockStream stream(request);
-  Application app;
+  App app;
 
   // Define headers on stack
   char valueBuffer[20];
@@ -26,7 +26,7 @@ unittest(custom_headers_stack_allocation) {
   app.get("/", &checkHeaderHandler);
 
   // Pass the custom headers to process
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   options.headers = headers;
   options.headerCount = 1;
   app.process(&stream, options);

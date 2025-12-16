@@ -80,7 +80,7 @@ void Response::flush() {
 
 const char* Response::get(const char* name) {
   for (int i = 0; i < m_headersCount; i++) {
-    if (Application::strcmpi(name, m_headers[i].name) == 0) {
+    if (App::strcmpi(name, m_headers[i].name) == 0) {
       return m_headers[i].value;
     }
   }
@@ -124,19 +124,19 @@ void Response::set(const char* name, const char* value) {
   m_headersCount++;
 
   P(contentType) = "Content-Type";
-  if (Application::strcmpiP(name, contentType) == 0) {
+  if (App::strcmpiP(name, contentType) == 0) {
     m_contentTypeSet = true;
   }
 
   P(contentLength) = "Content-Length";
-  if (Application::strcmpiP(name, contentLength) == 0) {
+  if (App::strcmpiP(name, contentLength) == 0) {
     m_contentLengthSet = true;
   }
 
   P(connection) = "Connection";
-  if (Application::strcmpiP(name, connection) == 0) {
+  if (App::strcmpiP(name, connection) == 0) {
     P(keepAlive) = "keep-alive";
-    m_keepAlive = Application::strcmpiP(value, keepAlive) == 0;
+    m_keepAlive = App::strcmpiP(value, keepAlive) == 0;
   }
 }
 
@@ -741,7 +741,7 @@ char* Request::get(const char* name) {
   HeaderNode* headerNode = m_headerTail;
 
   while (headerNode != NULL) {
-    if (Application::strcmpi(headerNode->name, name) == 0) {
+    if (App::strcmpi(headerNode->name, name) == 0) {
       return headerNode->buffer;
     }
 
@@ -1434,7 +1434,7 @@ bool Router::m_routeMatch(const char* route, const char* pattern) {
   return match;
 }
 
-int Application::strcmpi(const char* s1, const char* s2) {
+int App::strcmpi(const char* s1, const char* s2) {
   int i;
 
   for (i = 0; s1[i] && s2[i]; ++i) {
@@ -1456,7 +1456,7 @@ int Application::strcmpi(const char* s1, const char* s2) {
   return 1;
 }
 
-int Application::strcmpiP(const char* s1, const unsigned char* s2) {
+int App::strcmpiP(const char* s1, const unsigned char* s2) {
   int i = 0;
 
   for (i = 0; s1[i] && pgm_read_byte(s2 + i); ++i) {
@@ -1479,21 +1479,21 @@ int Application::strcmpiP(const char* s1, const unsigned char* s2) {
   return 1;
 }
 
-Application::Application()
+App::App()
     : m_final(NULL), m_notFound(NULL), m_errorHandler(NULL), m_timeout(1000) {}
 
-Application::~Application() {}
+App::~App() {}
 
-void Application::onError(ErrorHandler handler) { m_errorHandler = handler; }
+void App::onError(ErrorHandler handler) { m_errorHandler = handler; }
 
 // ...
 
-void Application::process(Client* client) {
+void App::process(Client* client) {
   ProcessOptions options;
   process(client, options);
 }
 
-void Application::process(Client* client, const ProcessOptions& options) {
+void App::process(Client* client, const ProcessOptions& options) {
   if (!client) {
     return;
   }
@@ -1538,12 +1538,12 @@ void Application::process(Client* client, const ProcessOptions& options) {
   }
 }
 
-void Application::process(Stream* stream) {
+void App::process(Stream* stream) {
   ProcessOptions options;
   process(stream, options);
 }
 
-void Application::process(Stream* stream, const ProcessOptions& options) {
+void App::process(Stream* stream, const ProcessOptions& options) {
   if (!stream) {
     return;
   }
@@ -1552,88 +1552,71 @@ void Application::process(Stream* stream, const ProcessOptions& options) {
   process(&client, options);
 }
 
-void Application::del(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::del(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void Application::del(Router::MIDDLEWARE_PARAM middleware) {
-  del(NULL, middleware);
-}
+void App::del(Router::MIDDLEWARE_PARAM middleware) { del(NULL, middleware); }
 
-void Application::finally(Router::MIDDLEWARE_PARAM final) { m_final = final; }
+void App::finally(Router::MIDDLEWARE_PARAM final) { m_final = final; }
 
-void Application::get(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::get(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
-void Application::get(Router::MIDDLEWARE_PARAM middleware) {
-  get(NULL, middleware);
-}
+void App::get(Router::MIDDLEWARE_PARAM middleware) { get(NULL, middleware); }
 
-void Application::head(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::head(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
 }
 
-void Application::head(Router::MIDDLEWARE_PARAM middleware) {
-  head(NULL, middleware);
-}
+void App::head(Router::MIDDLEWARE_PARAM middleware) { head(NULL, middleware); }
 
-void Application::notFound(Router::MIDDLEWARE_PARAM notFound) {
-  m_notFound = notFound;
-}
+void App::notFound(Router::MIDDLEWARE_PARAM notFound) { m_notFound = notFound; }
 
-void Application::options(const char* path,
-                          Router::MIDDLEWARE_PARAM middleware) {
+void App::options(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void Application::options(Router::MIDDLEWARE_PARAM middleware) {
+void App::options(Router::MIDDLEWARE_PARAM middleware) {
   options(NULL, middleware);
 }
 
-void Application::patch(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::patch(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void Application::patch(Router::MIDDLEWARE_PARAM middleware) {
+void App::patch(Router::MIDDLEWARE_PARAM middleware) {
   patch(NULL, middleware);
 }
 
-void Application::post(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::post(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
-void Application::post(Router::MIDDLEWARE_PARAM middleware) {
-  post(NULL, middleware);
-}
+void App::post(Router::MIDDLEWARE_PARAM middleware) { post(NULL, middleware); }
 
-void Application::put(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::put(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void Application::put(Router::MIDDLEWARE_PARAM middleware) {
-  put(NULL, middleware);
-}
+void App::put(Router::MIDDLEWARE_PARAM middleware) { put(NULL, middleware); }
 
-void Application::use(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void App::use(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void Application::use(Router::MIDDLEWARE_PARAM middleware) {
-  use(NULL, middleware);
-}
+void App::use(Router::MIDDLEWARE_PARAM middleware) { use(NULL, middleware); }
 
-void Application::setTimeout(unsigned long timeoutMillis) {
-  m_timeout = timeoutMillis;
-}
+void App::setTimeout(unsigned long timeoutMillis) { m_timeout = timeoutMillis; }
 
-void Application::use(const char* path, Router* router) {
+void App::use(const char* path, Router* router) {
   m_defaultRouter.use(path, router);
 }
 
-void Application::use(Router* router) { use(NULL, router); }
+void App::use(Router* router) { use(NULL, router); }
 
-void Application::m_process(Request& request, Response& response) {
+void App::m_process(Request& request, Response& response) {
   if (!request.m_processMethod()) {
     if (request.m_timedout()) {
       if (m_errorHandler) m_errorHandler(request, response, 408);

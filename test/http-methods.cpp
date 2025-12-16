@@ -22,7 +22,7 @@ unittest(http_methods_get) {
   const char* request = "GET /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/test", &handler);
   app.process(&stream);
@@ -34,7 +34,7 @@ unittest(http_methods_post) {
   const char* request = "POST /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/test", &handler);
   app.process(&stream);
@@ -46,7 +46,7 @@ unittest(http_methods_put) {
   const char* request = "PUT /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.put("/test", &handler);
   app.process(&stream);
@@ -57,7 +57,7 @@ unittest(http_methods_patch) {
   const char* request = "PATCH /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.patch("/test", &handler);
   app.process(&stream);
@@ -69,7 +69,7 @@ unittest(http_methods_delete) {
   const char* request = "DELETE /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.del("/test", &handler);
   app.process(&stream);
@@ -81,7 +81,7 @@ unittest(http_methods_options) {
   const char* request = "OPTIONS /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.options("/test", &handler);
   app.process(&stream);
@@ -97,7 +97,7 @@ unittest(http_methods_head) {
       "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.head("/test", &handler);
   app.process(&stream);

@@ -28,7 +28,7 @@ unittest(buffered_read) {
                          "Connection: close" CRLF CRLF "4";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &readCountHandler);
   app.process(&stream);
@@ -44,7 +44,7 @@ unittest(buffered_read_count) {
                          "Connection: close" CRLF CRLF "body";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.post("/", &handler);
   app.process(&stream);

@@ -28,7 +28,7 @@ unittest(timeouts) {
       "HTTP/1.1 408 Request Timeout" CRLF "Content-Type: text/plain" CRLF
       "Connection: close" CRLF CRLF "Request Timeout";
 
-  Application app;
+  App app;
 
   app.setTimeout(10);
   app.post("/", &handler);

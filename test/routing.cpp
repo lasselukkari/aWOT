@@ -39,7 +39,7 @@ unittest(nested_routers) {
   Router router1;
   Router router2;
   Router router3;
-  Application app;
+  App app;
 
   router3.use(&beforeRouter);
   router3.get("/route/:test1", &handler);
@@ -64,7 +64,7 @@ unittest(use_route_with_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.use("/usepath", &testHandler);
   app.process(&stream);
@@ -79,7 +79,7 @@ unittest(use_route_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.use(&testHandler);
   app.process(&stream);
@@ -94,7 +94,7 @@ unittest(get_route_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get(&testHandler);
   app.process(&stream);
@@ -109,7 +109,7 @@ unittest(router_with_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
   Router router;
 
   router.get("/route", &testHandler);
@@ -126,7 +126,7 @@ unittest(router_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
   Router router;
 
   router.get("/route", &testHandler);

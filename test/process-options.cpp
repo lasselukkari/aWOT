@@ -12,11 +12,11 @@ unittest(process_options_basic) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/test", &handler);
 
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   app.process(&stream, options);
 
   assertEqual(expected, stream.response());
@@ -29,14 +29,14 @@ unittest(process_options_custom_buffers) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  Application app;
+  App app;
 
   app.get("/test", &handler);
 
   char urlBuffer[128];
   uint8_t writeBuffer[256];
 
-  Application::ProcessOptions options;
+  App::ProcessOptions options;
   options.urlBuffer = urlBuffer;
   options.urlBufferLength = 128;
   options.writeBuffer = writeBuffer;

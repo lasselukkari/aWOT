@@ -24,7 +24,7 @@ unittest(member_function_route) {
                          "Connection: close" CRLF CRLF "member function";
 
   MockStream stream(request);
-  Application app;
+  App app;
   MyController controller;
 
   app.get("/", &controller, &MyController::handle);
