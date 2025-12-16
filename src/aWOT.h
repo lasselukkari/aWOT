@@ -146,6 +146,7 @@ class Response : public Print {
   size_t write(uint8_t data);
   size_t write(const uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
+  void keepOpen();
 
  private:
   Response(Client* client, uint8_t* writeBuffer, int writeBufferLength);
@@ -165,6 +166,7 @@ class Response : public Print {
   bool m_contentLengthSet;
   bool m_contentTypeSet;
   bool m_keepAlive;
+  bool m_keepOpen;
   int m_statusSent;
   bool m_headersSent;
   bool m_sendingStatus;

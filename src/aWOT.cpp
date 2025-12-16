@@ -90,6 +90,8 @@ const char* Response::get(const char* name) {
 
 bool Response::headersSent() { return m_headersSent; }
 
+void Response::keepOpen() { m_keepOpen = true; }
+
 void Response::printP(const unsigned char* string) {
   if (m_shouldPrintHeaders()) {
     m_printHeaders();
@@ -693,7 +695,7 @@ void Response::m_flushBuf() {
 void Response::m_finalize() {
   m_flushBuf();
 
-  if (m_headersSent && !m_contentLengthSet) {
+  if (!m_keepOpen && m_headersSent && !m_contentLengthSet) {
     m_stream->print(0, HEX);
     m_stream->print(CRLF);
     m_stream->print(CRLF);
