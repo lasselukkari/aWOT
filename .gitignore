@@ -18,3 +18,5 @@ vendor
 *.bin
 *.bin.dSYM
 
+test/build/
+

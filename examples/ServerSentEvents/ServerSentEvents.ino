@@ -4,26 +4,59 @@
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
+#define MAX_SSE_CLIENTS 4
 
 WiFiServer server(80);
-Application app;
-Stream* sseClient = NULL;
+App app;
+WiFiClient sseClients[MAX_SSE_CLIENTS];
 unsigned long timeToPush = 0;
+
+const char indexPage[] PROGMEM = R"(
+<!DOCTYPE html>
+<html>
+<head><title>SSE Demo</title></head>
+<body>
+  <h1>Connected clients: <span id="count">0</span></h1>
+  <script>
+    const events = new EventSource('/events');
+    events.onmessage = e => {
+      document.getElementById('count').textContent = e.data;
+    };
+  </script>
+</body>
+</html>
+)";
+
+void indexHandler(Request& req, Response& res) {
+  res.set("Content-Type", "text/html");
+  res.printP(reinterpret_cast<const unsigned char*>(indexPage));
+}
 
 void sseHandler(Request& req, Response& res) {
   res.set("Content-Type", "text/event-stream");
   res.set("Cache-Control", "no-cache");
   res.set("Connection", "keep-alive");
-
-  // Headers are sent automatically when buffer flushes or when we flush
-  // manually
   res.flush();
-
-  // Prevent automatic stream closure
   res.keepOpen();
+}
 
-  // Save the connection for the main loop
-  sseClient = req.stream();
+int countClients() {
+  int count = 0;
+  for (int i = 0; i < MAX_SSE_CLIENTS; i++) {
+    if (sseClients[i].connected()) count++;
+  }
+  return count;
+}
+
+void sendToAllClients(const String& message) {
+  for (int i = 0; i < MAX_SSE_CLIENTS; i++) {
+    if (sseClients[i].connected()) {
+      sseClients[i].print(message.length(), HEX);
+      sseClients[i].print("\r\n");
+      sseClients[i].print(message);
+      sseClients[i].print("\r\n");
+    }
+  }
 }
 
 void setup() {
@@ -36,6 +69,7 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
+  app.get("/", &indexHandler);
   app.get("/events", &sseHandler);
   server.begin();
 }
@@ -44,21 +78,22 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    App::ProcessResult result = app.process(&client);
+
+    // If this was a streaming request, store the client for later
+    if (result.responseOpen) {
+      for (int i = 0; i < MAX_SSE_CLIENTS; i++) {
+        if (!sseClients[i].connected()) {
+          sseClients[i] = client;
+          break;
+        }
+      }
+    }
   }
 
-  // Push data every second if we have a connected SSE client
-  if (sseClient && millis() > timeToPush) {
+  if (millis() > timeToPush) {
     timeToPush = millis() + 1000;
-
-    // We are now writing 'raw' to the stream which is in chunked mode.
-    // We must format every write as a chunk: <LengthHex>\r\n<Data>\r\n
-
-    String message = "data: " + String(millis()) + "\n\n";
-
-    sseClient->print(message.length(), HEX);
-    sseClient->print("\r\n");
-    sseClient->print(message);
-    sseClient->print("\r\n");
+    String message = "data: " + String(countClients()) + "\n\n";
+    sendToAllClients(message);
   }
 }
