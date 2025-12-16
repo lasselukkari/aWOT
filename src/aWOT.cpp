@@ -1479,9 +1479,12 @@ int Application::strcmpiP(const char* s1, const unsigned char* s2) {
   return 1;
 }
 
-Application::Application() : m_final(NULL), m_notFound(NULL), m_timeout(1000) {}
+Application::Application()
+    : m_final(NULL), m_notFound(NULL), m_errorHandler(NULL), m_timeout(1000) {}
 
 Application::~Application() {}
+
+void Application::onError(ErrorHandler handler) { m_errorHandler = handler; }
 
 // ...
 
@@ -1633,36 +1636,52 @@ void Application::use(Router* router) { use(NULL, router); }
 void Application::m_process(Request& request, Response& response) {
   if (!request.m_processMethod()) {
     if (request.m_timedout()) {
-      return response.sendStatus(408);
+      if (m_errorHandler) m_errorHandler(request, response, 408);
+      if (!response.ended()) return response.sendStatus(408);
+      return;
     }
 
-    return response.sendStatus(400);
+    if (m_errorHandler) m_errorHandler(request, response, 400);
+    if (!response.ended()) return response.sendStatus(400);
+    return;
   }
 
   if (!request.m_readURL()) {
     if (request.m_timedout()) {
-      return response.sendStatus(408);
+      if (m_errorHandler) m_errorHandler(request, response, 408);
+      if (!response.ended()) return response.sendStatus(408);
+      return;
     }
 
-    return response.sendStatus(414);
+    if (m_errorHandler) m_errorHandler(request, response, 414);
+    if (!response.ended()) return response.sendStatus(414);
+    return;
   }
 
   request.m_processURL();
 
   if (!request.m_readVersion()) {
     if (request.m_timedout()) {
-      return response.sendStatus(408);
+      if (m_errorHandler) m_errorHandler(request, response, 408);
+      if (!response.ended()) return response.sendStatus(408);
+      return;
     }
 
-    return response.sendStatus(505);
+    if (m_errorHandler) m_errorHandler(request, response, 505);
+    if (!response.ended()) return response.sendStatus(505);
+    return;
   }
 
   if (!request.m_processHeaders()) {
     if (request.m_timedout()) {
-      return response.sendStatus(408);
+      if (m_errorHandler) m_errorHandler(request, response, 408);
+      if (!response.ended()) return response.sendStatus(408);
+      return;
     }
 
-    return response.sendStatus(431);
+    if (m_errorHandler) m_errorHandler(request, response, 431);
+    if (!response.ended()) return response.sendStatus(431);
+    return;
   }
 
   m_defaultRouter.m_dispatchMiddleware(request, response);
@@ -1673,7 +1692,9 @@ void Application::m_process(Request& request, Response& response) {
       return m_notFound(request, response);
     }
 
-    return response.sendStatus(404);
+    if (m_errorHandler) m_errorHandler(request, response, 404);
+    if (!response.ended()) return response.sendStatus(404);
+    return;
   }
 
   if (!response.headersSent()) {

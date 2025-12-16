@@ -427,6 +427,10 @@ class Application {
   void head(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void head(Router::MIDDLEWARE_PARAM middleware);
   void notFound(Router::MIDDLEWARE_PARAM middleware);
+
+  typedef void (*ErrorHandler)(Request&, Response&, int statusCode);
+  void onError(ErrorHandler handler);
+
   void options(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void options(Router::MIDDLEWARE_PARAM middleware);
   void patch(const char* path, Router::MIDDLEWARE_PARAM middleware);
@@ -566,6 +570,7 @@ class Application {
 
   Router::MIDDLEWARE_PARAM m_final;
   Router::MIDDLEWARE_PARAM m_notFound;
+  ErrorHandler m_errorHandler;
   Router m_defaultRouter;
   unsigned long m_timeout;
 };
