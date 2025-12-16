@@ -29,7 +29,11 @@
 
 #include "Client.h"
 
-#if defined(STD_FUNCTION_MIDDLEWARE)
+#if defined(STD_FUNCTION_MIDDLEWARE) || defined(ESP8266) || defined(ESP32) || \
+    (defined(__has_include) && __has_include(<functional>))
+#ifndef STD_FUNCTION_MIDDLEWARE
+#define STD_FUNCTION_MIDDLEWARE
+#endif
 #include <functional>
 #define MIDDLEWARE_PARAM Middleware
 #define MIDDLEWARE_FUNCTION \
@@ -293,6 +297,97 @@ class Router {
   void use(const char* path, MIDDLEWARE_PARAM middleware);
   void use(MIDDLEWARE_PARAM middleware);
 
+#ifdef STD_FUNCTION_MIDDLEWARE
+  template <typename T>
+  void del(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    del(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void del(T* instance, void (T::*method)(Request&, Response&)) {
+    del(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+  template <typename T>
+  void get(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    get(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void get(T* instance, void (T::*method)(Request&, Response&)) {
+    get(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+  template <typename T>
+  void head(const char* path, T* instance,
+            void (T::*method)(Request&, Response&)) {
+    head(path, std::bind(method, instance, std::placeholders::_1,
+                         std::placeholders::_2));
+  }
+  template <typename T>
+  void head(T* instance, void (T::*method)(Request&, Response&)) {
+    head(std::bind(method, instance, std::placeholders::_1,
+                   std::placeholders::_2));
+  }
+  template <typename T>
+  void options(const char* path, T* instance,
+               void (T::*method)(Request&, Response&)) {
+    options(path, std::bind(method, instance, std::placeholders::_1,
+                            std::placeholders::_2));
+  }
+  template <typename T>
+  void options(T* instance, void (T::*method)(Request&, Response&)) {
+    options(std::bind(method, instance, std::placeholders::_1,
+                      std::placeholders::_2));
+  }
+  template <typename T>
+  void patch(const char* path, T* instance,
+             void (T::*method)(Request&, Response&)) {
+    patch(path, std::bind(method, instance, std::placeholders::_1,
+                          std::placeholders::_2));
+  }
+  template <typename T>
+  void patch(T* instance, void (T::*method)(Request&, Response&)) {
+    patch(std::bind(method, instance, std::placeholders::_1,
+                    std::placeholders::_2));
+  }
+  template <typename T>
+  void post(const char* path, T* instance,
+            void (T::*method)(Request&, Response&)) {
+    post(path, std::bind(method, instance, std::placeholders::_1,
+                         std::placeholders::_2));
+  }
+  template <typename T>
+  void post(T* instance, void (T::*method)(Request&, Response&)) {
+    post(std::bind(method, instance, std::placeholders::_1,
+                   std::placeholders::_2));
+  }
+  template <typename T>
+  void put(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    put(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void put(T* instance, void (T::*method)(Request&, Response&)) {
+    put(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+  template <typename T>
+  void use(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    use(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void use(T* instance, void (T::*method)(Request&, Response&)) {
+    use(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+#endif
+
  private:
   struct MiddlewareNode {
     const char* path;
@@ -338,6 +433,96 @@ class Application {
   void post(Router::MIDDLEWARE_PARAM middleware);
   void put(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void put(Router::MIDDLEWARE_PARAM middleware);
+
+#ifdef STD_FUNCTION_MIDDLEWARE
+  template <typename T>
+  void del(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    del(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void del(T* instance, void (T::*method)(Request&, Response&)) {
+    del(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+  template <typename T>
+  void finally(T* instance, void (T::*method)(Request&, Response&)) {
+    finally(std::bind(method, instance, std::placeholders::_1,
+                      std::placeholders::_2));
+  }
+  template <typename T>
+  void get(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    get(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void get(T* instance, void (T::*method)(Request&, Response&)) {
+    get(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+  template <typename T>
+  void head(const char* path, T* instance,
+            void (T::*method)(Request&, Response&)) {
+    head(path, std::bind(method, instance, std::placeholders::_1,
+                         std::placeholders::_2));
+  }
+  template <typename T>
+  void head(T* instance, void (T::*method)(Request&, Response&)) {
+    head(std::bind(method, instance, std::placeholders::_1,
+                   std::placeholders::_2));
+  }
+  template <typename T>
+  void notFound(T* instance, void (T::*method)(Request&, Response&)) {
+    notFound(std::bind(method, instance, std::placeholders::_1,
+                       std::placeholders::_2));
+  }
+  template <typename T>
+  void options(const char* path, T* instance,
+               void (T::*method)(Request&, Response&)) {
+    options(path, std::bind(method, instance, std::placeholders::_1,
+                            std::placeholders::_2));
+  }
+  template <typename T>
+  void options(T* instance, void (T::*method)(Request&, Response&)) {
+    options(std::bind(method, instance, std::placeholders::_1,
+                      std::placeholders::_2));
+  }
+  template <typename T>
+  void patch(const char* path, T* instance,
+             void (T::*method)(Request&, Response&)) {
+    patch(path, std::bind(method, instance, std::placeholders::_1,
+                          std::placeholders::_2));
+  }
+  template <typename T>
+  void patch(T* instance, void (T::*method)(Request&, Response&)) {
+    patch(std::bind(method, instance, std::placeholders::_1,
+                    std::placeholders::_2));
+  }
+  template <typename T>
+  void post(const char* path, T* instance,
+            void (T::*method)(Request&, Response&)) {
+    post(path, std::bind(method, instance, std::placeholders::_1,
+                         std::placeholders::_2));
+  }
+  template <typename T>
+  void post(T* instance, void (T::*method)(Request&, Response&)) {
+    post(std::bind(method, instance, std::placeholders::_1,
+                   std::placeholders::_2));
+  }
+  template <typename T>
+  void put(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    put(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void put(T* instance, void (T::*method)(Request&, Response&)) {
+    put(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+#endif
   void process(Client* client, void* context = NULL);
   void process(Client* client, Request::HeaderNode* headers,
                void* context = NULL);
@@ -388,6 +573,20 @@ class Application {
   void use(Router* router);
   void use(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void use(Router::MIDDLEWARE_PARAM middleware);
+
+#ifdef STD_FUNCTION_MIDDLEWARE
+  template <typename T>
+  void use(const char* path, T* instance,
+           void (T::*method)(Request&, Response&)) {
+    use(path, std::bind(method, instance, std::placeholders::_1,
+                        std::placeholders::_2));
+  }
+  template <typename T>
+  void use(T* instance, void (T::*method)(Request&, Response&)) {
+    use(std::bind(method, instance, std::placeholders::_1,
+                  std::placeholders::_2));
+  }
+#endif
 
  private:
   void m_process(Request& req, Response& res);

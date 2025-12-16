@@ -52,9 +52,9 @@ void Response::beginHeaders() {
 
   P(headerSeparator) = ": ";
   for (int i = 0; i < m_headersCount; i++) {
-    print(m_headers[i].name);
+    this->print(m_headers[i].name);
     printP(headerSeparator);
-    print(m_headers[i].value);
+    this->print(m_headers[i].value);
     m_printCRLF();
   }
 }
@@ -165,7 +165,7 @@ void Response::status(int code) {
   m_sendingStatus = true;
   P(httpVersion) = "HTTP/1.1 ";
   printP(httpVersion);
-  print(code);
+  this->print(code);
   P(space) = " ";
   printP(space);
   m_printStatus(code);
