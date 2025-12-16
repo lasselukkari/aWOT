@@ -81,7 +81,7 @@ void Response::flush() {
 const char* Response::get(const char* name) {
   for (int i = 0; i < m_headersCount; i++) {
     if (Application::strcmpi(name, m_headers[i].name) == 0) {
-      return m_headers[m_headersCount].value;
+      return m_headers[i].value;
     }
   }
 

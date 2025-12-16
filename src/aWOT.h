@@ -144,7 +144,7 @@ class Response : public Print {
   void status(int code);
   int statusSent();
   size_t write(uint8_t data);
-  size_t write(uint8_t* buffer, size_t bufferLength);
+  size_t write(const uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
 
  private:
@@ -215,7 +215,7 @@ class Request : public Stream {
   bool route(int number, char* buffer, int bufferLength);
   int minorVersion();
   size_t write(uint8_t data);
-  size_t write(uint8_t* buffer, size_t bufferLength);
+  size_t write(const uint8_t* buffer, size_t bufferLength);
 
  private:
   struct HeaderNode {
