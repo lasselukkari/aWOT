@@ -193,6 +193,13 @@ class Request : public Stream {
     OPTIONS,
     ALL
   };
+  struct HeaderNode {
+    const char* name;
+    char* buffer;
+    int bufferLength;
+    HeaderNode* next;
+  };
+
   void* context;
 
   int available();
@@ -218,13 +225,6 @@ class Request : public Stream {
   size_t write(const uint8_t* buffer, size_t bufferLength);
 
  private:
-  struct HeaderNode {
-    const char* name;
-    char* buffer;
-    int bufferLength;
-    HeaderNode* next;
-  };
-
   Request(Client* client, Response* m_response, HeaderNode* headerTail,
           char* urlBuffer, int urlBufferLength, unsigned long timeout,
           void* context);
@@ -327,7 +327,6 @@ class Application {
   void get(Router::MIDDLEWARE_PARAM middleware);
   void head(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void head(Router::MIDDLEWARE_PARAM middleware);
-  void header(const char* name, char* buffer, int bufferLength);
   void notFound(Router::MIDDLEWARE_PARAM middleware);
   void options(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void options(Router::MIDDLEWARE_PARAM middleware);
@@ -338,16 +337,48 @@ class Application {
   void put(const char* path, Router::MIDDLEWARE_PARAM middleware);
   void put(Router::MIDDLEWARE_PARAM middleware);
   void process(Client* client, void* context = NULL);
+  void process(Client* client, Request::HeaderNode* headers,
+               void* context = NULL);
+  void process(Client* client, Request::HeaderNode* headers, int headerCount,
+               void* context = NULL);
   void process(Client* client, char* urlbuffer, int urlBufferLength,
+               void* context = NULL);
+  void process(Client* client, char* urlbuffer, int urlBufferLength,
+               Request::HeaderNode* headers, void* context = NULL);
+  void process(Client* client, char* urlbuffer, int urlBufferLength,
+               Request::HeaderNode* headers, int headerCount,
                void* context = NULL);
   void process(Client* client, char* urlBuffer, int urlBufferLength,
                uint8_t* writeBuffer, int writeBufferLength,
                void* context = NULL);
+  void process(Client* client, char* urlBuffer, int urlBufferLength,
+               uint8_t* writeBuffer, int writeBufferLength,
+               Request::HeaderNode* headers, void* context = NULL);
+  void process(Client* client, char* urlBuffer, int urlBufferLength,
+               uint8_t* writeBuffer, int writeBufferLength,
+               Request::HeaderNode* headers, int headerCount,
+               void* context = NULL);
   void process(Stream* stream, void* context = NULL);
+  void process(Stream* stream, Request::HeaderNode* headers,
+               void* context = NULL);
+  void process(Stream* stream, Request::HeaderNode* headers, int headerCount,
+               void* context = NULL);
   void process(Stream* stream, char* urlbuffer, int urlBufferLength,
+               void* context = NULL);
+  void process(Stream* stream, char* urlbuffer, int urlBufferLength,
+               Request::HeaderNode* headers, void* context = NULL);
+  void process(Stream* stream, char* urlbuffer, int urlBufferLength,
+               Request::HeaderNode* headers, int headerCount,
                void* context = NULL);
   void process(Stream* stream, char* urlBuffer, int urlBufferLength,
                uint8_t* writeBuffer, int writeBufferLength,
+               void* context = NULL);
+  void process(Stream* stream, char* urlBuffer, int urlBufferLength,
+               uint8_t* writeBuffer, int writeBufferLength,
+               Request::HeaderNode* headers, void* context = NULL);
+  void process(Stream* stream, char* urlBuffer, int urlBufferLength,
+               uint8_t* writeBuffer, int writeBufferLength,
+               Request::HeaderNode* headers, int headerCount,
                void* context = NULL);
 
   void setTimeout(unsigned long timeoutMillis);
@@ -362,7 +393,6 @@ class Application {
   Router::MIDDLEWARE_PARAM m_final;
   Router::MIDDLEWARE_PARAM m_notFound;
   Router m_defaultRouter;
-  Request::HeaderNode* m_headerTail;
   unsigned long m_timeout;
 };
 

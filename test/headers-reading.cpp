@@ -17,6 +17,11 @@ unittest(headers_ok) {
   char test1Header[6]{};
   char test2Header[6]{};
 
+  Request::HeaderNode headers[] = {
+      {"Test1", test1Header, 6},
+      {"Test2", test2Header, 6},
+  };
+
   const char* request =
       "GET / HTTP/1.0" CRLF "Test1: test1" CRLF "Test2:   test2" CRLF CRLF;
 
@@ -26,10 +31,8 @@ unittest(headers_ok) {
   MockStream stream(request);
   Application app;
 
-  app.header("Test1", test1Header, 6);
-  app.header("Test2", test2Header, 6);
   app.get("/", &handler);
-  app.process(&stream);
+  app.process(&stream, headers, 2);
 
   assertEqual(expected, stream.response());
 }
@@ -37,6 +40,11 @@ unittest(headers_ok) {
 unittest(same_header_multiple_times) {
   char test1Header[12]{};
   char test2Header[6]{};
+
+  Request::HeaderNode headers[] = {
+      {"Test1", test1Header, 12},
+      {"Test2", test2Header, 6},
+  };
 
   const char* request = "GET / HTTP/1.0" CRLF "Test1: test1" CRLF
                         "Test1: test1" CRLF "Test2:   test2" CRLF CRLF;
@@ -47,10 +55,8 @@ unittest(same_header_multiple_times) {
   MockStream stream(request);
   Application app;
 
-  app.header("Test1", test1Header, 12);
-  app.header("Test2", test2Header, 6);
   app.get("/", &handler);
-  app.process(&stream);
+  app.process(&stream, headers, 2);
 
   assertEqual(expected, stream.response());
 }
@@ -58,6 +64,11 @@ unittest(same_header_multiple_times) {
 unittest(headers_field_too_large) {
   char test1Header[6];
   char test2Header[6];
+
+  Request::HeaderNode headers[] = {
+      {"Test1", test1Header, 6},
+      {"Test2", test2Header, 6},
+  };
 
   const char* request =
       "GET / HTTP/1.0" CRLF "Test1: test1" CRLF "Test2: 123456" CRLF CRLF;
@@ -70,10 +81,8 @@ unittest(headers_field_too_large) {
   MockStream stream(request);
   Application app;
 
-  app.header("Test1", test1Header, 6);
-  app.header("Test2", test2Header, 6);
   app.get("/", &handler);
-  app.process(&stream);
+  app.process(&stream, headers, 2);
 
   assertEqual(expected, stream.response());
 }
