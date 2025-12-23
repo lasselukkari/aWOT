@@ -1,0 +1,46 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    # Only run workflow if a file in these paths is modified
+    paths:
+      - ".github/workflows/unit-tests.yml"
+      - "test/**"
+      - "api/**"
+
+  push:
+    paths:
+      - ".github/workflows/unit-tests.yml"
+      - "test/**"
+      - "api/**"
+
+jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+
+    env:
+      COVERAGE_DATA_PATH: extras/coverage-data/coverage.info
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # See: https://github.com/arduino/cpp-test-action/blob/main/README.md
+      - uses: arduino/cpp-test-action@main
+        with:
+          source-path: test
+          build-path: test/build
+          runtime-path: test/build/bin/test-ArduinoCore-API
+          coverage-exclude-paths: |
+            - '*/test/*'
+            - '/usr/*'
+          coverage-data-path: ${{ env.COVERAGE_DATA_PATH }}
+
+      # See: https://github.com/codecov/codecov-action/blob/master/README.md
+      - name: Code coverage
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ env.COVERAGE_DATA_PATH }}
+          fail_ci_if_error: true

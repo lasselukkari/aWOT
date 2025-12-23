@@ -1,0 +1,10 @@
+contact_links:
+  - name: Learn about the Arduino language
+    url: https://www.arduino.cc/reference/en
+    about: User documentation is available at the Arduino language reference.
+  - name: Support request
+    url: https://forum.arduino.cc/
+    about: We can help you out on the Arduino Forum!
+  - name: Discuss ArduinoCore-API development
+    url: https://groups.google.com/a/arduino.cc/g/developers
+    about: Arduino Developers Mailing List
