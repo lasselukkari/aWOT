@@ -42,4 +42,4 @@ jobs:
       - name: Run Unit Tests
         if: ${{ success() }}
         working-directory: ${{ env.BUILD_DIR }}
-        run: ctest
+        run: ctest --output-on-failure --parallel 4
