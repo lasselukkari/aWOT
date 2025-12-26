@@ -1,6 +1,6 @@
 # macOS Native aWOT Example
 
-This example demonstrates running the aWOT web server library on macOS without Arduino hardware, using native BSD sockets.
+This example demonstrates running the aWOT web server library on macOS without Arduino hardware, using native BSD sockets and multithreading.
 
 ## Prerequisites
 
@@ -50,6 +50,16 @@ Expected output:
 </html>
 ```
 
+## Benchmarking
+
+```bash
+# Install wrk (modern HTTP benchmarking tool)
+brew install wrk
+
+# Run benchmark
+wrk -t4 -c10 -d10s http://localhost:8080/
+```
+
 ## Files
 
 | File | Description |
@@ -69,6 +79,8 @@ The example uses:
 2. **ArduinoCore-API** - The official Arduino API classes (`Print`, `Stream`, `Client`, `IPAddress`, `String`)
 
 3. **MacOSClient/MacOSServer** - BSD socket wrappers that implement the Arduino `Client` interface, allowing aWOT to work unchanged
+
+4. **Multithreading** - Each client connection is handled in a separate thread using `std::thread`
 
 ## Windows Portability
 
