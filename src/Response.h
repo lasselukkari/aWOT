@@ -44,6 +44,7 @@ class Response : public Print {
   void m_printCRLF();
   void m_flushBuf();
   void m_finalize();
+  int m_writeChunkHeader(int dataSize);
 
   Client* m_stream;
   struct Headers {

@@ -68,6 +68,24 @@
 #endif
 #endif
 
+// Calculate chunk header size based on buffer size
+// Header format: "<hex_size>\r\n" + data + "\r\n"
+#if SERVER_OUTPUT_BUFFER_SIZE <= 0xF
+#define CHUNK_HEADER_SIZE 3  // "F\r\n"
+#elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFF
+#define CHUNK_HEADER_SIZE 4  // "FF\r\n"
+#elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFFF
+#define CHUNK_HEADER_SIZE 5  // "FFF\r\n"
+#elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFFFF
+#define CHUNK_HEADER_SIZE 6  // "FFFF\r\n"
+#else
+#define CHUNK_HEADER_SIZE 10  // "FFFFFFFF\r\n"
+#endif
+
+#define CHUNK_TRAILER_SIZE 2  // "\r\n"
+#define CHUNK_OVERHEAD (CHUNK_HEADER_SIZE + CHUNK_TRAILER_SIZE)
+#define CHUNK_DATA_SIZE (SERVER_OUTPUT_BUFFER_SIZE - CHUNK_OVERHEAD)
+
 #ifndef SERVER_MAX_HEADERS
 #define SERVER_MAX_HEADERS 10
 #endif

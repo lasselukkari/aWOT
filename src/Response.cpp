@@ -25,9 +25,7 @@ Response::Response(Client* client, uint8_t* writeBuffer, int writeBufferLength)
       m_bufferLength(writeBufferLength),
       m_bufFill(0) {}
 
-int Response::availableForWrite() {
-  return SERVER_OUTPUT_BUFFER_SIZE - m_bufFill - 1;
-}
+int Response::availableForWrite() { return CHUNK_DATA_SIZE - m_bufFill - 1; }
 
 void Response::beginHeaders() {
   if (!m_statusSent) {
@@ -177,21 +175,11 @@ size_t Response::write(uint8_t data) {
     m_printHeaders();
   }
 
-  m_buffer[m_bufFill++] = data;
+  // Data is written starting after the reserved header space
+  m_buffer[CHUNK_HEADER_SIZE + m_bufFill++] = data;
 
-  if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
-    if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(m_bufFill, HEX);
-      m_stream->print(CRLF);
-    }
-
-    m_stream->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
-
-    if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(CRLF);
-    }
-
-    m_bufFill = 0;
+  if (m_bufFill == CHUNK_DATA_SIZE) {
+    m_flushBuf();
   }
 
   size_t bytesSent = sizeof(data);
@@ -204,21 +192,24 @@ size_t Response::write(const uint8_t* buffer, size_t bufferLength) {
     m_printHeaders();
   }
 
-  if (m_bufFill + bufferLength < (size_t)m_bufferLength) {
-    memcpy(m_buffer + m_bufFill, buffer, bufferLength);
+  if (m_bufFill + bufferLength < (size_t)CHUNK_DATA_SIZE) {
+    // Data fits in buffer - copy after header space
+    memcpy(m_buffer + CHUNK_HEADER_SIZE + m_bufFill, buffer, bufferLength);
     m_bufFill += bufferLength;
   } else {
+    // Flush current buffer first
     m_flushBuf();
 
+    // Write large buffer directly with chunk encoding
     if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(bufferLength, HEX);
-      m_stream->print(CRLF);
-    }
-
-    m_stream->write(buffer, bufferLength);
-
-    if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(CRLF);
+      // Write the chunk header to m_buffer, then send separately
+      int headerLen = m_writeChunkHeader((int)bufferLength);
+      m_stream->write((uint8_t*)m_buffer + CHUNK_HEADER_SIZE - headerLen,
+                      headerLen);
+      m_stream->write(buffer, bufferLength);
+      m_stream->write((const uint8_t*)"\r\n", 2);
+    } else {
+      m_stream->write(buffer, bufferLength);
     }
   }
 
@@ -664,26 +655,55 @@ void Response::m_printCRLF() { print(CRLF); }
 void Response::m_flushBuf() {
   if (m_bufFill > 0) {
     if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(m_bufFill, HEX);
-      m_stream->print(CRLF);
-    }
+      // Write chunk header into reserved space at start of buffer
+      int headerLen = m_writeChunkHeader(m_bufFill);
 
-    m_stream->write(m_buffer, m_bufFill);
+      // Write trailer at end of data
+      m_buffer[CHUNK_HEADER_SIZE + m_bufFill] = '\r';
+      m_buffer[CHUNK_HEADER_SIZE + m_bufFill + 1] = '\n';
 
-    if (m_headersSent && !m_contentLengthSet) {
-      m_stream->print(CRLF);
+      // Single write: header + data + trailer
+      int startOffset = CHUNK_HEADER_SIZE - headerLen;
+      m_stream->write(m_buffer + startOffset,
+                      headerLen + m_bufFill + CHUNK_TRAILER_SIZE);
+    } else {
+      // No chunking - just write the data portion
+      m_stream->write(m_buffer + CHUNK_HEADER_SIZE, m_bufFill);
     }
 
     m_bufFill = 0;
-  };
+  }
 }
 
 void Response::m_finalize() {
   m_flushBuf();
 
   if (!m_responseOpen && m_headersSent && !m_contentLengthSet) {
-    m_stream->print(0, HEX);
-    m_stream->print(CRLF);
-    m_stream->print(CRLF);
+    // Write final chunk: "0\r\n\r\n"
+    m_stream->write((const uint8_t*)"0\r\n\r\n", 5);
   }
+}
+
+// Write chunk size in hex to the reserved header space (right-aligned)
+// Returns the number of characters written (excluding CRLF which is added
+// after)
+int Response::m_writeChunkHeader(int dataSize) {
+  static const char hexDigits[] = "0123456789abcdef";
+
+  // Position to write the CRLF at end of header space
+  m_buffer[CHUNK_HEADER_SIZE - 2] = '\r';
+  m_buffer[CHUNK_HEADER_SIZE - 1] = '\n';
+
+  // Write hex digits right-to-left before the CRLF
+  int pos = CHUNK_HEADER_SIZE - 3;
+  int hexLen = 0;
+  int n = dataSize;
+
+  do {
+    m_buffer[pos--] = hexDigits[n & 0xF];
+    n >>= 4;
+    hexLen++;
+  } while (n > 0 && pos >= 0);
+
+  return hexLen + 2;  // hex digits + CRLF
 }
