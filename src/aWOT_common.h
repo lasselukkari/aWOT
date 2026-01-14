@@ -109,4 +109,33 @@ class App;
 
 }  // namespace awot
 
+// WebSocket configuration
+#ifndef WEBSOCKET_MAX_CLIENTS
+#if defined(LOW_MEMORY_MCU)
+#define WEBSOCKET_MAX_CLIENTS 2
+#else
+#define WEBSOCKET_MAX_CLIENTS 4
+#endif
+#endif
+
+#ifndef WEBSOCKET_BUFFER_SIZE
+#if defined(LOW_MEMORY_MCU)
+#define WEBSOCKET_BUFFER_SIZE 128
+#else
+#define WEBSOCKET_BUFFER_SIZE 256
+#endif
+#endif
+
+#ifndef WEBSOCKET_MAX_ROOMS
+#define WEBSOCKET_MAX_ROOMS 8
+#endif
+
+// WebSocket opcodes (RFC 6455)
+#define WS_OPCODE_CONTINUATION 0x00
+#define WS_OPCODE_TEXT 0x01
+#define WS_OPCODE_BINARY 0x02
+#define WS_OPCODE_CLOSE 0x08
+#define WS_OPCODE_PING 0x09
+#define WS_OPCODE_PONG 0x0A
+
 #endif

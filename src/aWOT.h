@@ -28,6 +28,7 @@
 #include "Response.h"
 #include "Router.h"
 #include "StreamClient.h"
+#include "WebSocket.h"
 #include "aWOT_common.h"
 
 #ifndef ENABLE_AWOT_NAMESPACE
