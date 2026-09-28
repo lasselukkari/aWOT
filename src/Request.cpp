@@ -590,7 +590,9 @@ bool Request::m_skipSpace() {
 bool Request::m_timedout() { return m_readTimedout; }
 
 int Request::m_timedRead() {
-  int ch = timedRead();
+  // Avoid consulting the clock while data is already available.
+  int ch = read();
+  if (ch == -1 && _timeout != 0) ch = timedRead();
   if (ch == -1) {
     m_readTimedout = true;
   }

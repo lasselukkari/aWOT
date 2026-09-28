@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cstring>
+
 // Undef system macro to avoid conflict with arduino::INADDR_NONE
 #ifdef INADDR_NONE
 #undef INADDR_NONE
@@ -25,7 +27,19 @@ class MacOSClient : public Client {
  private:
   int _socket;
   bool _connected;
+  uint8_t _receiveBuffer[1024];
+  size_t _receiveOffset = 0;
+  size_t _receiveLength = 0;
   ssize_t receive(uint8_t* buf, size_t size, int flags);
+  bool fillReceiveBuffer();
+
+  void moveReceiveBuffer(MacOSClient& other) {
+    _receiveOffset = 0;
+    _receiveLength = other._receiveLength - other._receiveOffset;
+    std::memcpy(_receiveBuffer, other._receiveBuffer + other._receiveOffset,
+                _receiveLength);
+    other._receiveOffset = other._receiveLength = 0;
+  }
 
  public:
   MacOSClient() : _socket(-1), _connected(false) {}
@@ -35,6 +49,7 @@ class MacOSClient : public Client {
   // Move constructor - transfer ownership
   MacOSClient(MacOSClient&& other) noexcept
       : _socket(other._socket), _connected(other._connected) {
+    moveReceiveBuffer(other);
     other._socket = -1;
     other._connected = false;
   }
@@ -45,6 +60,7 @@ class MacOSClient : public Client {
       stop();
       _socket = other._socket;
       _connected = other._connected;
+      moveReceiveBuffer(other);
       other._socket = -1;
       other._connected = false;
     }
@@ -67,7 +83,9 @@ class MacOSClient : public Client {
   void flush() override;
   void stop() override;
   uint8_t connected() override;
-  operator bool() override { return _connected; }
+  operator bool() override {
+    return _connected || _receiveOffset < _receiveLength;
+  }
 
   // Get the underlying socket (for debugging)
   int getSocket() const { return _socket; }

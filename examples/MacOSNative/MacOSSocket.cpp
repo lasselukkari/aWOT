@@ -213,24 +213,38 @@ ssize_t MacOSClient::receive(uint8_t* buf, size_t size, int flags) {
   return result;
 }
 
+bool MacOSClient::fillReceiveBuffer() {
+  if (_receiveOffset < _receiveLength) return true;
+  _receiveOffset = _receiveLength = 0;
+  const ssize_t received = receive(_receiveBuffer, sizeof(_receiveBuffer), 0);
+  if (received > 0) _receiveLength = static_cast<size_t>(received);
+  return _receiveLength > 0;
+}
+
 int MacOSClient::available() {
-  uint8_t byte;
-  return receive(&byte, 1, MSG_PEEK) > 0 ? 1 : 0;
+  fillReceiveBuffer();
+  return static_cast<int>(_receiveLength - _receiveOffset);
 }
 
 int MacOSClient::read() {
-  uint8_t byte;
-  return receive(&byte, 1, 0) > 0 ? byte : -1;
+  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset++] : -1;
 }
 
 int MacOSClient::read(uint8_t* buf, size_t size) {
+  if (size == 0) return 0;
+  if (_receiveOffset < _receiveLength) {
+    const size_t buffered = _receiveLength - _receiveOffset;
+    const size_t count = size < buffered ? size : buffered;
+    std::memcpy(buf, _receiveBuffer + _receiveOffset, count);
+    _receiveOffset += count;
+    return static_cast<int>(count);
+  }
   ssize_t result = receive(buf, size, 0);
   return result > 0 ? (int)result : 0;
 }
 
 int MacOSClient::peek() {
-  uint8_t byte;
-  return receive(&byte, 1, MSG_PEEK) > 0 ? byte : -1;
+  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset] : -1;
 }
 
 void MacOSClient::flush() {
@@ -243,12 +257,12 @@ void MacOSClient::stop() {
     _socket = -1;
   }
   _connected = false;
+  _receiveOffset = _receiveLength = 0;
 }
 
 uint8_t MacOSClient::connected() {
-  uint8_t byte;
-  receive(&byte, 1, MSG_PEEK);
-  return _connected ? 1 : 0;
+  const bool buffered = fillReceiveBuffer();
+  return _connected || buffered ? 1 : 0;
 }
 
 // ============================================================================

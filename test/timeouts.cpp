@@ -46,4 +46,41 @@ unittest(timeouts) {
   }
 }
 
+class InitiallyEmptyStream : public MockStream {
+ public:
+  explicit InitiallyEmptyStream(const char* request) : MockStream(request) {}
+
+  int read() override {
+    if (firstRead) {
+      firstRead = false;
+      return -1;
+    }
+    return MockStream::read();
+  }
+
+ private:
+  bool firstRead = true;
+};
+
+unittest(parser_zero_timeout_accepts_ready_data) {
+  App app;
+  app.setTimeout(0);
+  app.get("/", [](Request&, Response& res) { res.print("ok"); });
+  MockStream stream("GET / HTTP/1.1" CRLF CRLF);
+  app.process(&stream);
+  assertTrue(strstr(stream.response(), "HTTP/1.1 200 OK") == stream.response());
+}
+
+unittest(parser_retries_empty_reads_only_with_a_timeout) {
+  for (unsigned long timeout : {0UL, 10UL}) {
+    App app;
+    app.setTimeout(timeout);
+    app.get("/", [](Request&, Response& res) { res.print("ok"); });
+    InitiallyEmptyStream stream("GET / HTTP/1.1" CRLF CRLF);
+    app.process(&stream);
+    const char* expected = timeout ? "HTTP/1.1 200 OK" : "HTTP/1.1 408 ";
+    assertTrue(strstr(stream.response(), expected) == stream.response());
+  }
+}
+
 unittest_main()

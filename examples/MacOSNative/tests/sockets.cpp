@@ -116,6 +116,79 @@ void testClientOwnership() {
   checkClosed(secondSocket);
 }
 
+void testBufferedReads() {
+  ClientPair pair;
+  uint8_t payload[2500];
+  for (size_t i = 0; i < sizeof(payload); ++i) payload[i] = i % 251;
+  CHECK(pair.peer.write(payload, sizeof(payload)) == sizeof(payload));
+  pair.peer.stop();
+  waitReadable(pair.client.getSocket());
+
+  CHECK(pair.client.read() == payload[0]);
+  CHECK(pair.client.available() > 1);
+  CHECK(pair.client.connected());
+  CHECK(pair.client.peek() == payload[1]);
+  CHECK(pair.client.peek() == payload[1]);
+  uint8_t block[37];
+  CHECK(pair.client.read(block, 0) == 0);
+
+  // Alternate byte and bulk reads across several receive-buffer boundaries.
+  Client* raw = &pair.client;
+  size_t offset = 1;
+  while (offset < sizeof(payload)) {
+    CHECK(raw->connected());
+    CHECK(raw->peek() == payload[offset]);
+    CHECK(raw->read() == payload[offset++]);
+    size_t remaining = sizeof(payload) - offset;
+    size_t count = remaining < sizeof(block) ? remaining : sizeof(block);
+    if (count) {
+      const int received = raw->read(block, count);
+      CHECK(received > 0 && static_cast<size_t>(received) <= count);
+      CHECK(std::memcmp(block, payload + offset, received) == 0);
+      offset += received;
+    }
+  }
+  CHECK(raw->available() == 0);
+  CHECK(raw->read() == -1);
+  CHECK(raw->read(block, sizeof(block)) == 0);
+  CHECK(raw->peek() == -1);
+  CHECK(!raw->connected());
+}
+
+void testBufferedMovesAndStop() {
+  ClientPair pair;
+  const uint8_t payload[] = "abcdef";
+  CHECK(pair.peer.write(payload, sizeof(payload) - 1) == sizeof(payload) - 1);
+  waitReadable(pair.client.getSocket());
+  CHECK(pair.client.read() == 'a');
+  CHECK(pair.client.available() == 5);
+  pair.peer.stop();
+
+  MacOSClient moved(std::move(pair.client));
+  CHECK(!pair.client.connected());
+  CHECK(pair.client.available() == 0);
+  CHECK(pair.client.read() == -1);
+  CHECK(moved.connected());
+  CHECK(moved.available() == 5);
+  CHECK(moved.read() == 'b');
+
+  ClientPair replacement;
+  CHECK(replacement.peer.write((const uint8_t*)"stale", 5) == 5);
+  waitReadable(replacement.client.getSocket());
+  CHECK(replacement.client.peek() == 's');
+  replacement.client = std::move(moved);
+  CHECK(!moved.connected());
+  CHECK(moved.available() == 0);
+  CHECK(replacement.client.available() == 4);
+  CHECK(replacement.client.read() == 'c');
+  CHECK(replacement.client.connected());
+  replacement.client.stop();
+  CHECK(replacement.client.available() == 0);
+  CHECK(replacement.client.read() == -1);
+  CHECK(replacement.client.peek() == -1);
+  CHECK(!replacement.client.connected());
+}
+
 void checkWritesAfterPeerClose(MacOSClient& client, MacOSClient& peer) {
   peer.stop();
   waitReadable(client.getSocket());
@@ -172,7 +245,14 @@ void testConnectAndReconnect() {
   waitReadable(first.getSocket());
   CHECK(first.read() == 'a');
 
+  CHECK(first.write((const uint8_t*)"old", 3) == 3);
+  waitReadable(outgoing.getSocket());
+  CHECK(outgoing.peek() == 'o');
+  CHECK(outgoing.available() == 3);
+
   CHECK(outgoing.connect("127.0.0.1", server.port()) == 1);
+  CHECK(outgoing.available() == 0);
+  CHECK(outgoing.read() == -1);
   waitReadable(first.getSocket());
   CHECK(first.read() == -1);
   CHECK(!first.connected());
@@ -182,11 +262,17 @@ void testConnectAndReconnect() {
   waitReadable(outgoing.getSocket());
   CHECK(outgoing.read() == 'b');
 
+  CHECK(second.write((const uint8_t*)"old", 3) == 3);
+  waitReadable(outgoing.getSocket());
+  CHECK(outgoing.peek() == 'o');
+
   server.stop();
   CHECK(outgoing.connect(IPAddress(127, 0, 0, 1), server.port()) == 0);
   CHECK(outgoing.getSocket() == -1);
   CHECK(!outgoing.connected());
   CHECK(!outgoing);
+  CHECK(outgoing.available() == 0);
+  CHECK(outgoing.read() == -1);
   waitReadable(second.getSocket());
   CHECK(!second.connected());
 
@@ -262,6 +348,33 @@ void testAppTimeout() {
   CHECK(std::strstr((const char*)response, "HTTP/1.1 408 Request Timeout"));
 }
 
+void rawBodyHandler(Request& request, Response& response) {
+  // Parsing headers can read ahead into the body; raw Client access must still
+  // see those bytes, and the route can mix its byte and bulk read interfaces.
+  Client* raw = request.client();
+  CHECK(raw->peek() == 'h');
+  CHECK(raw->read() == 'h');
+  uint8_t body[4];
+  CHECK(raw->readBytes(body, sizeof(body)) == sizeof(body));
+  CHECK(std::memcmp(body, "ello", sizeof(body)) == 0);
+  response.print("raw body received");
+}
+
+void testAppRawBody() {
+  ClientPair pair;
+  const char request[] =
+      "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 5\r\n\r\nhello";
+  CHECK(pair.peer.write((const uint8_t*)request, sizeof(request) - 1) ==
+        sizeof(request) - 1);
+  App app;
+  app.post("/", rawBodyHandler);
+  app.process(&pair.client);
+  waitReadable(pair.peer.getSocket());
+  uint8_t response[1024] = {};
+  CHECK(pair.peer.read(response, sizeof(response) - 1) > 0);
+  CHECK(std::strstr((const char*)response, "raw body received"));
+}
+
 }  // namespace
 
 int main() {
@@ -270,10 +383,13 @@ int main() {
   alarm(15);
   testReadsAndTimeouts();
   testClientOwnership();
+  testBufferedReads();
+  testBufferedMovesAndStop();
   testSigpipe();
   testConnectAndReconnect();
   testServerOwnershipAndWaiting();
   testAppTimeout();
+  testAppRawBody();
   alarm(0);
   std::puts("Socket regression tests passed");
   return 0;

@@ -83,6 +83,10 @@ The main thread waits for connections without polling continuously. Socket reads
 return immediately when no data is ready, allowing aWOT's request timeouts to
 expire. Client and server objects close their sockets when destroyed.
 
+Each native client uses a 1 KiB receive buffer to avoid a socket call for every
+parsed byte. Buffered data stays available through both the request and raw
+client read APIs, including after the peer disconnects.
+
 ## Windows Portability
 
 The socket implementation uses POSIX/BSD socket APIs. For Windows:
