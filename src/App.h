@@ -129,6 +129,8 @@ class App {
   }
 #endif
 
+  // Null buffers select default storage; non-null buffers require capacities.
+  // Invalid options close the client without invoking handlers.
   struct ProcessOptions {
     char* urlBuffer = nullptr;
     int urlBufferLength = 0;
@@ -141,6 +143,7 @@ class App {
 
   struct ProcessResult {
     bool responseOpen = false;
+    bool keepAlive = false;
   };
 
   ProcessResult process(Client* client);
@@ -170,6 +173,14 @@ class App {
 
  private:
   void m_process(Request& req, Response& res);
+#if defined(__GNUC__)
+  __attribute__((noinline))
+#endif
+  ProcessResult m_processWithDefaultUrl(Client* client, ProcessOptions options);
+#if defined(__GNUC__)
+  __attribute__((noinline))
+#endif
+  ProcessResult m_processWithDefaultWrite(Client* client, ProcessOptions options);
 
   Router::MIDDLEWARE_PARAM m_final;
   Router::MIDDLEWARE_PARAM m_notFound;

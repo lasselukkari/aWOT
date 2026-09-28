@@ -45,6 +45,9 @@ class Response : public Print {
   void m_flushBuf();
   void m_finalize();
   int m_writeChunkHeader(int dataSize);
+  int m_capacity() const;
+  size_t m_writeAll(const uint8_t* buffer, size_t length);
+  void m_failWrite();
 
   Client* m_stream;
   struct Headers {

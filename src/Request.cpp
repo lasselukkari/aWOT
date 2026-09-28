@@ -4,6 +4,8 @@
 
 #include "Request.h"
 
+#include <limits.h>
+
 #include "App.h"
 
 using namespace awot;
@@ -23,7 +25,6 @@ Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
       m_bytesRead(0),
       m_headerTail(headerTail),
       m_query(NULL),
-      m_queryLength(0),
       m_readTimedout(false),
       m_path(urlBuffer),
       m_pathLength(urlBufferLength - 1),
@@ -36,12 +37,12 @@ Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
 int Request::availableForWrite() { return m_response->availableForWrite(); }
 
 int Request::available() {
-  return min(m_stream->available(), m_left + m_pushbackDepth);
+  return min(m_stream->available(), m_left) + m_pushbackDepth;
 }
 
 int Request::bytesRead() { return m_bytesRead; }
 
-Stream* Request::stream() { return m_stream; }
+Client* Request::client() { return m_stream; }
 
 char* Request::get(const char* name) {
   HeaderNode* headerNode = m_headerTail;
@@ -59,57 +60,70 @@ char* Request::get(const char* name) {
 
 void Request::flush() { return m_response->flush(); }
 
+namespace {
+int hexDigit(int ch) {
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+  if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+  return -1;
+}
+
+// The caller identifies component boundaries before decoding.
+int decodedChar(const char*& cursor, const char* end, bool plusAsSpace) {
+  int ch = (unsigned char)*cursor++;
+  if (ch == '%' && end - cursor >= 2) {
+    int high = hexDigit(cursor[0]);
+    int low = hexDigit(cursor[1]);
+    cursor += 2;
+    return high < 0 || low < 0 ? -1 : (high << 4) | low;
+  }
+  if (ch == '%') return -1;
+  return ch == '+' && plusAsSpace ? ' ' : ch;
+}
+}  // namespace
+
 bool Request::form(char* name, int nameLength, char* value, int valueLength) {
-  int ch;
+  if (!name || !value || nameLength <= 0 || valueLength <= 0) return false;
+  *name = *value = '\0';
   bool foundSomething = false;
   bool readingName = true;
-
-  memset(name, 0, nameLength);
-  memset(value, 0, valueLength);
+  bool valid = true;
+  int ch;
 
   while ((ch = m_timedRead()) != -1) {
     foundSomething = true;
-    if (ch == '+') {
-      ch = ' ';
-    } else if (ch == '=') {
+    if (ch == '&') break;
+    if (ch == '=' && readingName) {
       readingName = false;
       continue;
-    } else if (ch == '&') {
-      return nameLength > 0 && valueLength > 0;
+    }
+    if (ch == '+') {
+      ch = ' ';
     } else if (ch == '%') {
-      int high = m_timedRead();
-      if (high == -1) {
-        return false;
+      int highByte = m_timedRead();
+      if (highByte == -1 || highByte == '&') return false;
+      int lowByte = m_timedRead();
+      if (lowByte == -1 || lowByte == '&') return false;
+      int high = hexDigit(highByte);
+      int low = hexDigit(lowByte);
+      if (high < 0 || low < 0) {
+        valid = false;
+        continue;
       }
-
-      int low = m_timedRead();
-      if (low == -1) {
-        return false;
-      }
-
-      if (high > 0x39) {
-        high -= 7;
-      }
-
-      high &= 0x0f;
-
-      if (low > 0x39) {
-        low -= 7;
-      }
-
-      low &= 0x0f;
-
       ch = (high << 4) | low;
     }
+    if (ch == 0) valid = false;
 
-    if (readingName && --nameLength) {
-      *name++ = ch;
-    } else if (!readingName && --valueLength) {
-      *value++ = ch;
+    char*& output = readingName ? name : value;
+    int& remaining = readingName ? nameLength : valueLength;
+    if (remaining <= 1) valid = false;
+    if (valid) {
+      *output++ = (char)ch;
+      *output = '\0';
+      --remaining;
     }
   }
-
-  return foundSomething && nameLength > 0 && valueLength > 0;
+  return foundSomething && valid && (ch == '&' || left() == 0);
 }
 
 int Request::left() { return m_left + m_pushbackDepth; }
@@ -129,38 +143,48 @@ int Request::peek() {
 }
 
 void Request::push(uint8_t ch) {
+  // Keep the most recently pushed byte when the stack is full.
+  if (m_pushbackDepth == SERVER_PUSHBACK_BUFFER_SIZE) --m_pushbackDepth;
   m_pushback[m_pushbackDepth++] = ch;
-
-  // can't raise error here, so just replace last char over and over
-  if (m_pushbackDepth == SERVER_PUSHBACK_BUFFER_SIZE) {
-    m_pushbackDepth = SERVER_PUSHBACK_BUFFER_SIZE - 1;
-  }
 }
 
 char* Request::query() { return m_query; }
 
 bool Request::query(const char* name, char* buffer, int bufferLength) {
-  memset(buffer, 0, bufferLength);
+  if (!buffer || bufferLength <= 0 || !name) return false;
+  *buffer = '\0';
+  if (!m_query) return false;
 
-  char* position = m_query;
-  int nameLength = strlen(name);
-
-  while ((position = strstr(position, name))) {
-    char previous = *(position - 1);
-
-    if ((previous == '\0' || previous == '&') &&
-        *(position + nameLength) == '=') {
-      position = position + nameLength + 1;
-      while (*position && *position != '&' && --bufferLength) {
-        *buffer++ = *position++;
+  const char* field = m_query;
+  while (*field) {
+    const char* end = strchr(field, '&');
+    if (!end) end = field + strlen(field);
+    const char* equals = field;
+    while (equals < end && *equals != '=') ++equals;
+    const char* cursor = field;
+    const char* candidate = name;
+    bool matches = true;
+    while (cursor < equals) {
+      int ch = decodedChar(cursor, equals, true);
+      if (ch <= 0 || !*candidate || ch != (unsigned char)*candidate) {
+        matches = false;
+        break;
       }
-
-      return bufferLength > 0;
+      ++candidate;
     }
-
-    position++;
+    if (matches && !*candidate && equals < end) {
+      cursor = equals + 1;
+      while (cursor < end) {
+        int ch = decodedChar(cursor, end, true);
+        if (ch <= 0 || bufferLength <= 1) return false;
+        *buffer++ = (char)ch;
+        *buffer = '\0';
+        --bufferLength;
+      }
+      return true;
+    }
+    field = *end ? end + 1 : end;
   }
-
   return false;
 }
 
@@ -190,12 +214,13 @@ int Request::read() {
 int Request::read(uint8_t* buf, size_t size) {
   int ret = 0;
 
-  while (m_pushbackDepth > 0) {
+  while (m_pushbackDepth > 0 && size > 0) {
     *buf++ = m_pushback[--m_pushbackDepth];
     size--;
     ret++;
   }
 
+  if (size == 0 || m_left == 0) return ret;
   int read = m_stream->read(buf, (size < (unsigned)m_left ? size : m_left));
   if (read == -1) {
     if (ret > 0) {
@@ -213,6 +238,7 @@ int Request::read(uint8_t* buf, size_t size) {
 }
 
 bool Request::route(const char* name, char* buffer, int bufferLength) {
+  if (!m_pattern || !name || !buffer || bufferLength <= 0) return false;
   int part = 0;
   int i = 1;
 
@@ -239,6 +265,7 @@ bool Request::route(const char* name, char* buffer, int bufferLength) {
 }
 
 bool Request::route(int number, char* buffer, int bufferLength) {
+  if (!m_route || !buffer || bufferLength <= 0) return false;
   memset(buffer, 0, bufferLength);
   int part = -1;
   const char* routeStart = m_route;
@@ -279,66 +306,38 @@ bool Request::m_processMethod() {
   P(PATCH_VERB) = "PATCH ";
   P(OPTIONS_VERB) = "OPTIONS ";
 
-  if (m_expectP(GET_VERB)) {
-    m_method = GET;
-  } else if (m_expectP(HEAD_VERB)) {
-    m_method = HEAD;
-  } else if (m_expectP(POST_VERB)) {
-    m_method = POST;
-  } else if (m_expectP(PUT_VERB)) {
-    m_method = PUT;
-  } else if (m_expectP(DELETE_VERB)) {
-    m_method = DELETE;
-  } else if (m_expectP(PATCH_VERB)) {
-    m_method = PATCH;
-  } else if (m_expectP(OPTIONS_VERB)) {
-    m_method = OPTIONS;
-  } else {
-    return false;
-  }
-
-  return true;
+  // Try each verb in sequence, but stop as soon as a read has timed out —
+  // otherwise a client that connects and never sends data costs us one
+  // full Stream::_timeout per verb (seven of them).
+  if (m_expectP(GET_VERB))     { m_method = GET;     return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(HEAD_VERB))    { m_method = HEAD;    return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(POST_VERB))    { m_method = POST;    return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(PUT_VERB))     { m_method = PUT;     return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(DELETE_VERB))  { m_method = DELETE;  return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(PATCH_VERB))   { m_method = PATCH;   return true; }
+  if (m_readTimedout) return false;
+  if (m_expectP(OPTIONS_VERB)) { m_method = OPTIONS; return true; }
+  return false;
 }
 
 bool Request::m_readURL() {
-  char* request = m_path;
-  int bufferLeft = m_pathLength;
+  char* output = m_path;
+  int remaining = m_pathLength;
   int ch;
-
-  while ((ch = m_timedRead()) != -1 && ch != ' ' && ch != '\n' && ch != '\r' &&
-         --bufferLeft) {
-    if (ch == '%') {
-      int high = m_timedRead();
-      if (high == -1) {
-        return false;
-      }
-
-      int low = m_timedRead();
-      if (low == -1) {
-        return false;
-      }
-
-      if (high > 0x39) {
-        high -= 7;
-      }
-
-      high &= 0x0f;
-
-      if (low > 0x39) {
-        low -= 7;
-      }
-
-      low &= 0x0f;
-
-      ch = (high << 4) | low;
-    }
-
-    *request++ = ch;
+  *output = '\0';
+  while ((ch = m_timedRead()) != -1) {
+    if (ch == ' ') return output != m_path;
+    if (ch <= 0x20 || ch == 0x7f || remaining == 0) return false;
+    *output++ = (char)ch;
+    *output = '\0';
+    --remaining;
   }
-
-  *request = 0;
-
-  return bufferLeft > 0;
+  return false;
 }
 
 bool Request::m_readVersion() {
@@ -358,39 +357,52 @@ bool Request::m_readVersion() {
   return true;
 }
 
-void Request::m_processURL() {
-  char* qmLocation = strchr(m_path, '?');
-  int qmOffset = (qmLocation == NULL) ? 0 : 1;
-
-  m_pathLength = (qmLocation == NULL) ? strlen(m_path) : (qmLocation - m_path);
-  m_query = m_path + m_pathLength + qmOffset;
-  m_queryLength = strlen(m_query);
-
-  if (qmOffset) {
-    *qmLocation = 0;
+bool Request::m_processURL() {
+  // Validate the entire raw target, including query components not requested by
+  // the handler, before modifying the path in place.
+  const char* cursor = m_path;
+  const char* end = m_path + strlen(m_path);
+  while (cursor < end) {
+    if (decodedChar(cursor, end, false) <= 0) return false;
   }
+  char* separator = strchr(m_path, '?');
+  m_query = separator ? separator + 1 : m_path + strlen(m_path);
+  if (separator) *separator = '\0';
+  end = separator ? separator : m_query;
+  cursor = m_path;
+  char* output = m_path;
+  while (cursor < end) *output++ = (char)decodedChar(cursor, end, false);
+  *output = '\0';
+  return true;
 }
 
-bool Request::m_processHeaders() {
+int Request::m_processHeaders() {
   bool canEnd = true;
+  bool lengthSeen = false;
 
   while (!(canEnd && m_expect(CRLF))) {
     canEnd = false;
     P(ContentLength) = "Content-Length:";
     if (m_expectP(ContentLength)) {
-      if (!m_readInt(m_left) || !m_expect(CRLF)) {
-        return false;
+      int length;
+      if (!m_readInt(length) || !m_skipSpace() || !m_expect(CRLF) ||
+          (lengthSeen && length != m_left)) {
+        return 400;
       }
-
+      m_left = length;
+      lengthSeen = true;
       canEnd = true;
     } else {
+      P(TransferEncoding) = "Transfer-Encoding:";
+      // Request transfer codings are unsupported, including chunked.
+      if (m_expectP(TransferEncoding)) return 400;
       HeaderNode* headerNode = m_headerTail;
 
       while (headerNode != NULL) {
         P(headerSeparator) = ":";
         if (m_expect(headerNode->name) && m_expectP(headerSeparator)) {
           if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
-            return false;
+            return 431;
           }
 
           canEnd = true;
@@ -404,7 +416,7 @@ bool Request::m_processHeaders() {
     if (!canEnd) {
       while (!m_expect(CRLF)) {
         if (m_timedRead() == -1) {
-          return false;
+          return 431;
         }
       }
 
@@ -414,75 +426,48 @@ bool Request::m_processHeaders() {
 
   m_readingContent = true;
 
-  return true;
+  return 0;
 }
 
 bool Request::m_headerValue(char* buffer, int bufferLength) {
-  int ch;
-
-  if (buffer[0] != '\0') {
+  if (!buffer || bufferLength <= 0) return false;
+  if (*buffer) {
     int length = strlen(buffer);
+    if (length + 1 >= bufferLength) return false;
     buffer[length] = ',';
-    buffer = buffer + length + 1;
-    bufferLength = bufferLength - (length + 1);
+    buffer += length + 1;
+    bufferLength -= length + 1;
   }
-
-  if (!m_skipSpace()) {
-    return false;
-  }
-
-  while ((ch = m_timedRead()) != -1) {
-    if (--bufferLength > 0) {
-      *buffer++ = ch;
-    }
-
-    if (m_expect(CRLF)) {
+  *buffer = '\0';
+  if (!m_skipSpace()) return false;
+  bool valid = true;
+  while (!m_expect(CRLF)) {
+    int ch = m_timedRead();
+    if (ch < 0) return false;
+    if (ch == 0 || ch == '\r' || ch == '\n') valid = false;
+    if (bufferLength <= 1) valid = false;
+    if (valid) {
+      *buffer++ = (char)ch;
       *buffer = '\0';
-      return bufferLength > 0;
+      --bufferLength;
     }
   }
-
-  return false;
+  return valid;
 }
 
 bool Request::m_readInt(int& number) {
-  bool negate = false;
+  if (!m_skipSpace()) return false;
   bool gotNumber = false;
-
-  if (!m_skipSpace()) {
-    return false;
-  }
-
-  int ch = m_timedRead();
-  if (ch == -1) {
-    return false;
-  }
-
-  if (ch == '-') {
-    negate = true;
-    ch = m_timedRead();
-    if (ch == -1) {
-      return false;
-    }
-  }
-
   number = 0;
-
-  while (ch >= '0' && ch <= '9') {
+  int ch;
+  while ((ch = m_timedRead()) >= '0' && ch <= '9') {
+    int digit = ch - '0';
+    if (number > (INT_MAX - digit) / 10) return false;
+    number = number * 10 + digit;
     gotNumber = true;
-    number = number * 10 + ch - '0';
-    ch = m_timedRead();
-    if (ch == -1) {
-      return false;
-    }
   }
-
+  if (ch < 0) return false;
   push(ch);
-
-  if (negate) {
-    number = -number;
-  }
-
   return gotNumber;
 }
 
@@ -490,8 +475,6 @@ void Request::m_setRoute(const char* route, const char* pattern) {
   m_route = route;
   m_pattern = pattern;
 }
-
-int Request::m_getUrlPathLength() { return m_pathLength; }
 
 bool Request::m_expect(const char* expected) {
   const char* candidate = expected;
@@ -551,14 +534,6 @@ bool Request::m_skipSpace() {
   push(ch);
 
   return true;
-}
-
-void Request::m_reset() {
-  HeaderNode* headerNode = m_headerTail;
-  while (headerNode != NULL) {
-    headerNode->buffer[0] = '\0';
-    headerNode = headerNode->next;
-  }
 }
 
 bool Request::m_timedout() { return m_readTimedout; }

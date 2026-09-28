@@ -10,45 +10,32 @@ int App::strcmpi(const char* s1, const char* s2) {
   int i;
 
   for (i = 0; s1[i] && s2[i]; ++i) {
-    if (s1[i] == s2[i] || (s1[i] ^ 32) == s2[i]) {
-      continue;
-    } else {
+    if (tolower((unsigned char)s1[i]) != tolower((unsigned char)s2[i])) {
       break;
     }
   }
 
-  if (s1[i] == s2[i]) {
-    return 0;
-  }
+  int a = tolower((unsigned char)s1[i]);
+  int b = tolower((unsigned char)s2[i]);
 
-  if ((s1[i] | 32) < (s2[i] | 32)) {
-    return -1;
-  }
-
-  return 1;
+  if (a == b) return 0;
+  return a < b ? -1 : 1;
 }
 
 int App::strcmpiP(const char* s1, const unsigned char* s2) {
   int i = 0;
 
   for (i = 0; s1[i] && pgm_read_byte(s2 + i); ++i) {
-    if (s1[i] == pgm_read_byte(s2 + i) ||
-        (s1[i] ^ 32) == pgm_read_byte(s2 + i)) {
-      continue;
-    } else {
+    if (tolower((unsigned char)s1[i]) != tolower(pgm_read_byte(s2 + i))) {
       break;
     }
   }
 
-  if (s1[i] == pgm_read_byte(s2 + i)) {
-    return 0;
-  }
+  int a = tolower((unsigned char)s1[i]);
+  int b = tolower(pgm_read_byte(s2 + i));
 
-  if ((s1[i] | 32) < (pgm_read_byte(s2 + i) | 32)) {
-    return -1;
-  }
-
-  return 1;
+  if (a == b) return 0;
+  return a < b ? -1 : 1;
 }
 
 App::App()
@@ -70,25 +57,33 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
     return result;
   }
 
-  char defaultUrlBuffer[SERVER_URL_BUFFER_SIZE];
-  uint8_t defaultWriteBuffer[SERVER_OUTPUT_BUFFER_SIZE];
+  // A null pointer selects its default capacity regardless of the unused
+  // length. Supplied storage always requires an explicit valid capacity.
+  if ((options.urlBuffer && options.urlBufferLength < 2) ||
+      (options.writeBuffer && options.writeBufferLength <= CHUNK_OVERHEAD) ||
+      options.headerCount < 0 || (options.headerCount > 0 && !options.headers)) {
+    client->stop();
+    return result;
+  }
+  for (int i = 0; i < options.headerCount; ++i) {
+    const Request::HeaderNode& header = options.headers[i];
+    if (!header.name || !header.buffer || header.bufferLength <= 0) {
+      client->stop();
+      return result;
+    }
+  }
+  if (!options.urlBuffer) return m_processWithDefaultUrl(client, options);
+  if (!options.writeBuffer) return m_processWithDefaultWrite(client, options);
 
-  char* urlBuffer = options.urlBuffer ? options.urlBuffer : defaultUrlBuffer;
-  int urlBufferLength = options.urlBufferLength ? options.urlBufferLength
-                                                : SERVER_URL_BUFFER_SIZE;
-  uint8_t* writeBuffer =
-      options.writeBuffer ? options.writeBuffer : defaultWriteBuffer;
-  int writeBufferLength = options.writeBufferLength ? options.writeBufferLength
-                                                    : SERVER_OUTPUT_BUFFER_SIZE;
-
+  char* urlBuffer = options.urlBuffer;
+  int urlBufferLength = options.urlBufferLength;
+  uint8_t* writeBuffer = options.writeBuffer;
+  int writeBufferLength = options.writeBufferLength;
   Request::HeaderNode* headers = options.headers;
   int headerCount = options.headerCount;
-
-  if (headerCount > 0 && headers != nullptr) {
-    for (int i = 0; i < headerCount - 1; i++) {
-      headers[i].next = &headers[i + 1];
-    }
-    headers[headerCount - 1].next = NULL;
+  for (int i = 0; i < headerCount; ++i) {
+    headers[i].buffer[0] = '\0';
+    headers[i].next = i + 1 < headerCount ? &headers[i + 1] : nullptr;
   }
 
   Response response(client, writeBuffer, writeBufferLength);
@@ -103,15 +98,34 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
 
   response.m_finalize();
 
-  result.responseOpen = response.m_responseOpen;
+  bool parsed = request.m_readingContent;
+  result.responseOpen =
+      parsed && !response.getWriteError() && response.m_responseOpen;
+  result.keepAlive = parsed && request.left() == 0 && !response.getWriteError() &&
+                     response.m_keepAlive;
+  if (!parsed) client->stop();
 
-  Request::HeaderNode* headerNode = headers;
-  while (headerNode != NULL) {
-    headerNode->buffer[0] = '\0';
-    headerNode = headerNode->next;
-  }
+  for (int i = 0; i < headerCount; ++i) headers[i].buffer[0] = '\0';
 
   return result;
+}
+
+// Keep convenience storage out of the stack frame used with caller buffers.
+// Both helpers are noinline so optimization cannot fold these arrays back in.
+App::ProcessResult App::m_processWithDefaultUrl(Client* client,
+                                              ProcessOptions options) {
+  char buffer[SERVER_URL_BUFFER_SIZE];
+  options.urlBuffer = buffer;
+  options.urlBufferLength = sizeof(buffer);
+  return process(client, options);
+}
+
+App::ProcessResult App::m_processWithDefaultWrite(Client* client,
+                                                ProcessOptions options) {
+  uint8_t buffer[SERVER_OUTPUT_BUFFER_SIZE];
+  options.writeBuffer = buffer;
+  options.writeBufferLength = sizeof(buffer);
+  return process(client, options);
 }
 
 App::ProcessResult App::process(Stream* stream) {
@@ -219,7 +233,11 @@ void App::m_process(Request& request, Response& response) {
     return;
   }
 
-  request.m_processURL();
+  if (!request.m_processURL()) {
+    if (m_errorHandler) m_errorHandler(request, response, 400);
+    if (!response.ended()) return response.sendStatus(400);
+    return;
+  }
 
   if (!request.m_readVersion()) {
     if (request.m_timedout()) {
@@ -233,15 +251,16 @@ void App::m_process(Request& request, Response& response) {
     return;
   }
 
-  if (!request.m_processHeaders()) {
+  int headerError = request.m_processHeaders();
+  if (headerError) {
     if (request.m_timedout()) {
       if (m_errorHandler) m_errorHandler(request, response, 408);
       if (!response.ended()) return response.sendStatus(408);
       return;
     }
 
-    if (m_errorHandler) m_errorHandler(request, response, 431);
-    if (!response.ended()) return response.sendStatus(431);
+    if (m_errorHandler) m_errorHandler(request, response, headerError);
+    if (!response.ended()) return response.sendStatus(headerError);
     return;
   }
 

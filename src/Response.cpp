@@ -4,6 +4,8 @@
 
 #include "Response.h"
 
+#include <limits.h>
+
 #include "App.h"
 
 using namespace awot;
@@ -14,6 +16,7 @@ Response::Response(Client* client, uint8_t* writeBuffer, int writeBufferLength)
       m_contentLengthSet(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
+      m_responseOpen(false),
       m_statusSent(0),
       m_headersSent(false),
       m_sendingStatus(false),
@@ -23,15 +26,30 @@ Response::Response(Client* client, uint8_t* writeBuffer, int writeBufferLength)
       m_ended(false),
       m_buffer(writeBuffer),
       m_bufferLength(writeBufferLength),
-      m_bufFill(0) {}
+      m_bufFill(0) {
+  if (!m_buffer || m_capacity() <= 0) m_failWrite();
+}
 
-int Response::availableForWrite() { return CHUNK_DATA_SIZE - m_bufFill - 1; }
+int Response::m_capacity() const {
+  if (m_bufferLength <= CHUNK_OVERHEAD) return 0;
+  int chunkLimit = 0;
+  for (int i = 0; i < CHUNK_HEADER_SIZE - 2; ++i) {
+    chunkLimit = chunkLimit > (INT_MAX - 15) / 16 ? INT_MAX : chunkLimit * 16 + 15;
+  }
+  return min(m_bufferLength - CHUNK_OVERHEAD, chunkLimit);
+}
+
+int Response::availableForWrite() {
+  return getWriteError() ? 0 : m_capacity() - m_bufFill;
+}
 
 void Response::beginHeaders() {
+  if (m_headersSent || m_sendingHeaders || getWriteError()) return;
   if (!m_statusSent) {
     status(200);
   }
 
+  setDefaults();
   m_sendingHeaders = true;
 
   P(headerSeparator) = ": ";
@@ -41,6 +59,22 @@ void Response::beginHeaders() {
     this->print(m_headers[i].value);
     m_printCRLF();
   }
+  // Defaults do not occupy caller header slots. Protocol switches and interim
+  // responses have only their explicitly supplied headers.
+  if (m_statusSent >= 200) {
+    if (!m_contentTypeSet) {
+      P(contentType) = "Content-Type: text/plain\r\n";
+      printP(contentType);
+    }
+    if (m_keepAlive && !m_contentLengthSet && !get("Transfer-Encoding")) {
+      P(chunked) = "Transfer-Encoding: chunked\r\n";
+      printP(chunked);
+    }
+    if (!m_keepAlive && !get("Connection")) {
+      P(close) = "Connection: close\r\n";
+      printP(close);
+    }
+  }
 }
 
 int Response::bytesSent() { return m_bytesSent; }
@@ -48,6 +82,8 @@ int Response::bytesSent() { return m_bytesSent; }
 void Response::end() { m_ended = true; }
 
 void Response::endHeaders() {
+  if (m_headersSent || getWriteError()) return;
+  if (!m_sendingHeaders) beginHeaders();
   m_printCRLF();
   m_flushBuf();
   m_sendingHeaders = false;
@@ -74,7 +110,9 @@ const char* Response::get(const char* name) {
 
 bool Response::headersSent() { return m_headersSent; }
 
-void Response::keepOpen() { m_responseOpen = true; }
+void Response::keepOpen() {
+  if (!getWriteError()) m_responseOpen = true;
+}
 
 void Response::printP(const unsigned char* string) {
   if (m_shouldPrintHeaders()) {
@@ -82,7 +120,7 @@ void Response::printP(const unsigned char* string) {
   }
 
   while (uint8_t value = pgm_read_byte(string++)) {
-    write(value);
+    if (!write(value)) break;
   }
 }
 
@@ -91,6 +129,7 @@ void Response::printP(const char* string) { printP((unsigned char*)string); }
 void Response::sendStatus(int code) {
   status(code);
 
+  if (code < 200) return;
   m_printHeaders();
 
   if (code != 204 && code != 304) {
@@ -99,6 +138,7 @@ void Response::sendStatus(int code) {
 }
 
 void Response::set(const char* name, const char* value) {
+  if (m_headersSent || getWriteError()) return;
   if (m_headersCount >= SERVER_MAX_HEADERS) {
     return;
   }
@@ -125,22 +165,13 @@ void Response::set(const char* name, const char* value) {
 }
 
 void Response::setDefaults() {
-  if (!m_contentTypeSet) {
-    set("Content-Type", "text/plain");
-  }
-
-  if (m_keepAlive && !m_contentLengthSet) {
-    set("Transfer-Encoding", "chunked");
-  }
-
-  if (!m_keepAlive) {
-    m_contentLengthSet = true;
-    set("Connection", "close");
-  }
+  // This flag also selects unchunked output for close-delimited and bodyless
+  // responses. Defaults are emitted directly by beginHeaders().
+  if (!m_keepAlive || m_statusSent < 200) m_contentLengthSet = true;
 }
 
 void Response::status(int code) {
-  if (m_statusSent) {
+  if (m_statusSent || getWriteError()) {
     return;
   }
 
@@ -156,10 +187,20 @@ void Response::status(int code) {
 
   m_printCRLF();
 
-  if (code < 200) {
+  // 1xx is provisional (100 Continue, 102, 103) — headers are flushed and
+  // m_statusSent is reset so the final status can follow. 101 is special:
+  // it is a FINAL response that switches protocols, so we leave
+  // m_statusSent set and let the caller add headers + flush normally.
+  if (code < 200 && code != 101) {
     beginHeaders();
     endHeaders();
     m_statusSent = 0;
+    m_headersSent = false;
+    m_headersCount = 0;
+    m_contentLengthSet = false;
+    m_contentTypeSet = false;
+    m_keepAlive = false;
+    m_responseOpen = false;
   } else if (code == 204 || code == 304) {
     m_contentLengthSet = true;
     m_contentTypeSet = true;
@@ -171,50 +212,68 @@ void Response::status(int code) {
 int Response::statusSent() { return m_statusSent; }
 
 size_t Response::write(uint8_t data) {
-  if (m_shouldPrintHeaders()) {
-    m_printHeaders();
-  }
-
-  // Data is written starting after the reserved header space
+  if (getWriteError()) return 0;
+  if (m_shouldPrintHeaders()) m_printHeaders();
+  if (getWriteError()) return 0;
   m_buffer[CHUNK_HEADER_SIZE + m_bufFill++] = data;
-
-  if (m_bufFill == CHUNK_DATA_SIZE) {
-    m_flushBuf();
-  }
-
-  size_t bytesSent = sizeof(data);
-  m_bytesSent += bytesSent;
-  return bytesSent;
+  if (m_bufFill == m_capacity()) m_flushBuf();
+  if (getWriteError()) return 0;
+  if (m_bytesSent < INT_MAX) ++m_bytesSent;
+  return 1;
 }
 
 size_t Response::write(const uint8_t* buffer, size_t bufferLength) {
-  if (m_shouldPrintHeaders()) {
-    m_printHeaders();
-  }
+  if (getWriteError() || bufferLength == 0) return 0;
+  if (m_shouldPrintHeaders()) m_printHeaders();
+  if (getWriteError()) return 0;
 
-  if (m_bufFill + bufferLength < (size_t)CHUNK_DATA_SIZE) {
-    // Data fits in buffer - copy after header space
+  size_t written = 0;
+  int capacity = m_capacity();
+  if (bufferLength < (size_t)(capacity - m_bufFill)) {
     memcpy(m_buffer + CHUNK_HEADER_SIZE + m_bufFill, buffer, bufferLength);
     m_bufFill += bufferLength;
+    written = bufferLength;
   } else {
-    // Flush current buffer first
     m_flushBuf();
-
-    // Write large buffer directly with chunk encoding
-    if (m_headersSent && !m_contentLengthSet) {
-      // Write the chunk header to m_buffer, then send separately
-      int headerLen = m_writeChunkHeader((int)bufferLength);
-      m_stream->write((uint8_t*)m_buffer + CHUNK_HEADER_SIZE - headerLen,
-                      headerLen);
-      m_stream->write(buffer, bufferLength);
-      m_stream->write((const uint8_t*)"\r\n", 2);
-    } else {
-      m_stream->write(buffer, bufferLength);
+    while (written < bufferLength && !getWriteError()) {
+      size_t length = bufferLength - written;
+      bool chunked = m_headersSent && !m_contentLengthSet;
+      if (chunked && length > (size_t)capacity) length = capacity;
+      if (chunked) {
+        int headerLength = m_writeChunkHeader((int)length);
+        m_writeAll(m_buffer + CHUNK_HEADER_SIZE - headerLength, headerLength);
+        if (getWriteError()) break;
+      }
+      written += m_writeAll(buffer + written, length);
+      if (chunked && !getWriteError()) {
+        m_writeAll((const uint8_t*)CRLF, 2);
+      }
     }
   }
+  m_bytesSent += (int)min(written, (size_t)(INT_MAX - m_bytesSent));
+  return written;
+}
 
-  m_bytesSent += bufferLength;
-  return bufferLength;
+void Response::m_failWrite() {
+  setWriteError();
+  m_keepAlive = false;
+  m_responseOpen = false;
+  m_ended = true;
+  m_bufFill = 0;
+  m_stream->stop();
+}
+
+size_t Response::m_writeAll(const uint8_t* buffer, size_t length) {
+  size_t written = 0;
+  while (written < length && !getWriteError()) {
+    size_t count = m_stream->write(buffer + written, length - written);
+    if (count == 0 || count > length - written) {
+      m_failWrite();
+      break;
+    }
+    written += count;
+  }
+  return written;
 }
 
 void Response::writeP(const unsigned char* data, size_t length) {
@@ -222,7 +281,7 @@ void Response::writeP(const unsigned char* data, size_t length) {
     m_printHeaders();
   }
 
-  while (length--) {
+  while (length-- && !getWriteError()) {
     write(pgm_read_byte(data++));
   }
 }
@@ -645,7 +704,7 @@ bool Response::m_shouldPrintHeaders() {
 }
 
 void Response::m_printHeaders() {
-  setDefaults();
+  if (m_headersSent || getWriteError()) return;
   beginHeaders();
   endHeaders();
 }
@@ -653,7 +712,7 @@ void Response::m_printHeaders() {
 void Response::m_printCRLF() { print(CRLF); }
 
 void Response::m_flushBuf() {
-  if (m_bufFill > 0) {
+  if (m_bufFill > 0 && !getWriteError()) {
     if (m_headersSent && !m_contentLengthSet) {
       // Write chunk header into reserved space at start of buffer
       int headerLen = m_writeChunkHeader(m_bufFill);
@@ -664,11 +723,11 @@ void Response::m_flushBuf() {
 
       // Single write: header + data + trailer
       int startOffset = CHUNK_HEADER_SIZE - headerLen;
-      m_stream->write(m_buffer + startOffset,
-                      headerLen + m_bufFill + CHUNK_TRAILER_SIZE);
+      m_writeAll(m_buffer + startOffset,
+                 headerLen + m_bufFill + CHUNK_TRAILER_SIZE);
     } else {
       // No chunking - just write the data portion
-      m_stream->write(m_buffer + CHUNK_HEADER_SIZE, m_bufFill);
+      m_writeAll(m_buffer + CHUNK_HEADER_SIZE, m_bufFill);
     }
 
     m_bufFill = 0;
@@ -678,15 +737,14 @@ void Response::m_flushBuf() {
 void Response::m_finalize() {
   m_flushBuf();
 
-  if (!m_responseOpen && m_headersSent && !m_contentLengthSet) {
+  if (!getWriteError() && !m_responseOpen && m_headersSent && !m_contentLengthSet) {
     // Write final chunk: "0\r\n\r\n"
-    m_stream->write((const uint8_t*)"0\r\n\r\n", 5);
+    m_writeAll((const uint8_t*)"0\r\n\r\n", 5);
   }
 }
 
 // Write chunk size in hex to the reserved header space (right-aligned)
-// Returns the number of characters written (excluding CRLF which is added
-// after)
+// Returns the number of bytes written, including CRLF.
 int Response::m_writeChunkHeader(int dataSize) {
   static const char hexDigits[] = "0123456789abcdef";
 

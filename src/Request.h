@@ -37,7 +37,7 @@ class Request : public Stream {
   int available();
   int availableForWrite();
   int bytesRead();
-  Stream* stream();
+  Client* client();
   void flush();
   bool form(char* name, int nameLength, char* value, int valueLength);
   char* get(const char* name);
@@ -46,7 +46,10 @@ class Request : public Stream {
   char* path();
   int peek();
   void push(uint8_t ch);
+  // Raw encoded query (without ?); path() is percent-decoded.
   char* query();
+  // Match decoded names and decode values; + is a space. Invalid escapes,
+  // decoded NUL, and insufficient capacity fail without overrunning the buffer.
   bool query(const char* name, char* buffer, int bufferLength);
   int read();
   int read(uint8_t* buf, size_t size);
@@ -64,16 +67,14 @@ class Request : public Stream {
   bool m_processMethod();
   bool m_readURL();
   bool m_readVersion();
-  void m_processURL();
-  bool m_processHeaders();
+  bool m_processURL();
+  int m_processHeaders();
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
   void m_setRoute(const char* route, const char* pattern);
-  int m_getUrlPathLength();
   bool m_expect(const char* expected);
   bool m_expectP(const unsigned char* expected);
   bool m_skipSpace();
-  void m_reset();
   int m_timedRead();
   bool m_timedout();
 
@@ -88,7 +89,6 @@ class Request : public Stream {
   int m_bytesRead;
   HeaderNode* m_headerTail;
   char* m_query;
-  int m_queryLength;
   bool m_readTimedout;
   char* m_path;
   int m_pathLength;
