@@ -12,12 +12,11 @@
 // You can also use cURL: curl http://192.168.1.1/update --data-binary "@sketch.bin"
 
 WiFiServer server(80);
-Application app;
+App app;
 
-char expectHeader[20] {};
 bool shouldRestart = false;
 
-void index(Request &req, Response &res) {
+void indexHandler(Request &req, Response &res) {
   res.set("Content-Type", "text/html");
 
   res.println("<html>");
@@ -49,13 +48,14 @@ void index(Request &req, Response &res) {
 void update(Request &req, Response &res) {
   int contentLength = req.left();
 
-  if (strcmp(req.get("Expect"), "100-continue") == 0) {
+  const char* expect = req.get("Expect");
+  if (expect && strcmp(expect, "100-continue") == 0) {
     res.status(100);
   }
 
   if (!Update.begin(contentLength)) {
     res.status(500);
-    return Update.printError(req);
+    return Update.printError(res);
   }
 
   unsigned long start = millis();
@@ -67,12 +67,12 @@ void update(Request &req, Response &res) {
 
   if (Update.writeStream(req) != contentLength) {
     res.status(400);
-    return Update.printError(req);
+    return Update.printError(res);
   }
 
   if (!Update.end(true)) {
     res.status(500);
-    return Update.printError(req);
+    return Update.printError(res);
   }
 
   shouldRestart = true;
@@ -89,8 +89,7 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.header("Expect", expectHeader, 20);
-  app.get("/", &index);
+  app.get("/", &indexHandler);
   app.post("/update", &update);
   server.begin();
 }
@@ -99,7 +98,13 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    char expectHeader[20];
+    Request::HeaderNode headers[] = {
+        {"Expect", expectHeader, sizeof(expectHeader), nullptr}};
+    App::ProcessOptions options;
+    options.headers = headers;
+    options.headerCount = 1;
+    app.process(&client, options);
     client.stop();
   }
 

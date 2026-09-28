@@ -19,7 +19,7 @@ MacOSServer server(8080);
 App app;
 std::atomic<int> activeConnections(0);
 
-void indexCmd(Request& req, Response& res) {
+void indexCmd(Request&, Response& res) {
   res.set("Content-Type", "text/html");
   res.print("<html>\n");
   res.print("<head>\n");
@@ -39,16 +39,20 @@ void handleClient(MacOSClient client) {
   activeConnections--;
 }
 
-void setup() {
+bool startServer() {
   Serial.begin(115200);
-  Serial.println("Server starting on port 8080 (multithreaded)");
 
   app.get("/", &indexCmd);
-  server.begin();
+  if (!server.begin()) return false;
+
+  Serial.println("Server listening on port 8080 (multithreaded)");
+  Serial.flush();
+  return true;
 }
 
 void loop() {
-  MacOSClient client = server.available();
+  // Sleep in poll until a connection arrives instead of spinning while idle.
+  MacOSClient client = server.available(-1);
   if (client.connected()) {
     // Spawn a new thread to handle this client
     std::thread(handleClient, std::move(client)).detach();
@@ -56,7 +60,7 @@ void loop() {
 }
 
 int main() {
-  setup();
+  if (!startServer()) return EXIT_FAILURE;
   while (true) {
     loop();
   }

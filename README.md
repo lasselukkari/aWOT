@@ -1,91 +1,34 @@
-aWOT
-==========
+# aWOT 4.0
 
-Arduino web server library.
+An Arduino HTTP server library that works with Arduino `Client` and `Stream`
+transports. Routes and middleware receive a `Request` and a `Response`; both
+support the Arduino stream/print interfaces.
 
-## Documentation
-#### 1. Getting started
- * [Hello World](https://awot.net/en/starter/hello-world.html)
- * [Basic routing](https://awot.net/en/starter/basic-routing.html)
- * [Application generator](https://awot.net/en/starter/generator.html)
- * [Serving static files](https://awot.net/en/starter/static-files.html)
-#### 2. Guide
- * [Routing](https://awot.net/en/guide/routing.html)
- * [Middleware](https://awot.net/en/guide/middleware.html)
- * [Working with JSON data](https://awot.net/en/guide/json.html)
- * [Tutorial: Deploying a React app on the ESP32](https://awot.net/en/guide/tutorial.html)
-#### 3. API Reference
- * [Application](https://awot.net/en/3x/api.html#app)
- * [Request](https://awot.net/en/3x/api.html#req)
- * [Response](https://awot.net/en/3x/api.html#res)
- * [Router](https://awot.net/en/3x/api.html#router)
+## Arduino Uno and Ethernet
 
-## Compatibility
+Install aWOT and the Arduino Ethernet library. This example uses DHCP with a
+W5100 or W5500 shield:
 
-The aWOT web server library has been designed to work with all Arduino compatible development boards and networking options. This also means that switching the board or changing from WiFi to Ethernet will require minimal changes. The examples directory shows you how to use the library with the most popular Ethernet and WiFi libraries 
-
-However there are few subtle differences that need to be taken into account. Also unfortunately some of the WiFi and Ethernet libraries have bugs that prevent the library from working properly.
-
-Previously the library has been tested with:
-- Adafruit Feather M0 WiFi
-- Arduino UNO + WIZnet W5100
-- Arduino Mega + WIZnet W5100
-- Arduino Due + WIZnet W5100
-- Arduino MKR WiFi 1010 (see notes)
-- Teensy 3.0 + WIZnet W5200
-- Teensy 4.1 Ethernet (see notes)
-- ESP32 + Wiznet W5500 Ethernet (see notes)
-- ESP32 + LAN8270 Ethernet
-- ESP32 WiFi
-- ESP8266 WiFi
-
-#### ESP32 and ESP8266 WiFi
-
-In both of the ESP Arduino cores the WiFiClient closes the connection automatically in the class destructor. This means that the client.stop(), does not need to be explicitly called but you will need to take extra steps if you want to keep the connection alive.
-
-#### ESP32 + Wiznet W5500
-The current version of the ESP32 Arduino core uses a non standard version of the Server class. Until the ESP32 core is fixed you need to manually modify the begin function in the Server.h if you want to use the Ethernet library that is shipped with the core.
-
-Bug report: https://github.com/espressif/arduino-esp32/issues/2704
-
-#### Teensy 4.1 + Ethernet
-The Teensy 4.1 Ethernet library currently has a bug that causes the connection to stall and reset when connections to the server are opened in fast phase. The bug has been verified but not fixed yet.
-
-Bug report: https://github.com/vjmuzik/NativeEthernet/issues/7
-
-#### Arduino UNO
-Because of the limited RAM and ROM Arduino UNO is on the edge of being usable for anything more complicated. If you want to use this library together with the SD card or any JSON parsing library, pay attention that you do not run out of memory.
-
-## Examples
-### Hello World
 ```cpp
-#include <WiFi.h>
+#include <Ethernet.h>
 #include <aWOT.h>
 
-WiFiServer server(80);
-Application app;
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+EthernetServer server(80);
+App app;
 
-void index(Request &req, Response &res) {
-  res.print("Hello World!");
+void indexHandler(Request& req, Response& res) {
+  res.print(F("Hello World!"));
 }
 
 void setup() {
-  Serial.begin(115200);
-
-  WiFi.begin("ssid", "password");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println(WiFi.localIP());
-
-  app.get("/", &index);
+  Ethernet.begin(mac);
+  app.get("/", indexHandler);
   server.begin();
 }
 
-void loop() {  
-  WiFiClient client = server.available();
-
+void loop() {
+  EthernetClient client = server.available();
   if (client.connected()) {
     app.process(&client);
     client.stop();
@@ -93,122 +36,200 @@ void loop() {
 }
 ```
 
-### Query parameters
+The [Ethernet example](examples/Ethernet/Ethernet.ino) serves a page stored in
+program memory. The [SerialBridge example](examples/SerialBridge/SerialBridge.ino)
+uses Ethernet 2.x, a static IP, one WebSocket client, and a 64-byte receive buffer
+for Uno. Change its IP address to suit your network.
+
+[WiFi](examples/WiFi/WiFi.ino), [member callbacks](examples/MemberFunction/MemberFunction.ino),
+[request context](examples/RequestContext/RequestContext.ino),
+[keep-alive](examples/KeepAlive/KeepAlive.ino), and
+[static files](examples/FileServer/FileServer.ino) have separate examples for
+boards with more memory.
+
+## Migrating from 3.x
+
+- Replace `Application` with `App`.
+- Pass captured request headers, custom buffers, and context in
+  `App::ProcessOptions`. `app.header(...)` and `process(client, context)` are
+  replaced by the per-request options below.
+- Call `req.next()` when middleware should continue to the next matching
+  handler. Returning from a handler alone stops dispatch.
+- Mount a router with `app.use("/prefix", &router)`. Routers and applications
+  cannot be copied; mounted routers must outlive the application using them.
+- Use `WsChannel` and `WsMessage` for WebSockets. Include `<WsChannel.h>`
+  explicitly. The [chat example](examples/ChatRoom/ChatRoom.ino) shows header
+  capture, upgrades, callbacks, and rooms.
+- Use `SseChannel` from `<SseChannel.h>` for server-sent events. The
+  [SSE example](examples/ServerSentEvents/ServerSentEvents.ino) shows how to retain
+  the client after opening the response.
+
+## Routes and middleware
+
 ```cpp
-// HTTP GET /cats?type=lolcat
-void queryParams(Request &req, Response &res) {
-  char type[64];
-  req.query("type", type, 64);
-
-  res.print(type); // "lolcat"
-}
-
-void setup() {
-  // other setup ...
-  app.get("/cats", &queryParams);
-}
-```
-
-### Route paramaters
-```cpp
-// HTTP GET /cats/lolcat
-void routeParams(Request &req, Response &res) {
-  char catId[64];
-  req.route("catId", catId, 64);
-
-  res.print(catId);
-}
-
-void setup() {
-  // other setup
-  app.get("/cats/:catId", &routeParams);
-}
-```
-
-### Post parameters
-```cpp
-void postParams(Request &req, Response &res) {
-  char name[10];
-  char value[64];
-
-  while (req.left()) {
-    req.form(name, 10, value, 64);
-    res.print(name);
-    res.print(": ");
-    res.println(value);
-  }
-}
-
-void setup() {
-  // other setup
-
-  app.post("/form", &postParams);
-}
-```
-
-### Reading and writing headers
-```cpp
-char userAgentBuffer[200];
-
-// HTTP GET /headers
-void headers(Request &req, Response &res) {
-  char * userAgent = req.get("User-Agent"); // "Mozilla/5.0 (Macintosh; Inte ...."
-
-  res.set("Cookie", "lolcat"); // will set Cookie header value to "lolcat"
-  res.print(userAgent);
-}
-
-void setup() {
-  // other setup
-
-  // header names are handled case insensitive
-  app.header("User-Agent", userAgentBuffer, 200); 
-  app.get("/useragent", &headers);
-}
-```
-
-### Routers
-```cpp
-Application app;
 Router cats;
 
-void looooong(Request &req, Response &res) {
-  res.print("looooong cat is long!");
+void logRequest(Request& req, Response& res) {
+  Serial.println(req.path());
+  req.next();
 }
 
-void ceiling(Request &req, Response &res) {
-  res.print("ceiling cat is watching you debug!");
+void cat(Request& req, Response& res) {
+  char id[32];
+  if (!req.route("id", id, sizeof(id))) return res.sendStatus(400);
+  res.print(id);
 }
 
-void nyannyan(Request &req, Response &res) {
-  for (int i = 0; i < 100; i++) {
-      res.print("nyan ");
-  }
-}
-
-void setup() {
-  // other setup
-
-  cats.get("/long", &looooong);
-  cats.get("/ceiling", &ceiling);
-  cats.get("/nyan", &nyannyan);
-
+void registerRoutes() {
+  app.use(logRequest);
+  cats.get("/:id", cat);
   app.use("/cats", &cats);
 }
 ```
 
-### Reducing memory usage
-If you need to reduce the memory consumption add `#define LOW_MEMORY_MCU` before you import the library. This will reduce the size of a few internal buffers. Normally this is only used for the smallest AVR boards but it can be enabled for others if needed.
+`get`, `head`, `post`, `put`, `patch`, `del`, and `options` register method-specific
+handlers. `use` registers middleware or mounts another router. `notFound`
+customizes the fallback response, and `finally` runs after dispatch. A middleware
+that rejects a request should send its response and return without `req.next()`.
 
-Also use the `P` macro to place any strings in to the program memory instead of wasting the precious RAM.
+## Request parameters and headers
 
+`req.path()` contains the decoded path; `req.query()` contains the raw query.
+Named query parameters and form fields are decoded into caller-owned buffers.
+Buffer capacities include the terminating NUL; check the returned boolean for
+missing, malformed, or oversized values.
+
+```cpp
+void search(Request& req, Response& res) {
+  char term[64];
+  if (!req.query("q", term, sizeof(term))) return res.sendStatus(400);
+  res.print(term);
+}
 ```
-P(longString) = "Lots of text here...";
-res.printP(longString);
+
+Capture only the headers a handler needs. Their buffers and the options remain
+alive for the duration of `process()`; header values are cleared when processing
+finishes.
+
+```cpp
+void handleClient(Client& client, void* context) {
+  char userAgent[128];
+  Request::HeaderNode headers[] = {
+      {"User-Agent", userAgent, sizeof(userAgent), nullptr}};
+  App::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 1;
+  options.context = context;
+  app.process(&client, options);
+}
+
+void showAgent(Request& req, Response& res) {
+  const char* agent = req.get("User-Agent");
+  res.print(agent ? agent : "Unknown");
+}
 ```
 
-## Acknowledgements
-Based on Webduino, Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes, Francisco M Cuenca-Acuna
+Form bodies can be read field by field with
+`req.form(name, sizeof(name), value, sizeof(value))`, or through `req.read()`,
+`req.readBytes()`, and other `Stream` methods. `req.left()` reports the remaining
+Content-Length. Incoming chunked request bodies are unsupported and rejected.
 
-## Licence
-MIT
+## Responses and connections
+
+Set response headers before writing the body. `res.sendStatus(code)` sends the
+standard status text when the status permits a body. `res.status(code)` selects
+a status for a custom response. Header and body writes are finalized when
+`process()` returns.
+
+`App::ProcessResult` describes connection ownership:
+
+- `responseOpen`: the handler called `res.keepOpen()`, or upgraded the connection.
+  Retain the transport for the channel to use after `process()`.
+- `keepAlive`: the HTTP response and request body completed successfully and the
+  connection can process another request. The caller still owns the client and
+  its idle timeout.
+- Otherwise, stop the client.
+
+For SSE, call `events.open(res)` in the route, then `events.add(client)` when
+`process()` returns `responseOpen`. WebSocket `upgrade(req, res)` retains a copy
+of the underlying client itself. Channel client types must match the transport
+passed to `process()` and support copying the connection handle. Call
+`sockets.poll()` regularly to process incoming frames and heartbeats.
+
+## Memory and build configuration
+
+Uno automatically uses a 64-byte URL buffer and 32-byte output and pushback
+buffers. Route nodes are allocated when routes are registered. Keep route tables
+and channel capacities small, and store fixed response strings in flash:
+
+```cpp
+P(page) = "<html><body>Hello</body></html>";
+res.printP(page);
+```
+
+`ProcessOptions` can supply a URL buffer and output buffer for an individual
+request. Null pointers select defaults. A URL buffer needs at least two bytes;
+an output buffer must be larger than `CHUNK_OVERHEAD`.
+
+Advanced builds can override `SERVER_URL_BUFFER_SIZE`,
+`SERVER_OUTPUT_BUFFER_SIZE`, `SERVER_PUSHBACK_BUFFER_SIZE`, or `LOW_MEMORY_MCU`
+with compiler flags applied to **all library and sketch translation units**.
+Defining these only in a sketch cannot change the separately compiled library.
+The same rule applies to `AWOT_NO_STD_FUNCTION_MIDDLEWARE`, which selects function
+pointers instead of automatic `std::function` support. Member-function binding
+and capturing lambdas require the latter.
+
+WebSocket channels default to 256-byte incoming frames. A sketch can set
+`WS_RX_BUFFER_SIZE` before including `<WsChannel.h>`; use the same definition in
+all translation units that instantiate that channel. Frames must be masked and
+unfragmented. Oversized frames are closed with code 1009. At most 32 rooms are
+supported. Room names must remain alive for the channel's lifetime.
+
+See [source contracts](src/README.md) for buffer boundaries, parsing behavior,
+and transport failure handling.
+
+## Development
+
+The native C++11 tests use the Arduino stubs in `test/epoxy`:
+
+```sh
+cmake -S test -B /tmp/awot-tests
+cmake --build /tmp/awot-tests --parallel
+ctest --test-dir /tmp/awot-tests --output-on-failure
+```
+
+Run with AddressSanitizer and UndefinedBehaviorSanitizer:
+
+```sh
+cmake -S test -B /tmp/awot-sanitized -DAWOT_ENABLE_SANITIZERS=ON
+cmake --build /tmp/awot-sanitized --parallel
+ctest --test-dir /tmp/awot-sanitized --output-on-failure
+```
+
+The smaller configuration also tests function-pointer callbacks consistently
+across the library and test translation units:
+
+```sh
+cmake -S test -B /tmp/awot-small -DAWOT_ENABLE_SANITIZERS=ON \
+  -DAWOT_NO_STD_FUNCTION_MIDDLEWARE=ON -DAWOT_SMALL_BUFFERS=ON
+cmake --build /tmp/awot-small --parallel
+ctest --test-dir /tmp/awot-small --output-on-failure
+```
+
+Compile the Uno examples with the Arduino CLI:
+
+```sh
+arduino-cli core install arduino:avr
+arduino-cli lib install Ethernet
+arduino-cli compile --fqbn arduino:avr:uno --library . examples/Ethernet
+arduino-cli compile --fqbn arduino:avr:uno --library . examples/SerialBridge
+```
+
+CI runs native tests on Linux and macOS, sanitizer and small-buffer configurations
+on Linux, and example builds for Uno, Leonardo, Mega, Due, and ESP32. Native tests
+do not measure on-device stack usage or network timing.
+
+## Acknowledgements and license
+
+Based on Webduino, Copyright 2009–2014 Ben Combee, Ran Talbott, Christopher Lee,
+Martin Lormes, Francisco M Cuenca-Acuna. Licensed under [MIT](LICENSE).

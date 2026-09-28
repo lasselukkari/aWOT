@@ -34,7 +34,7 @@
 #if defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) && defined(STD_FUNCTION_MIDDLEWARE)
 #error "Conflicting aWOT middleware configuration"
 #endif
-#if !defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) && \
+#if !defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) &&                               \
     (defined(STD_FUNCTION_MIDDLEWARE) || defined(ESP8266) || defined(ESP32) || \
      (defined(__has_include) && __has_include(<functional>)))
 #ifndef STD_FUNCTION_MIDDLEWARE

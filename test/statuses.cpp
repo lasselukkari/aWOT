@@ -16,8 +16,8 @@ unittest(status_continue) {
 
   const char* expected =
       "HTTP/1.1 100 Continue" CRLF "Before-Continue: TestBefore" CRLF CRLF
-      "HTTP/1.1 204 No Content" CRLF "Before-Continue: TestBefore" CRLF
-      "After-Continue: TestAfter" CRLF "Connection: close" CRLF CRLF;
+      "HTTP/1.1 204 No Content" CRLF "After-Continue: TestAfter" CRLF
+      "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
   App app;

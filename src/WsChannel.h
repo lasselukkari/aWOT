@@ -6,17 +6,19 @@
 
   Usage:
     // Transport must match what your server accepts (e.g. WiFiClient).
-    WsChannel<WiFiClient, 4, 8> ws;  // 4 max sockets, 8 max rooms
+    WsChannel<WiFiClient, 4, 8> sockets;  // 4 max sockets, 8 max rooms
 
     void onUpgrade(Request& req, Response& res) {
-      if (!ws.upgrade(req, res)) res.sendStatus(400);
+      if (!sockets.upgrade(req, res)) res.sendStatus(400);
     }
 
-    // Register /api/ws, call ws.poll() from loop(), broadcast via
-    // ws.to(roomIdx, ...), ws.send(socketId, ...), ws.broadcast(...).
+    // Register /api/ws, call sockets.poll() from loop(), broadcast via
+    // sockets.to(roomIdx, ...), sockets.send(socketId, ...),
+  sockets.broadcast(...).
 
-  Compromises (documented in aWOT plan):
-    - Single-fragment frames only (FIN must be 1; continuation opcode closes 1003).
+  Limitations:
+    - Single-fragment frames only (FIN must be 1; continuation opcode closes
+  1003).
     - Payload cap = WS_RX_BUFFER_SIZE (default 256). Oversize closes 1009.
     - MAX_ROOMS <= 32 (room membership stored as uint32_t bitmap).
     - Polled, single-threaded; call poll() from loop().
@@ -50,8 +52,10 @@ namespace awot {
 
 template <typename TClient, int N, int MAX_ROOMS = 8>
 class WsChannel {
-  static_assert(MAX_ROOMS > 0 && MAX_ROOMS <= 32,
-                "MAX_ROOMS must be in 1..32 (room membership is a uint32_t bitmap)");
+  static_assert(N > 0, "N must be positive");
+  static_assert(
+      MAX_ROOMS > 0 && MAX_ROOMS <= 32,
+      "MAX_ROOMS must be in 1..32 (room membership is a uint32_t bitmap)");
 
  public:
 #ifdef STD_FUNCTION_MIDDLEWARE
@@ -83,10 +87,13 @@ class WsChannel {
     const char* key = req.get("Sec-WebSocket-Key");
     const char* version = req.get("Sec-WebSocket-Version");
 
+    if (req.method() != Request::GET || req.minorVersion() != 1 || req.left()) {
+      return false;
+    }
     if (!upgrade || !connection || !key || !version) return false;
-    if (App::strcmpi(upgrade, "websocket") != 0) return false;
+    if (!matchesValue(upgrade, "websocket")) return false;
     if (!containsToken(connection, "upgrade")) return false;
-    if (strcmp(version, "13") != 0) return false;
+    if (!matchesValue(version, "13") || !validKey(key)) return false;
 
     Client* c = req.client();
     if (!c) return false;
@@ -109,7 +116,6 @@ class WsChannel {
     res.keepOpen();
 
     m_slots[slot].client = *static_cast<TClient*>(c);
-    m_slots[slot].client.setNoDelay(true);
     m_slots[slot].active = true;
     m_rooms[slot] = 0;
     resetRxState(slot);
@@ -216,7 +222,7 @@ class WsChannel {
 
   void close(int socketId, uint16_t code = 1000) {
     if (!validSocket(socketId) || !m_slots[socketId].active) return;
-    closeSlot(socketId, code);
+    closeSlot(socketId, validCloseCode(code) ? code : 1002);
   }
 
   // -------- callbacks --------
@@ -310,15 +316,21 @@ class WsChannel {
     } else {
       h[1] = 127;
       h[2] = h[3] = h[4] = h[5] = 0;
-      h[6] = (uint8_t)((len >> 24) & 0xFF);
-      h[7] = (uint8_t)((len >> 16) & 0xFF);
+      h[6] = (uint8_t)(((uint32_t)len >> 24) & 0xFF);
+      h[7] = (uint8_t)(((uint32_t)len >> 16) & 0xFF);
       h[8] = (uint8_t)((len >> 8) & 0xFF);
       h[9] = (uint8_t)(len & 0xFF);
       hl = 10;
     }
-    if (c.write(h, hl) != (size_t)hl) return false;
-    if (len > 0) {
-      if (c.write(data, len) != len) return false;
+    return writeAll(c, h, hl) && writeAll(c, data, len);
+  }
+
+  static bool writeAll(TClient& c, const uint8_t* data, size_t length) {
+    while (length) {
+      size_t written = c.write(data, length);
+      if (!written || written > length) return false;
+      data += written;
+      length -= written;
     }
     return true;
   }
@@ -381,7 +393,7 @@ class WsChannel {
           return;
         }
         if (!fin) {
-          closeSlot(i, 1003);  // fragmentation unsupported
+          closeSlot(i, (s.rxOpcode & 0x8) ? 1002 : 1003);
           return;
         }
         if (!masked) {
@@ -390,6 +402,11 @@ class WsChannel {
         }
         if (s.rxOpcode == 0x0) {
           closeSlot(i, 1003);  // continuation unsupported
+          return;
+        }
+        if (s.rxOpcode != 0x1 && s.rxOpcode != 0x2 && s.rxOpcode != 0x8 &&
+            s.rxOpcode != 0x9 && s.rxOpcode != 0xA) {
+          closeSlot(i, 1002);
           return;
         }
 
@@ -421,7 +438,15 @@ class WsChannel {
         } else if (len7 == 126) {
           len = ((uint32_t)s.rxHeader[2] << 8) | s.rxHeader[3];
           off = 4;
+          if (len < 126) {
+            closeSlot(i, 1002);
+            return;
+          }
         } else {
+          if (s.rxHeader[2] & 0x80) {
+            closeSlot(i, 1002);
+            return;
+          }
           for (int k = 0; k < 4; k++) {
             if (s.rxHeader[2 + k] != 0) {
               closeSlot(i, 1009);
@@ -432,6 +457,10 @@ class WsChannel {
                 ((uint32_t)s.rxHeader[7] << 16) |
                 ((uint32_t)s.rxHeader[8] << 8) | s.rxHeader[9];
           off = 10;
+          if (len <= 0xFFFF) {
+            closeSlot(i, 1002);
+            return;
+          }
         }
         if (len > WS_RX_BUFFER_SIZE) {
           closeSlot(i, 1009);
@@ -446,7 +475,8 @@ class WsChannel {
       while (s.rxFilledPayload < s.rxExpected && s.client.available() > 0) {
         uint32_t remaining = s.rxExpected - s.rxFilledPayload;
         int avail = s.client.available();
-        uint32_t chunk = (uint32_t)avail < remaining ? (uint32_t)avail : remaining;
+        uint32_t chunk =
+            (uint32_t)avail < remaining ? (uint32_t)avail : remaining;
         int got = s.client.read(s.rxPayload + s.rxFilledPayload, chunk);
         if (got <= 0) break;
         s.rxFilledPayload += (uint32_t)got;
@@ -470,8 +500,12 @@ class WsChannel {
   void dispatchFrame(int i) {
     Slot& s = m_slots[i];
     switch (s.rxOpcode) {
-      case 0x1:  // text
+      case 0x1:    // text
       case 0x2: {  // binary
+        if (s.rxOpcode == 0x1 && !validUtf8(s.rxPayload, s.rxExpected)) {
+          closeSlot(i, 1007);
+          return;
+        }
         if (m_onMessage) {
           WsMessage msg(s.rxPayload, s.rxExpected, s.rxOpcode, i);
           m_onMessage(msg);
@@ -479,17 +513,27 @@ class WsChannel {
         break;
       }
       case 0x8: {  // close
-        uint8_t echo[2] = {0x03, 0xE8};  // 1000
-        if (s.rxExpected >= 2) {
-          echo[0] = s.rxPayload[0];
-          echo[1] = s.rxPayload[1];
+        if (s.rxExpected == 1) {
+          closeSlot(i, 1002);
+          return;
         }
-        writeFrame(s.client, 0x8, echo, 2);
+        if (s.rxExpected >= 2) {
+          uint16_t code = ((uint16_t)s.rxPayload[0] << 8) | s.rxPayload[1];
+          if (!validCloseCode(code)) {
+            closeSlot(i, 1002);
+            return;
+          }
+          if (!validUtf8(s.rxPayload + 2, s.rxExpected - 2)) {
+            closeSlot(i, 1007);
+            return;
+          }
+        }
+        writeFrame(s.client, 0x8, s.rxPayload, s.rxExpected);
         deactivate(i);
         break;
       }
       case 0x9:  // ping
-        writeFrame(s.client, 0xA, s.rxPayload, s.rxExpected);
+        sendFrame(i, 0xA, s.rxPayload, s.rxExpected);
         break;
       case 0xA:  // pong
         s.awaitingPong = false;
@@ -498,6 +542,73 @@ class WsChannel {
         closeSlot(i, 1003);
         break;
     }
+  }
+
+  static bool validCloseCode(uint16_t code) {
+    return (code >= 1000 && code <= 1014 && code != 1004 && code != 1005 &&
+            code != 1006) ||
+           (code >= 3000 && code <= 4999);
+  }
+
+  static bool validUtf8(const uint8_t* data, size_t length) {
+    size_t i = 0;
+    while (i < length) {
+      uint8_t first = data[i++];
+      if (first < 0x80) continue;
+      uint8_t remaining;
+      uint8_t low = 0x80, high = 0xBF;
+      if (first >= 0xC2 && first <= 0xDF) {
+        remaining = 1;
+      } else if (first >= 0xE0 && first <= 0xEF) {
+        remaining = 2;
+        if (first == 0xE0) low = 0xA0;
+        if (first == 0xED) high = 0x9F;
+      } else if (first >= 0xF0 && first <= 0xF4) {
+        remaining = 3;
+        if (first == 0xF0) low = 0x90;
+        if (first == 0xF4) high = 0x8F;
+      } else {
+        return false;
+      }
+      if (length - i < remaining || data[i] < low || data[i] > high)
+        return false;
+      ++i;
+      while (--remaining) {
+        if (data[i] < 0x80 || data[i] > 0xBF) return false;
+        ++i;
+      }
+    }
+    return true;
+  }
+
+  static bool validKey(const char* key) {
+    while (*key == ' ' || *key == '\t') ++key;
+    for (int i = 0; i < 22; ++i) {
+      char c = key[i];
+      if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '+' || c == '/'))
+        return false;
+    }
+    // Sixteen bytes have two padding characters and four unused zero bits.
+    if (key[21] != 'A' && key[21] != 'Q' && key[21] != 'g' && key[21] != 'w') {
+      return false;
+    }
+    if (key[22] != '=' || key[23] != '=') return false;
+    key += 24;
+    while (*key == ' ' || *key == '\t') ++key;
+    return !*key;
+  }
+
+  static bool matchesValue(const char* value, const char* expected) {
+    while (*value == ' ' || *value == '\t') ++value;
+    while (*expected) {
+      if (tolower((unsigned char)*value++) !=
+          tolower((unsigned char)*expected++)) {
+        return false;
+      }
+    }
+    while (*value == ' ' || *value == '\t') ++value;
+    return !*value;
   }
 
   // Compare complete comma-separated tokens, ignoring surrounding OWS.
@@ -511,11 +622,13 @@ class WsChannel {
       while (*end && *end != ',') ++end;
       const char* trimmedEnd = end;
       while (trimmedEnd > start &&
-             (trimmedEnd[-1] == ' ' || trimmedEnd[-1] == '\t')) --trimmedEnd;
+             (trimmedEnd[-1] == ' ' || trimmedEnd[-1] == '\t'))
+        --trimmedEnd;
       if ((size_t)(trimmedEnd - start) == length) {
         size_t i = 0;
         while (i < length && tolower((unsigned char)start[i]) ==
-                                 tolower((unsigned char)needle[i])) ++i;
+                                 tolower((unsigned char)needle[i]))
+          ++i;
         if (i == length) return true;
       }
       start = *end ? end + 1 : end;

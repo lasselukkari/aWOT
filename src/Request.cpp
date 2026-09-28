@@ -238,7 +238,9 @@ int Request::read(uint8_t* buf, size_t size) {
 }
 
 bool Request::route(const char* name, char* buffer, int bufferLength) {
-  if (!m_pattern || !name || !buffer || bufferLength <= 0) return false;
+  if (!m_pattern || !*m_pattern || !name || !buffer || bufferLength <= 0) {
+    return false;
+  }
   int part = 0;
   int i = 1;
 
@@ -309,19 +311,40 @@ bool Request::m_processMethod() {
   // Try each verb in sequence, but stop as soon as a read has timed out —
   // otherwise a client that connects and never sends data costs us one
   // full Stream::_timeout per verb (seven of them).
-  if (m_expectP(GET_VERB))     { m_method = GET;     return true; }
+  if (m_expectP(GET_VERB)) {
+    m_method = GET;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(HEAD_VERB))    { m_method = HEAD;    return true; }
+  if (m_expectP(HEAD_VERB)) {
+    m_method = HEAD;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(POST_VERB))    { m_method = POST;    return true; }
+  if (m_expectP(POST_VERB)) {
+    m_method = POST;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(PUT_VERB))     { m_method = PUT;     return true; }
+  if (m_expectP(PUT_VERB)) {
+    m_method = PUT;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(DELETE_VERB))  { m_method = DELETE;  return true; }
+  if (m_expectP(DELETE_VERB)) {
+    m_method = DELETE;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(PATCH_VERB))   { m_method = PATCH;   return true; }
+  if (m_expectP(PATCH_VERB)) {
+    m_method = PATCH;
+    return true;
+  }
   if (m_readTimedout) return false;
-  if (m_expectP(OPTIONS_VERB)) { m_method = OPTIONS; return true; }
+  if (m_expectP(OPTIONS_VERB)) {
+    m_method = OPTIONS;
+    return true;
+  }
   return false;
 }
 
@@ -341,19 +364,13 @@ bool Request::m_readURL() {
 }
 
 bool Request::m_readVersion() {
-  while (!m_expect(CRLF)) {
-    P(HTTP_10) = "1.0";
-    P(HTTP_11) = "1.1";
-
-    if (m_expectP(HTTP_10)) {
-      m_minorVersion = 0;
-    } else if (m_expectP(HTTP_11)) {
-      m_minorVersion = 1;
-    } else if (m_timedRead() == -1) {
-      return false;
-    }
+  P(HTTP_VERSION) = "HTTP/1.";
+  for (size_t i = 0; pgm_read_byte(HTTP_VERSION + i); ++i) {
+    if (m_timedRead() != pgm_read_byte(HTTP_VERSION + i)) return false;
   }
-
+  int minor = m_timedRead();
+  if ((minor != '0' && minor != '1') || !m_expect(CRLF)) return false;
+  m_minorVersion = minor - '0';
   return true;
 }
 
@@ -396,20 +413,13 @@ int Request::m_processHeaders() {
       P(TransferEncoding) = "Transfer-Encoding:";
       // Request transfer codings are unsupported, including chunked.
       if (m_expectP(TransferEncoding)) return 400;
-      HeaderNode* headerNode = m_headerTail;
-
-      while (headerNode != NULL) {
-        P(headerSeparator) = ":";
-        if (m_expect(headerNode->name) && m_expectP(headerSeparator)) {
-          if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
-            return 431;
-          }
-
-          canEnd = true;
-          break;
+      HeaderNode* headerNode;
+      if (!m_headerName(headerNode)) return 400;
+      if (headerNode) {
+        if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
+          return 431;
         }
-
-        headerNode = headerNode->next;
+        canEnd = true;
       }
     }
 
@@ -427,6 +437,47 @@ int Request::m_processHeaders() {
   m_readingContent = true;
 
   return 0;
+}
+
+bool Request::m_headerName(HeaderNode*& header) {
+  header = m_headerTail;
+  size_t matched = 0;
+  bool hasName = false;
+  int ch;
+  while ((ch = m_timedRead()) != -1) {
+    if (ch != ':') {
+      bool token = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') ||
+                   (ch >= 'a' && ch <= 'z') ||
+                   (ch > 0 && strchr("!#$%&'*+-.^_`|~", ch));
+      if (!token) return false;
+      hasName = true;
+    }
+
+    int expected = ch == ':' ? 0 : tolower(ch);
+    if (header && tolower((unsigned char)header->name[matched]) != expected) {
+      // The current candidate remembers the prefix already read. Find the
+      // next candidate with that prefix and this character without rewinding
+      // the stream or storing a copy of an arbitrarily long field name.
+      HeaderNode* candidate = header->next;
+      while (candidate) {
+        size_t i = 0;
+        while (i < matched && candidate->name[i] &&
+               tolower((unsigned char)candidate->name[i]) ==
+                   tolower((unsigned char)header->name[i])) {
+          ++i;
+        }
+        if (i == matched &&
+            tolower((unsigned char)candidate->name[i]) == expected) {
+          break;
+        }
+        candidate = candidate->next;
+      }
+      header = candidate;
+    }
+    if (ch == ':') return hasName;
+    if (header) ++matched;
+  }
+  return false;
 }
 
 bool Request::m_headerValue(char* buffer, int bufferLength) {

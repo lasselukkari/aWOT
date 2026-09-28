@@ -69,6 +69,7 @@ class Request : public Stream {
   bool m_readVersion();
   bool m_processURL();
   int m_processHeaders();
+  bool m_headerName(HeaderNode*& header);
   bool m_headerValue(char* buffer, int bufferLength);
   bool m_readInt(int& number);
   void m_setRoute(const char* route, const char* pattern);

@@ -1,130 +1,71 @@
 /*
-  SerialBridge.ino - Serial to WebSocket bridge for Arduino UNO + Ethernet
-  Shield
-
-  This example demonstrates the Stream-based WebSocket API by creating a
-  bidirectional bridge between Serial and WebSocket clients. Uses minimal
-  RAM suitable for Arduino UNO.
-
-  Hardware: Arduino UNO + Ethernet Shield (W5100/W5500)
+  Serial to WebSocket bridge for Arduino Uno + W5100/W5500 Ethernet shield.
+  Install the Ethernet 2.x library and adjust the static IP for your network.
+  One socket and a 64-byte receive limit leave room for HTTP parsing on Uno.
 */
-
 #include <Ethernet.h>
 #include <aWOT.h>
 
-// MAC address for Ethernet shield
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+#define WS_RX_BUFFER_SIZE 64
+#include <WsChannel.h>
 
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+IPAddress ip(192, 168, 1, 177);
 EthernetServer server(80);
 App app;
-awot::WebSocket ws;
-
-// Simple HTML page in PROGMEM
-P(indexHtml) =
-    "<!DOCTYPE html><html><head><title>Serial Bridge</title>"
-    "<style>body{font-family:monospace;background:#1a1a2e;color:#0f0;padding:"
-    "20px}"
-    "#t{background:#000;padding:10px;height:300px;overflow-y:auto;white-space:"
-    "pre-wrap;border:1px solid #0f0}"
-    "input{background:#000;color:#0f0;border:1px solid "
-    "#0f0;padding:5px;width:70%}"
-    "button{background:#0f0;color:#000;border:none;padding:5px "
-    "10px}</style></head>"
-    "<body><h2>Serial Bridge</h2><div id='t'></div>"
-    "<input id='i' onkeypress=\"if(event.key==='Enter')s()\">"
-    "<button onclick='s()'>Send</button>"
-    "<script>var t=document.getElementById('t'),i=document.getElementById('i'),"
-    "w=new WebSocket('ws://'+location.host+'/ws');"
-    "w.onmessage=function(e){t.textContent+=e.data;t.scrollTop=t.scrollHeight};"
-    "w.onopen=function(){t.textContent='Connected\\n'};"
-    "function "
-    "s(){if(i.value){w.send(i.value);i.value=''}}</script></body></html>";
+WsChannel<EthernetClient, 1, 1> sockets;
 
 void indexHandler(Request& req, Response& res) {
+  P(page) =
+      "<!doctype html><title>Serial bridge</title><input id='text' maxlength='64'>"
+      "<button onclick='ws.send(text.value)'>Send</button><pre id='log'></pre>"
+      "<script>var ws=new WebSocket('ws://'+location.host+'/ws');"
+      "ws.binaryType='arraybuffer';ws.onmessage=e=>log.textContent+="
+      "typeof e.data==='string'?e.data:new TextDecoder().decode(e.data);</script>";
   res.set("Content-Type", "text/html");
-  res.printP(indexHtml);
+  res.printP(page);
 }
 
 void wsHandler(Request& req, Response& res) {
-  char key[32] = {0};
-  char* keyHeader = req.get("Sec-WebSocket-Key");
-  if (keyHeader) {
-    strncpy(key, keyHeader, sizeof(key) - 1);
-  }
-
-  if (ws.upgrade(req.stream(), key)) {
-    res.keepOpen();
-  } else {
-    res.sendStatus(400);
-  }
+  if (!sockets.upgrade(req, res)) res.sendStatus(400);
 }
 
-// WebSocket message handler - using Stream interface
-void onMessage(awot::WebSocketMessage& msg) {
-  // Read message and forward to Serial
-  while (msg.available()) {
-    int byte = msg.read();
-    if (byte >= 0) {
-      Serial.write(byte);
-    }
-  }
-  Serial.println();  // Add newline
-
-  // Echo confirmation back to sender
-  msg.print("> OK\n");
-}
-
-void onConnect(int clientId) {
-  Serial.print(F("WS client connected: "));
-  Serial.println(clientId);
-}
-
-void onDisconnect(int clientId) {
-  Serial.print(F("WS client disconnected: "));
-  Serial.println(clientId);
+void onMessage(WsMessage& msg) {
+  while (msg.available()) Serial.write((uint8_t)msg.read());
+  Serial.println();
+  sockets.send(msg.socketId(), "> OK\n");
 }
 
 void setup() {
   Serial.begin(9600);
-
-  // Initialize Ethernet with DHCP
-  Serial.println(F("Starting Ethernet..."));
-  if (Ethernet.begin(mac) == 0) {
-    Serial.println(F("DHCP failed, using fallback IP"));
-    Ethernet.begin(mac, IPAddress(192, 168, 1, 177));
-  }
-
-  Serial.print(F("IP: "));
+  Ethernet.begin(mac, ip);
   Serial.println(Ethernet.localIP());
-
-  // Setup WebSocket handlers
-  ws.onMessage(onMessage);
-  ws.onConnect(onConnect);
-  ws.onDisconnect(onDisconnect);
-
-  // Setup routes
-  app.get("/", &indexHandler);
-  app.get("/ws", &wsHandler);
-
+  sockets.onMessage(onMessage);
+  app.get("/", indexHandler);
+  app.get("/ws", wsHandler);
   server.begin();
-  Serial.println(F("Server ready"));
 }
 
 void loop() {
-  EthernetClient client = server.available();
-
-  if (client.connected()) {
-    app.process(&client);
+  // accept() removes the socket from the server's pending HTTP clients.
+  EthernetClient client = server.accept();
+  if (client) {
+    char upgrade[16], connection[32], key[25], version[4];
+    Request::HeaderNode headers[] = {
+        {"Upgrade", upgrade, sizeof(upgrade), nullptr},
+        {"Connection", connection, sizeof(connection), nullptr},
+        {"Sec-WebSocket-Key", key, sizeof(key), nullptr},
+        {"Sec-WebSocket-Version", version, sizeof(version), nullptr}};
+    App::ProcessOptions options;
+    options.headers = headers;
+    options.headerCount = 4;
+    App::ProcessResult result = app.process(&client, options);
+    if (!result.responseOpen) client.stop();
   }
 
-  // Forward Serial data to all WebSocket clients
+  sockets.poll();
   while (Serial.available()) {
-    char c = Serial.read();
-    // Broadcast using sendText for text data
-    char buf[2] = {c, '\0'};
-    ws.broadcastText(buf);
+    uint8_t value = (uint8_t)Serial.read();
+    sockets.broadcast(&value, 1, true);
   }
-
-  // Poll WebSocket for incoming messages
-  ws.poll();
 }

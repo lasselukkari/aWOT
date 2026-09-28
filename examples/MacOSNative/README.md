@@ -9,28 +9,24 @@ This example demonstrates running the aWOT web server library on macOS without A
 
 ## Setup
 
-This example requires the Arduino Core API. Download and extract it:
-
-```bash
-# Download ArduinoCore-API and place in this directory as ArduinoCore-API/
-# Then rename String.h -> WString.h to avoid macOS case-insensitive conflict:
-cd ArduinoCore-API/api
-mv String.h WString.h
-mv String.cpp WString.cpp
-# Update includes in the API files:
-for f in *.h *.cpp; do sed -i '' 's/#include "String.h"/#include "WString.h"/g' "$f" 2>/dev/null; done
-```
+The ArduinoCore-API sources are included in this example. Its String files use
+`WString.h` / `WString.cpp` to avoid the macOS case-insensitive `string.h`
+collision. No additional download or renaming is needed.
 
 ## Build & Run
 
 ```bash
 make        # Build the example
 make run    # Run the server
-make test   # Run with automated test
+make test   # Run socket/shim regressions and an HTTP smoke test
 make clean  # Clean build artifacts
 ```
 
 ## Test
+
+`make test` exercises socket ownership, disconnect handling, request timeouts,
+address conversion, and numeric formatting before starting its own HTTP server.
+Port 8080 must be free; startup fails if another process already owns it.
 
 Once running, visit http://localhost:8080/ in your browser or:
 
@@ -68,6 +64,7 @@ wrk -t4 -c10 -d10s http://localhost:8080/
 | `MacOSSocket.h/cpp` | BSD socket implementation of Arduino Client/Server API |
 | `HelloWorld.cpp` | The example application |
 | `Makefile` | Build system |
+| `tests/` | Native socket and compatibility regression tests |
 | `ArduinoCore-API/` | Arduino Core API (external dependency) |
 
 ## How It Works
@@ -81,6 +78,10 @@ The example uses:
 3. **MacOSClient/MacOSServer** - BSD socket wrappers that implement the Arduino `Client` interface, allowing aWOT to work unchanged
 
 4. **Multithreading** - Each client connection is handled in a separate thread using `std::thread`
+
+The main thread waits for connections without polling continuously. Socket reads
+return immediately when no data is ready, allowing aWOT's request timeouts to
+expire. Client and server objects close their sockets when destroyed.
 
 ## Windows Portability
 

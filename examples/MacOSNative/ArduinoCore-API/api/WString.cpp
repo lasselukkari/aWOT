@@ -124,7 +124,7 @@ String::String(unsigned long value, unsigned char base)
 
 String::String(float value, unsigned char decimalPlaces)
 {
-	static size_t const FLOAT_BUF_SIZE = FLT_MAX_10_EXP + FLT_MAX_DECIMAL_PLACES + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */;
+	static size_t const FLOAT_BUF_SIZE = FLT_MAX_10_EXP + 1 /* leading digit */ + FLT_MAX_DECIMAL_PLACES + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */;
 	init();
 	char buf[FLOAT_BUF_SIZE];
 	decimalPlaces = min(decimalPlaces, FLT_MAX_DECIMAL_PLACES);
@@ -133,7 +133,7 @@ String::String(float value, unsigned char decimalPlaces)
 
 String::String(double value, unsigned char decimalPlaces)
 {
-	static size_t const DOUBLE_BUF_SIZE = DBL_MAX_10_EXP + DBL_MAX_DECIMAL_PLACES + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */;
+	static size_t const DOUBLE_BUF_SIZE = DBL_MAX_10_EXP + 1 /* leading digit */ + DBL_MAX_DECIMAL_PLACES + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */;
 	init();
 	char buf[DOUBLE_BUF_SIZE];
 	decimalPlaces = min(decimalPlaces, DBL_MAX_DECIMAL_PLACES);
@@ -328,14 +328,14 @@ bool String::concat(unsigned long num)
 
 bool String::concat(float num)
 {
-	char buf[20];
+	char buf[FLT_MAX_10_EXP + 1 /* leading digit */ + 2 /* precision */ + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */];
 	char* string = dtostrf(num, 4, 2, buf);
 	return concat(string);
 }
 
 bool String::concat(double num)
 {
-	char buf[20];
+	char buf[DBL_MAX_10_EXP + 1 /* leading digit */ + 2 /* precision */ + 1 /* '-' */ + 1 /* '.' */ + 1 /* '\0' */];
 	char* string = dtostrf(num, 4, 2, buf);
 	return concat(string);
 }

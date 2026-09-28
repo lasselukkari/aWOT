@@ -1,6 +1,6 @@
 {
   "name": "aWOT",
-  "version": "3.5.0",
+  "version": "4.0.0",
   "keywords": "wifi, ethernet, http, web, server, rest",
   "description": "aWOT is a web server library compatible with multiple different board architectures and networking solutions.",
   "license": "MIT",

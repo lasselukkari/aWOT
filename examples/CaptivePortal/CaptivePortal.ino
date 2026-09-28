@@ -8,7 +8,7 @@
 
 DNSServer dnsServer;
 WiFiServer server(80);
-Application app;
+App app;
 char redirectURL[30];
 
 void redirect(Request &req, Response &res) {
@@ -18,7 +18,7 @@ void redirect(Request &req, Response &res) {
   }
 }
 
-void index(Request &req, Response &res) {
+void indexHandler(Request &req, Response &res) {
   res.print("Captive portal index");
 }
 
@@ -34,7 +34,7 @@ void setup() {
   sprintf(redirectURL, "http://%d.%d.%d.%d/popup", ip[0], ip[1], ip[2], ip[3]);
   Serial.println(ip);
 
-  app.get("/", &index);
+  app.get("/", &indexHandler);
   app.get("/popup", &popup);
   app.use(&redirect);
 

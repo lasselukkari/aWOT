@@ -4,7 +4,9 @@
 
 #include "MacOSSocket.h"
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 // ============================================================================
 // SerialClass implementation (from Arduino.h)
@@ -22,88 +24,101 @@ size_t SerialClass::write(const uint8_t* buffer, size_t size) {
   return size;
 }
 
+void SerialClass::flush() { std::cout.flush(); }
+
 // ============================================================================
 // Platform function implementations (extern "C" from Arduino.h)
 // ============================================================================
 
+namespace {
+
+std::chrono::steady_clock::duration elapsedTime() {
+  static const auto start = std::chrono::steady_clock::now();
+  return std::chrono::steady_clock::now() - start;
+}
+
+template <typename Unsigned>
+char* formatUnsigned(Unsigned value, char* buffer, int base) {
+  if (base < 2 || base > 36) {
+    buffer[0] = '\0';
+    return buffer;
+  }
+
+  static const char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+  char* end = buffer;
+  do {
+    *end++ = digits[value % base];
+    value /= base;
+  } while (value);
+  *end = '\0';
+
+  for (char *left = buffer, *right = end - 1; left < right; ++left, --right) {
+    const char digit = *left;
+    *left = *right;
+    *right = digit;
+  }
+  return buffer;
+}
+
+}  // namespace
+
 extern "C" {
 
 unsigned long millis(void) {
-  static unsigned long start = 0;
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  unsigned long now = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-  if (start == 0) start = now;
-  return now - start;
+  return static_cast<unsigned long>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime())
+          .count());
 }
 
 unsigned long micros(void) {
-  static unsigned long start = 0;
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  unsigned long now = (tv.tv_sec * 1000000) + tv.tv_usec;
-  if (start == 0) start = now;
-  return now - start;
+  return static_cast<unsigned long>(
+      std::chrono::duration_cast<std::chrono::microseconds>(elapsedTime())
+          .count());
 }
 
 void delay(unsigned long ms) {
-  unsigned long start_time = millis();
-  while (millis() - start_time < ms);
+  std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
-void yield(void) {
-  // No-op on macOS
-}
+void yield(void) { std::this_thread::yield(); }
 
 char* itoa(int value, char* buffer, int base) {
-  if (base == 10) {
-    snprintf(buffer, 32, "%d", value);
-  } else if (base == 16) {
-    snprintf(buffer, 32, "%x", (unsigned)value);
-  } else if (base == 8) {
-    snprintf(buffer, 32, "%o", (unsigned)value);
-  } else {
-    snprintf(buffer, 32, "%d", value);
+  const unsigned magnitude = static_cast<unsigned>(value);
+  if (base == 10 && value < 0) {
+    buffer[0] = '-';
+    formatUnsigned(0U - magnitude, buffer + 1, base);
+    return buffer;
   }
-  return buffer;
+  return formatUnsigned(magnitude, buffer, base);
 }
 
 char* ltoa(long value, char* buffer, int base) {
-  if (base == 10) {
-    snprintf(buffer, 32, "%ld", value);
-  } else if (base == 16) {
-    snprintf(buffer, 32, "%lx", (unsigned long)value);
-  } else {
-    snprintf(buffer, 32, "%ld", value);
+  const unsigned long magnitude = static_cast<unsigned long>(value);
+  if (base == 10 && value < 0) {
+    buffer[0] = '-';
+    formatUnsigned(0UL - magnitude, buffer + 1, base);
+    return buffer;
   }
-  return buffer;
+  return formatUnsigned(magnitude, buffer, base);
 }
 
 char* utoa(unsigned value, char* buffer, int base) {
-  if (base == 10) {
-    snprintf(buffer, 32, "%u", value);
-  } else if (base == 16) {
-    snprintf(buffer, 32, "%x", value);
-  } else {
-    snprintf(buffer, 32, "%u", value);
-  }
-  return buffer;
+  return formatUnsigned(value, buffer, base);
 }
 
 char* ultoa(unsigned long value, char* buffer, int base) {
-  if (base == 10) {
-    snprintf(buffer, 32, "%lu", value);
-  } else if (base == 16) {
-    snprintf(buffer, 32, "%lx", value);
-  } else {
-    snprintf(buffer, 32, "%lu", value);
-  }
-  return buffer;
+  return formatUnsigned(value, buffer, base);
 }
 
 char* dtostrf(double value, signed char width, unsigned char precision,
               char* buffer) {
-  snprintf(buffer, 32, "%*.*f", width, precision, value);
+  const int length = snprintf(nullptr, 0, "%*.*f", width, precision, value);
+  if (length < 0) {
+    buffer[0] = '\0';
+    return buffer;
+  }
+  snprintf(buffer, static_cast<size_t>(length) + 1, "%*.*f", width, precision,
+           value);
   return buffer;
 }
 
@@ -113,9 +128,30 @@ char* dtostrf(double value, signed char width, unsigned char precision,
 // MacOSClient implementation
 // ============================================================================
 
+namespace {
+
+bool suppressSigpipe(int socket) {
+  int enabled = 1;
+  return setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &enabled,
+                    sizeof(enabled)) == 0;
+}
+
+bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
+
+}  // namespace
+
+MacOSClient::MacOSClient(int socket)
+    : _socket(socket), _connected(socket >= 0) {
+  if (_connected && !suppressSigpipe(_socket)) stop();
+}
+
 int MacOSClient::connect(IPAddress ip, uint16_t port) {
+  stop();
+  if (ip.type() != arduino::IPv4) return 0;
+
   _socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (_socket < 0) {
+  if (_socket < 0 || !suppressSigpipe(_socket)) {
+    stop();
     return 0;
   }
 
@@ -123,11 +159,11 @@ int MacOSClient::connect(IPAddress ip, uint16_t port) {
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = htonl((uint32_t)ip);
+  // IPAddress already stores the octets in network byte order.
+  addr.sin_addr.s_addr = (uint32_t)ip;
 
   if (::connect(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    close(_socket);
-    _socket = -1;
+    stop();
     return 0;
   }
 
@@ -139,9 +175,10 @@ int MacOSClient::connect(const char* host, uint16_t port) {
   // Simple implementation - just try to parse as IP address
   // For a full implementation, you'd use getaddrinfo()
   struct in_addr addr;
-  if (inet_aton(host, &addr)) {
-    return connect(IPAddress((uint32_t)ntohl(addr.s_addr)), port);
+  if (host && inet_aton(host, &addr)) {
+    return connect(IPAddress((uint32_t)addr.s_addr), port);
   }
+  stop();
   return 0;
 }
 
@@ -150,69 +187,50 @@ size_t MacOSClient::write(uint8_t byte) { return write(&byte, 1); }
 size_t MacOSClient::write(const uint8_t* buf, size_t size) {
   if (_socket < 0 || !_connected) return 0;
 
-  ssize_t result = send(_socket, buf, size, 0);
+  ssize_t result;
+  do {
+    result = send(_socket, buf, size, 0);
+  } while (result < 0 && errno == EINTR);
   if (result < 0) {
-    _connected = false;
+    if (!wouldBlock()) _connected = false;
     return 0;
   }
   return (size_t)result;
 }
 
-int MacOSClient::available() {
-  if (_socket < 0 || !_connected) return 0;
+ssize_t MacOSClient::receive(uint8_t* buf, size_t size, int flags) {
+  if (_socket < 0 || !_connected) return -1;
+  if (size == 0) return 0;
 
-  // Use select with zero timeout to check if data is available
-  fd_set readfds;
-  FD_ZERO(&readfds);
-  FD_SET(_socket, &readfds);
-
-  struct timeval tv = {0, 0};
-  int result = select(_socket + 1, &readfds, nullptr, nullptr, &tv);
-
-  if (result > 0 && FD_ISSET(_socket, &readfds)) {
-    // Peek to see how much data is available
-    uint8_t buf[1];
-    result = recv(_socket, buf, 1, MSG_PEEK | MSG_DONTWAIT);
-    if (result > 0) return 1;  // At least 1 byte available
-    if (result == 0) {
-      // Connection closed
-      _connected = false;
-    }
+  // Stream implements its own timeouts, so an empty read must return promptly.
+  ssize_t result;
+  do {
+    result = recv(_socket, buf, size, flags | MSG_DONTWAIT);
+  } while (result < 0 && errno == EINTR);
+  if (result == 0 || (result < 0 && !wouldBlock())) {
+    _connected = false;
   }
-  return 0;
+  return result;
+}
+
+int MacOSClient::available() {
+  uint8_t byte;
+  return receive(&byte, 1, MSG_PEEK) > 0 ? 1 : 0;
 }
 
 int MacOSClient::read() {
-  if (_socket < 0 || !_connected) return -1;
-
-  uint8_t b;
-  ssize_t result = recv(_socket, &b, 1, 0);
-  if (result <= 0) {
-    if (result == 0) _connected = false;
-    return -1;
-  }
-  return b;
+  uint8_t byte;
+  return receive(&byte, 1, 0) > 0 ? byte : -1;
 }
 
 int MacOSClient::read(uint8_t* buf, size_t size) {
-  if (_socket < 0 || !_connected) return 0;
-
-  ssize_t result = recv(_socket, buf, size, 0);
-  if (result < 0) return 0;
-  if (result == 0) _connected = false;
-  return (int)result;
+  ssize_t result = receive(buf, size, 0);
+  return result > 0 ? (int)result : 0;
 }
 
 int MacOSClient::peek() {
-  if (_socket < 0 || !_connected) return -1;
-
-  uint8_t b;
-  ssize_t result = recv(_socket, &b, 1, MSG_PEEK);
-  if (result <= 0) {
-    if (result == 0) _connected = false;
-    return -1;
-  }
-  return b;
+  uint8_t byte;
+  return receive(&byte, 1, MSG_PEEK) > 0 ? byte : -1;
 }
 
 void MacOSClient::flush() {
@@ -228,21 +246,8 @@ void MacOSClient::stop() {
 }
 
 uint8_t MacOSClient::connected() {
-  if (_socket < 0) return 0;
-
-  // Check if still connected by peeking
-  if (_connected) {
-    uint8_t buf;
-    int result = recv(_socket, &buf, 1, MSG_PEEK | MSG_DONTWAIT);
-    if (result == 0) {
-      // Connection closed by peer
-      _connected = false;
-    } else if (result < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-      // Error other than "would block"
-      _connected = false;
-    }
-  }
-
+  uint8_t byte;
+  receive(&byte, 1, MSG_PEEK);
   return _connected ? 1 : 0;
 }
 
@@ -250,16 +255,21 @@ uint8_t MacOSClient::connected() {
 // MacOSServer implementation
 // ============================================================================
 
-void MacOSServer::begin() {
+bool MacOSServer::begin() {
+  stop();
   _socket = socket(AF_INET, SOCK_STREAM, 0);
   if (_socket < 0) {
-    Serial.println("Error creating socket");
-    return;
+    perror("Error creating socket");
+    return false;
   }
 
   // Allow address reuse for quick restarts
   int opt = 1;
-  setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  if (setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    perror("Error configuring socket");
+    stop();
+    return false;
+  }
 
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr));
@@ -268,46 +278,70 @@ void MacOSServer::begin() {
   addr.sin_port = htons(_port);
 
   if (bind(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    Serial.println("Error binding socket");
-    close(_socket);
-    _socket = -1;
-    return;
+    perror("Error binding socket");
+    stop();
+    return false;
   }
 
   if (listen(_socket, 5) < 0) {
-    Serial.println("Error listening on socket");
-    close(_socket);
-    _socket = -1;
-    return;
+    perror("Error listening on socket");
+    stop();
+    return false;
   }
 
   // Set non-blocking for accept
   int flags = fcntl(_socket, F_GETFL, 0);
-  fcntl(_socket, F_SETFL, flags | O_NONBLOCK);
+  if (flags < 0 || fcntl(_socket, F_SETFL, flags | O_NONBLOCK) < 0) {
+    perror("Error configuring listener");
+    stop();
+    return false;
+  }
+
+  // Report the actual port when an ephemeral port was requested.
+  socklen_t addrLen = sizeof(addr);
+  if (getsockname(_socket, (struct sockaddr*)&addr, &addrLen) < 0) {
+    perror("Error reading listener address");
+    stop();
+    return false;
+  }
+  _port = ntohs(addr.sin_port);
+  return true;
 }
 
-MacOSClient MacOSServer::available() {
+void MacOSServer::stop() {
+  if (_socket >= 0) {
+    close(_socket);
+    _socket = -1;
+  }
+}
+
+MacOSClient MacOSServer::available(int timeoutMs) {
   if (_socket < 0) {
     return MacOSClient();
   }
 
-  struct sockaddr_in clientAddr;
-  socklen_t clientLen = sizeof(clientAddr);
+  struct pollfd listener = {_socket, POLLIN, 0};
+  int ready;
+  do {
+    ready = poll(&listener, 1, timeoutMs);
+  } while (ready < 0 && errno == EINTR);
+  if (ready <= 0 || !(listener.revents & POLLIN)) return MacOSClient();
 
-  int clientSocket = accept(_socket, (struct sockaddr*)&clientAddr, &clientLen);
+  int clientSocket;
+  do {
+    clientSocket = accept(_socket, nullptr, nullptr);
+  } while (clientSocket < 0 && errno == EINTR);
 
   if (clientSocket < 0) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      // No connection waiting, return empty client
-      return MacOSClient();
-    }
-    // Real error
     return MacOSClient();
   }
 
   // Set client socket to blocking mode
   int flags = fcntl(clientSocket, F_GETFL, 0);
-  fcntl(clientSocket, F_SETFL, flags & ~O_NONBLOCK);
+  if (flags < 0 || fcntl(clientSocket, F_SETFL, flags & ~O_NONBLOCK) < 0) {
+    close(clientSocket);
+    return MacOSClient();
+  }
 
   return MacOSClient(clientSocket);
 }

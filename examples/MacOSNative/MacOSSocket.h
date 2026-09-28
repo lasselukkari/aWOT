@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <sys/select.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -25,10 +25,12 @@ class MacOSClient : public Client {
  private:
   int _socket;
   bool _connected;
+  ssize_t receive(uint8_t* buf, size_t size, int flags);
 
  public:
   MacOSClient() : _socket(-1), _connected(false) {}
-  MacOSClient(int socket) : _socket(socket), _connected(socket >= 0) {}
+  explicit MacOSClient(int socket);
+  ~MacOSClient() { stop(); }
 
   // Move constructor - transfer ownership
   MacOSClient(MacOSClient&& other) noexcept
@@ -40,7 +42,7 @@ class MacOSClient : public Client {
   // Move assignment
   MacOSClient& operator=(MacOSClient&& other) noexcept {
     if (this != &other) {
-      if (_socket >= 0) close(_socket);
+      stop();
       _socket = other._socket;
       _connected = other._connected;
       other._socket = -1;
@@ -78,9 +80,15 @@ class MacOSServer {
 
  public:
   MacOSServer(uint16_t port) : _port(port), _socket(-1) {}
+  ~MacOSServer() { stop(); }
 
-  void begin();
-  MacOSClient available();
+  MacOSServer(const MacOSServer&) = delete;
+  MacOSServer& operator=(const MacOSServer&) = delete;
+
+  bool begin();
+  void stop();
+  // A zero timeout polls; -1 waits indefinitely for a connection.
+  MacOSClient available(int timeoutMs = 0);
 
   uint16_t port() const { return _port; }
 };

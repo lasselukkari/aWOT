@@ -9,7 +9,7 @@
 #define WIFI_PASSWORD ""
   
 WiFiServer server(80);
-Application app;
+App app;
 
 struct context {
   IPAddress ip;
@@ -22,7 +22,8 @@ struct context {
 void fillContext(Request &req, Response &res) {
   context* ctx = (context*)req.context;
   ctx->method = req.method();
-  strlcpy(ctx->path, req.path(), 100);
+  strlcpy(ctx->path, req.path(), sizeof(ctx->path));
+  req.next();
 }
 
 void setStatus(Request &req, Response &res) {
@@ -30,7 +31,7 @@ void setStatus(Request &req, Response &res) {
   ctx->status = res.statusSent();
 }
 
-void index(Request &req, Response &res) {
+void indexHandler(Request &req, Response &res) {
   context* ctx = (context*)req.context;
 
   res.print("Reading request took ");
@@ -51,7 +52,7 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   app.use(&fillContext);
-  app.get("/", &index);
+  app.get("/", &indexHandler);
   app.finally(&setStatus);
   server.begin();
 }
@@ -60,9 +61,12 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    context ctx = { ip: client.remoteIP(), start: millis() };
-
-    app.process(&client, &ctx);
+    context ctx = {};
+    ctx.ip = client.remoteIP();
+    ctx.start = millis();
+    App::ProcessOptions options;
+    options.context = &ctx;
+    app.process(&client, options);
     client.stop();
 
     switch (ctx.method) {

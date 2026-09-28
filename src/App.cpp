@@ -61,7 +61,8 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
   // length. Supplied storage always requires an explicit valid capacity.
   if ((options.urlBuffer && options.urlBufferLength < 2) ||
       (options.writeBuffer && options.writeBufferLength <= CHUNK_OVERHEAD) ||
-      options.headerCount < 0 || (options.headerCount > 0 && !options.headers)) {
+      options.headerCount < 0 ||
+      (options.headerCount > 0 && !options.headers)) {
     client->stop();
     return result;
   }
@@ -101,7 +102,8 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
   bool parsed = request.m_readingContent;
   result.responseOpen =
       parsed && !response.getWriteError() && response.m_responseOpen;
-  result.keepAlive = parsed && request.left() == 0 && !response.getWriteError() &&
+  result.keepAlive = parsed && request.left() == 0 &&
+                     !response.getWriteError() && !response.m_responseOpen &&
                      response.m_keepAlive;
   if (!parsed) client->stop();
 
@@ -113,7 +115,7 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
 // Keep convenience storage out of the stack frame used with caller buffers.
 // Both helpers are noinline so optimization cannot fold these arrays back in.
 App::ProcessResult App::m_processWithDefaultUrl(Client* client,
-                                              ProcessOptions options) {
+                                                ProcessOptions options) {
   char buffer[SERVER_URL_BUFFER_SIZE];
   options.urlBuffer = buffer;
   options.urlBufferLength = sizeof(buffer);
@@ -121,7 +123,7 @@ App::ProcessResult App::m_processWithDefaultUrl(Client* client,
 }
 
 App::ProcessResult App::m_processWithDefaultWrite(Client* client,
-                                                ProcessOptions options) {
+                                                  ProcessOptions options) {
   uint8_t buffer[SERVER_OUTPUT_BUFFER_SIZE];
   options.writeBuffer = buffer;
   options.writeBufferLength = sizeof(buffer);
@@ -220,6 +222,8 @@ void App::m_process(Request& request, Response& response) {
     if (!response.ended()) return response.sendStatus(400);
     return;
   }
+
+  response.m_head = request.method() == Request::HEAD;
 
   if (!request.m_readURL()) {
     if (request.m_timedout()) {

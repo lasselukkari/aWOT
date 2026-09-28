@@ -33,6 +33,8 @@ class Response : public Print {
   size_t write(uint8_t data);
   size_t write(const uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
+  // Call before sending headers to continue a close-delimited HTTP response
+  // directly on the client. A 101 response retains its upgrade headers.
   void keepOpen();
 
  private:
@@ -48,6 +50,8 @@ class Response : public Print {
   int m_capacity() const;
   size_t m_writeAll(const uint8_t* buffer, size_t length);
   void m_failWrite();
+  bool m_bodyAllowed() const;
+  bool m_chunked() const;
 
   Client* m_stream;
   struct Headers {
@@ -55,9 +59,11 @@ class Response : public Print {
     const char* value;
   } m_headers[SERVER_MAX_HEADERS];
   bool m_contentLengthSet;
+  bool m_chunkedEncoding;
   bool m_contentTypeSet;
   bool m_keepAlive;
   bool m_responseOpen;
+  bool m_head;
   int m_statusSent;
   bool m_headersSent;
   bool m_sendingStatus;

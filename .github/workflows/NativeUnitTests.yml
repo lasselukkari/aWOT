@@ -1,45 +1,41 @@
 name: Unit Tests
 on:
   push:
-    paths:
-      - "src/**"
-      - "test/**"
-      - ".github/workflows/NativeUnitTests.yml"
+    paths: ["src/**", "test/**", "examples/MacOSNative/**", ".github/workflows/NativeUnitTests.yml"]
   pull_request:
-    paths:
-      - "src/**"
-      - "test/**"
-      - ".github/workflows/NativeUnitTests.yml"
+    paths: ["src/**", "test/**", "examples/MacOSNative/**", ".github/workflows/NativeUnitTests.yml"]
   schedule:
     - cron: "0 0 1 * *"
   workflow_dispatch:
   repository_dispatch:
 jobs:
-  build:
-    name: "Build for ${{ matrix.config.name }}"
-    runs-on: ${{ matrix.config.os }}
-    env:
-      BUILD_DIR: ${{ github.workspace }}/test/build
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - name: "Linux x86_64"
-            os: "ubuntu-latest"
-          - name: "macOS Universal"
-            os: "macos-latest"
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            flags: ""
+          - name: macOS
+            os: macos-latest
+            flags: ""
+          - name: Linux sanitizers
+            os: ubuntu-latest
+            flags: "-DAWOT_ENABLE_SANITIZERS=ON"
+          - name: Linux Uno buffers and function pointers
+            os: ubuntu-latest
+            flags: "-DAWOT_ENABLE_SANITIZERS=ON -DAWOT_NO_STD_FUNCTION_MIDDLEWARE=ON -DAWOT_SMALL_BUFFERS=ON"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Create Build Environment
-        run: cmake -E make_directory ${{ env.BUILD_DIR }}
-      - name: Running CMake
-        working-directory: ${{ env.BUILD_DIR }}
-        run: cmake ..
-      - name: Build Unit Tests
-        working-directory: ${{ env.BUILD_DIR }}
-        run: cmake --build .
-      - name: Run Unit Tests
-        if: ${{ success() }}
-        working-directory: ${{ env.BUILD_DIR }}
-        run: ctest --output-on-failure --parallel 4
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S test -B test/build ${{ matrix.flags }}
+      - name: Build
+        run: cmake --build test/build --parallel 4
+      - name: Test
+        run: ctest --test-dir test/build --output-on-failure --parallel 4
+      - name: Native macOS example
+        if: runner.os == 'macOS'
+        run: make -C examples/MacOSNative test

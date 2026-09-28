@@ -1,284 +1,423 @@
-#include <aWOT.h>
+#include <ArduinoUnitTests.h>
 
-#include "ArduinoUnitTests.h"
-#include "mocks/MockClient.h"
+#include "../src/aWOT.h"
+#include "mocks/SharedClient.h"
+
+static unsigned long wsNow;
+static unsigned long wsMillis() { return wsNow; }
+#define millis wsMillis
+#include "../src/WsChannel.h"
+#undef millis
 
 using namespace awot;
+typedef WsChannel<SharedClient, 2, 2> Channel;
+static Channel* upgrading;
+static bool upgradeResult;
+static int connects, disconnects, messageCount, lastSocket;
+static bool lastBinary;
+static std::vector<uint8_t> lastData;
 
-// Test handlers
-static int lastMessageClientId = -1;
-static bool lastMessageBinary = false;
-static size_t lastMessageLen = 0;
-static uint8_t lastMessageData[64];
+static void upgradeHandler(Request& req, Response& res) {
+  upgradeResult = upgrading->upgrade(req, res);
+  if (!upgradeResult) res.sendStatus(400);
+}
+static void connectHandler(int id) {
+  ++connects;
+  lastSocket = id;
+}
+static void disconnectHandler(int id) {
+  ++disconnects;
+  lastSocket = id;
+}
+static void messageHandler(WsMessage& msg) {
+  ++messageCount;
+  lastSocket = msg.socketId();
+  lastBinary = msg.isBinary();
+  lastData.clear();
+  while (msg.available()) lastData.push_back((uint8_t)msg.read());
+}
 
-void testMessageHandler(WebSocketMessage& msg) {
-  lastMessageClientId = msg.clientId();
-  lastMessageBinary = msg.isBinary();
-  lastMessageLen = 0;
+static std::string request(const std::string& key = "dGhlIHNhbXBsZSBub25jZQ==",
+                           const char* method = "GET",
+                           const char* version = "1.1",
+                           const char* upgrade = "websocket",
+                           const char* connection = "Upgrade",
+                           const char* wsVersion = "13") {
+  return std::string(method) + " /ws HTTP/" + version +
+         "\r\nHost: localhost\r\n" + "Upgrade: " + upgrade +
+         "\r\nConnection: " + connection + "\r\nSec-WebSocket-Key: " + key +
+         "\r\nSec-WebSocket-Version: " + wsVersion + "\r\n\r\n";
+}
 
-  // Read message using Stream interface
-  while (msg.available() && lastMessageLen < sizeof(lastMessageData)) {
-    int byte = msg.read();
-    if (byte >= 0) {
-      lastMessageData[lastMessageLen++] = (uint8_t)byte;
+static bool handshake(Channel& ws, SharedClient& client,
+                      const std::string& input = request()) {
+  App app;
+  upgrading = &ws;
+  upgradeResult = false;
+  app.use(upgradeHandler);
+  client.feed(input);
+  char upgrade[40], connection[40], key[64], version[16];
+  Request::HeaderNode headers[] = {
+      {"Upgrade", upgrade, sizeof(upgrade), nullptr},
+      {"Connection", connection, sizeof(connection), nullptr},
+      {"Sec-WebSocket-Key", key, sizeof(key), nullptr},
+      {"Sec-WebSocket-Version", version, sizeof(version), nullptr}};
+  App::ProcessOptions options;
+  options.headers = headers;
+  options.headerCount = 4;
+  App::ProcessResult result = app.process(&client, options);
+  return upgradeResult && result.responseOpen;
+}
+
+static std::vector<uint8_t> frame(uint8_t opcode,
+                                  const std::vector<uint8_t>& data) {
+  std::vector<uint8_t> result;
+  result.push_back(0x80 | opcode);
+  if (data.size() <= 125) {
+    result.push_back(0x80 | (uint8_t)data.size());
+  } else {
+    result.push_back(0xFE);
+    result.push_back((uint8_t)(data.size() >> 8));
+    result.push_back((uint8_t)data.size());
+  }
+  const uint8_t mask[] = {0x37, 0xFA, 0x21, 0x3D};
+  result.insert(result.end(), mask, mask + 4);
+  for (size_t i = 0; i < data.size(); ++i)
+    result.push_back(data[i] ^ mask[i & 3]);
+  return result;
+}
+
+static bool closesWith(const std::vector<uint8_t>& input, uint16_t code) {
+  Channel ws;
+  SharedClient client;
+  if (!handshake(ws, client)) return false;
+  client.clearOutput();
+  client.feed(input);
+  ws.poll();
+  std::vector<uint8_t> expected = {0x88, 2, (uint8_t)(code >> 8),
+                                   (uint8_t)code};
+  return !ws.connected(0) && !client.connected() &&
+         client.state->output == expected;
+}
+
+unittest_setup() {
+  wsNow = 0;
+  connects = disconnects = messageCount = 0;
+  lastSocket = -1;
+  lastData.clear();
+}
+
+unittest(sha1_known_vectors_cover_empty_short_and_multiple_blocks) {
+  const char* input[] = {
+      "", "abc", "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"};
+  const char* expected[] = {"da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                            "a9993e364706816aba3e25717850c26c9cd0d89d",
+                            "84983e441c3bd26ebaae4aa1f95129e5e54670f1"};
+  const char* hex = "0123456789abcdef";
+  for (size_t i = 0; i < sizeof(input) / sizeof(input[0]); ++i) {
+    uint8_t digest[20];
+    awot::ws::sha1((const uint8_t*)input[i], strlen(input[i]), digest);
+    std::string actual;
+    for (size_t j = 0; j < sizeof(digest); ++j) {
+      actual += hex[digest[j] >> 4];
+      actual += hex[digest[j] & 15];
     }
+    assertEqual(std::string(expected[i]), actual);
   }
 }
 
-static int lastConnectedClientId = -1;
-void testConnectHandler(int clientId) { lastConnectedClientId = clientId; }
-
-static int lastDisconnectedClientId = -1;
-void testDisconnectHandler(int clientId) {
-  lastDisconnectedClientId = clientId;
+unittest(handshake_accept_key_and_standard_client_transport) {
+  Channel ws;
+  SharedClient client;
+  ws.onConnect(connectHandler);
+  assertTrue(handshake(ws, client));
+  assertEqual(1, connects);
+  assertEqual(0, lastSocket);
+  const std::string output = client.outputString();
+  assertTrue(output.find("HTTP/1.1 101 Switching Protocols\r\n") == 0);
+  assertTrue(
+      output.find("Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n") !=
+      std::string::npos);
+  assertTrue(output.find("Transfer-Encoding") == std::string::npos);
+  assertTrue(output.find("\r\n\r\n") == output.size() - 4);
 }
 
-// RFC 6455 test vector for Sec-WebSocket-Accept
-unittest(handshake_accept_key) {
-  MockClient client;
-  WebSocket ws;
-
-  // The RFC 6455 example key
-  const char* testKey = "dGhlIHNhbXBsZSBub25jZQ==";
-
-  bool upgraded = ws.upgrade(&client, testKey);
-
-  assertTrue(upgraded);
-  assertTrue(client.writeBufferContains("HTTP/1.1 101 Switching Protocols"));
-  assertTrue(client.writeBufferContains("Upgrade: websocket"));
-  assertTrue(client.writeBufferContains("Connection: Upgrade"));
-  // Expected accept key from RFC 6455
-  assertTrue(client.writeBufferContains(
-      "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo="));
+unittest(handshake_trims_optional_whitespace_and_matches_connection_tokens) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(
+      handshake(ws, client,
+                request("\tdGhlIHNhbXBsZSBub25jZQ== \t", "GET", "1.1",
+                        "WebSocket\t ", "keep-alive, \tUpGrAdE ", "13\t")));
+  assertTrue(client.outputString().find("s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") !=
+             std::string::npos);
+  Channel other;
+  SharedClient rejected;
+  assertFalse(handshake(other, rejected,
+                        request("dGhlIHNhbXBsZSBub25jZQ==", "GET", "1.1",
+                                "websocket", "notupgrade")));
 }
 
-unittest(client_count_after_upgrade) {
-  MockClient client1, client2;
-  WebSocket ws;
-
-  assertEqual(0, ws.clientCount());
-
-  ws.upgrade(&client1, "key1");
-  assertEqual(1, ws.clientCount());
-
-  ws.upgrade(&client2, "key2");
-  assertEqual(2, ws.clientCount());
+unittest(handshake_rejects_invalid_key_method_and_version) {
+  const char* keys[] = {"",
+                        "not-base64",
+                        "dGhlIHNhbXBsZSBub25jZQ=",
+                        "dGhlIHNhbXBsZSBub25jZR==",
+                        "dGhlIHNhbXBsZSBub25jZQ==extra",
+                        "dGhlIHNhbXBsZSBub25jZQ==,dGhlIHNhbXBsZSBub25jZQ=="};
+  for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i) {
+    Channel ws;
+    SharedClient client;
+    assertFalse(handshake(ws, client, request(keys[i])));
+    assertEqual(0, ws.count());
+  }
+  Channel ws;
+  SharedClient post, oldHttp, oldWs;
+  assertFalse(handshake(ws, post, request("dGhlIHNhbXBsZSBub25jZQ==", "POST")));
+  assertFalse(handshake(ws, oldHttp,
+                        request("dGhlIHNhbXBsZSBub25jZQ==", "GET", "1.0")));
+  assertFalse(handshake(ws, oldWs,
+                        request("dGhlIHNhbXBsZSBub25jZQ==", "GET", "1.1",
+                                "websocket", "Upgrade", "12")));
+  SharedClient withBody;
+  std::string bodyRequest = request();
+  bodyRequest.insert(bodyRequest.size() - 2, "Content-Length: 1\r\n");
+  bodyRequest += 'x';
+  assertFalse(handshake(ws, withBody, bodyRequest));
 }
 
-unittest(client_connected_status) {
-  MockClient client;
-  WebSocket ws;
+unittest(handshake_failure_does_not_register_socket) {
+  Channel ws;
+  SharedClient client;
+  client.state->failAfter = 10;
+  ws.onConnect(connectHandler);
+  assertFalse(handshake(ws, client));
+  assertEqual(0, ws.count());
+  assertEqual(0, connects);
+  assertFalse(client.connected());
+}
 
+unittest(masked_frames_can_arrive_one_byte_at_a_time) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  ws.onMessage(messageHandler);
+  const std::vector<uint8_t> text = {'H', 'e', 'l', 'l', 'o'};
+  std::vector<uint8_t> input = frame(1, text);
+  for (size_t i = 0; i < input.size(); ++i) {
+    client.feed(std::vector<uint8_t>(1, input[i]));
+    ws.poll();
+    assertEqual(i + 1 == input.size() ? 1 : 0, messageCount);
+  }
+  assertTrue(lastData == text);
+  assertFalse(lastBinary);
+  assertEqual(0, lastSocket);
+}
+
+unittest(extended_binary_payload_at_capacity_and_empty_frames) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  ws.onMessage(messageHandler);
+  std::vector<uint8_t> payload(WS_RX_BUFFER_SIZE, 0xFF);
+  client.feed(frame(2, payload));
+  ws.poll();
+  assertEqual(1, messageCount);
+  assertTrue(lastBinary);
+  assertTrue(lastData == payload);
+  client.feed(frame(1, std::vector<uint8_t>()));
+  ws.poll();
+  assertEqual(2, messageCount);
+  assertTrue(lastData.empty());
+}
+
+unittest(
+    text_utf8_validation_rejects_overlong_surrogate_and_truncated_sequences) {
+  const std::vector<uint8_t> invalid[] = {{0xFF},
+                                          {0x80},
+                                          {0xC0, 0x80},
+                                          {0xE0, 0x80, 0x80},
+                                          {0xED, 0xA0, 0x80},
+                                          {0xF0, 0x80, 0x80, 0x80},
+                                          {0xF4, 0x90, 0x80, 0x80},
+                                          {0xF5, 0x80, 0x80, 0x80},
+                                          {0xE2, 0x82}};
+  for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+    assertTrue(closesWith(frame(1, invalid[i]), 1007));
+  }
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  ws.onMessage(messageHandler);
+  std::vector<uint8_t> valid = {'A',  0xC2, 0xA2, 0xE2, 0x82,
+                                0xAC, 0xF4, 0x8F, 0xBF, 0xBF};
+  client.feed(frame(1, valid));
+  ws.poll();
+  assertEqual(1, messageCount);
+  assertTrue(lastData == valid);
+}
+
+unittest(invalid_frame_headers_and_oversize_payloads_close) {
+  assertTrue(closesWith({0x81, 0}, 1002));
+  assertTrue(closesWith({0xC1, 0x80}, 1002));
+  assertTrue(closesWith({0x83, 0x80}, 1002));
+  assertTrue(closesWith({0x89, 0xFE}, 1002));
+  assertTrue(closesWith({0x09, 0x80}, 1002));
+  assertTrue(closesWith({0x01, 0x80}, 1003));
+  assertTrue(closesWith({0x80, 0x80}, 1003));
+  assertTrue(closesWith({0x81, 0xFE, 0, 1, 0, 0, 0, 0}, 1002));
+  assertTrue(
+      closesWith({0x81, 0xFF, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 1002));
+  assertTrue(
+      closesWith(frame(2, std::vector<uint8_t>(WS_RX_BUFFER_SIZE + 1)), 1009));
+}
+
+unittest(close_validates_status_and_utf8_reason) {
+  assertTrue(closesWith(frame(8, {1}), 1002));
+  const uint16_t invalid[] = {999, 1004, 1005, 1006, 1015, 2000, 5000};
+  for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+    assertTrue(closesWith(
+        frame(8, {(uint8_t)(invalid[i] >> 8), (uint8_t)invalid[i]}), 1002));
+  }
+  assertTrue(closesWith(frame(8, {3, 0xE8, 0xFF}), 1007));
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  ws.onDisconnect(disconnectHandler);
+  client.feed(frame(8, {3, 0xE8, 'b', 'y', 'e'}));
+  ws.poll();
+  std::vector<uint8_t> expected = {0x88, 5, 3, 0xE8, 'b', 'y', 'e'};
+  assertTrue(client.state->output == expected);
+  assertEqual(1, disconnects);
   assertFalse(ws.connected(0));
-
-  ws.upgrade(&client, "key");
-
-  assertTrue(ws.connected(0));
-  assertFalse(ws.connected(1));
-  assertFalse(ws.connected(-1));
-  assertFalse(ws.connected(99));
 }
 
-unittest(connect_handler_called) {
-  MockClient client;
-  WebSocket ws;
-
-  lastConnectedClientId = -1;
-  ws.onConnect(testConnectHandler);
-  ws.upgrade(&client, "key");
-
-  assertEqual(0, lastConnectedClientId);
-}
-
-unittest(disconnect_on_close_frame) {
-  MockClient client;
-  WebSocket ws;
-
-  ws.onDisconnect(testDisconnectHandler);
-  ws.upgrade(&client, "key");
-
-  assertTrue(ws.connected(0));
-
-  // Close frame: FIN=1, opcode=8, mask=1, len=0
-  uint8_t closeFrame[] = {0x88, 0x80, 0x00, 0x00, 0x00, 0x00};
-  client.setReadBuffer(closeFrame, sizeof(closeFrame));
-
+unittest(empty_close_is_echoed_without_inventing_a_status) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  client.feed(frame(8, {}));
   ws.poll();
-
+  std::vector<uint8_t> expected = {0x88, 0};
+  assertTrue(client.state->output == expected);
   assertFalse(ws.connected(0));
-  assertEqual(0, lastDisconnectedClientId);
 }
 
-unittest(text_frame_with_stream_read) {
-  MockClient client;
-  WebSocket ws;
-
-  ws.onMessage(testMessageHandler);
-  ws.upgrade(&client, "key");
-  client.clearWriteBuffer();
-
-  // Text frame with "Hello" masked
-  // Mask: 0x37, 0xfa, 0x21, 0x3d
-  // "Hello" = 0x48, 0x65, 0x6c, 0x6c, 0x6f
-  // Masked: 0x48^0x37=0x7f, 0x65^0xfa=0x9f, 0x6c^0x21=0x4d, 0x6c^0x3d=0x51,
-  // 0x6f^0x37=0x58
-  uint8_t textFrame[] = {0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d,
-                         0x7f, 0x9f, 0x4d, 0x51, 0x58};
-  client.setReadBuffer(textFrame, sizeof(textFrame));
-
+unittest(short_writes_retry_headers_and_payloads) {
+  Channel ws;
+  SharedClient client;
+  client.state->maxWrite = 1;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  ws.send(0, "hello");
+  std::vector<uint8_t> expected = {0x81, 5, 'h', 'e', 'l', 'l', 'o'};
+  assertTrue(client.state->output == expected);
+  assertTrue(ws.connected(0));
+  client.clearOutput();
+  client.feed(frame(9, {'a', 'b'}));
   ws.poll();
-
-  assertEqual(0, lastMessageClientId);
-  assertFalse(lastMessageBinary);
-  assertEqual((size_t)5, lastMessageLen);
-  assertEqual('H', (char)lastMessageData[0]);
-  assertEqual('e', (char)lastMessageData[1]);
-  assertEqual('l', (char)lastMessageData[2]);
-  assertEqual('l', (char)lastMessageData[3]);
-  assertEqual('o', (char)lastMessageData[4]);
+  expected = {0x8A, 2, 'a', 'b'};
+  assertTrue(client.state->output == expected);
 }
 
-unittest(binary_frame_detected) {
-  MockClient client;
-  WebSocket ws;
+unittest(failed_pong_headers_and_payloads_deactivate_socket) {
+  const size_t boundaries[] = {0, 1, 2, 3};
+  for (size_t i = 0; i < sizeof(boundaries) / sizeof(boundaries[0]); ++i) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    client.clearOutput();
+    client.state->failAfter = boundaries[i];
+    ws.onDisconnect(disconnectHandler);
+    client.feed(frame(9, {'a', 'b'}));
+    ws.poll();
+    assertFalse(ws.connected(0));
+    assertFalse(client.connected());
+    assertEqual(boundaries[i], client.state->output.size());
+    size_t before = client.state->output.size();
+    ws.send(0, "later");
+    assertEqual(before, client.state->output.size());
+  }
+  assertEqual(4, disconnects);
+}
 
-  ws.onMessage(testMessageHandler);
-  ws.upgrade(&client, "key");
-  client.clearWriteBuffer();
+unittest(failed_data_write_deactivates_socket) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  client.state->failAfter = 3;
+  ws.send(0, "hello");
+  assertFalse(ws.connected(0));
+  assertEqual((size_t)3, client.state->output.size());
+}
 
-  // Binary frame (opcode=2) with payload [0x01, 0x02]
-  // Mask: 0x11, 0x22, 0x33, 0x44
-  // Payload masked: 0x01^0x11=0x10, 0x02^0x22=0x20
-  uint8_t binaryFrame[] = {0x82, 0x82, 0x11, 0x22, 0x33, 0x44, 0x10, 0x20};
-  client.setReadBuffer(binaryFrame, sizeof(binaryFrame));
+unittest(rooms_target_broadcast_and_reset_when_slot_is_reused) {
+  Channel ws;
+  SharedClient first, second, replacement, full;
+  int room = ws.defineRoom("lobby");
+  assertEqual(0, room);
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  assertFalse(handshake(ws, full));
+  ws.join(0, room);
+  first.clearOutput();
+  second.clearOutput();
+  ws.to(room, "hi");
+  assertEqual((size_t)4, first.state->output.size());
+  assertTrue(second.state->output.empty());
+  ws.leave(0, room);
+  assertFalse(ws.inRoom(0, room));
+  ws.join(0, room);
+  ws.close(0);
+  assertTrue(handshake(ws, replacement));
+  assertFalse(ws.inRoom(0, room));
+  replacement.clearOutput();
+  ws.broadcast("all");
+  assertEqual((size_t)5, replacement.state->output.size());
+  assertEqual((size_t)5, second.state->output.size());
+}
 
+unittest(heartbeat_tracks_one_outstanding_ping_and_clock_rollover) {
+  Channel ws;
+  SharedClient client;
+  wsNow = 0xFFFFFF00UL;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  wsNow = (uint32_t)(wsNow + WS_PING_INTERVAL_MS);
   ws.poll();
-
-  assertEqual(0, lastMessageClientId);
-  assertTrue(lastMessageBinary);
-  assertEqual((size_t)2, lastMessageLen);
-  assertEqual((uint8_t)0x01, lastMessageData[0]);
-  assertEqual((uint8_t)0x02, lastMessageData[1]);
-}
-
-unittest(ping_pong_response) {
-  MockClient client;
-  WebSocket ws;
-
-  ws.upgrade(&client, "key");
-  client.clearWriteBuffer();
-
-  // Ping frame with "test" payload masked
-  // Mask: 0x00, 0x00, 0x00, 0x00 (zero mask for simplicity)
-  uint8_t pingFrame[] = {0x89, 0x84, 0x00, 0x00, 0x00,
-                         0x00, 't',  'e',  's',  't'};
-  client.setReadBuffer(pingFrame, sizeof(pingFrame));
-
+  std::vector<uint8_t> ping = {0x89, 0};
+  assertTrue(client.state->output == ping);
+  wsNow = (uint32_t)(wsNow + WS_PING_INTERVAL_MS);
   ws.poll();
-
-  // Check pong response
-  const uint8_t* written = client.getWriteBuffer();
-  size_t writtenLen = client.getWriteLength();
-
-  assertTrue(writtenLen >= 6);
-  assertEqual((uint8_t)0x8A, written[0]);  // Pong opcode
-  assertEqual((uint8_t)4, written[1]);     // Length
-  assertEqual('t', (char)written[2]);
-  assertEqual('e', (char)written[3]);
-  assertEqual('s', (char)written[4]);
-  assertEqual('t', (char)written[5]);
-}
-
-unittest(room_join_and_leave) {
-  MockClient client1, client2, client3;
-  WebSocket ws;
-
-  ws.upgrade(&client1, "key1");
-  ws.upgrade(&client2, "key2");
-  ws.upgrade(&client3, "key3");
-
-  ws.join(0, "room1");
-  ws.join(1, "room1");
-  // client3 not in room1
-
-  client1.clearWriteBuffer();
-  client2.clearWriteBuffer();
-  client3.clearWriteBuffer();
-
-  ws.toText("room1", "Hi");
-
-  assertTrue(client1.getWriteLength() > 0);
-  assertTrue(client2.getWriteLength() > 0);
-  assertEqual((size_t)0, client3.getWriteLength());
-
-  // Leave room
-  ws.leave(0, "room1");
-  client1.clearWriteBuffer();
-  client2.clearWriteBuffer();
-
-  ws.toText("room1", "Bye");
-
-  assertEqual((size_t)0, client1.getWriteLength());
-  assertTrue(client2.getWriteLength() > 0);
-}
-
-unittest(broadcast_to_all) {
-  MockClient client1, client2;
-  WebSocket ws;
-
-  ws.upgrade(&client1, "key1");
-  ws.upgrade(&client2, "key2");
-
-  client1.clearWriteBuffer();
-  client2.clearWriteBuffer();
-
-  ws.broadcastText("Test");
-
-  assertTrue(client1.getWriteLength() > 0);
-  assertTrue(client2.getWriteLength() > 0);
-}
-
-unittest(send_to_specific_client) {
-  MockClient client1, client2;
-  WebSocket ws;
-
-  ws.upgrade(&client1, "key1");
-  ws.upgrade(&client2, "key2");
-
-  client1.clearWriteBuffer();
-  client2.clearWriteBuffer();
-
-  ws.sendText(0, "OnlyYou");
-
-  assertTrue(client1.getWriteLength() > 0);
-  assertEqual((size_t)0, client2.getWriteLength());
-}
-
-unittest(message_stream_write_response) {
-  MockClient client;
-  WebSocket ws;
-
-  bool handlerCalled = false;
-
-  ws.onMessage([](WebSocketMessage& msg) {
-    // Echo back using Stream write
-    while (msg.available()) {
-      uint8_t byte = msg.read();
-      msg.write(byte);  // Write response
-    }
-  });
-
-  ws.upgrade(&client, "key");
-  client.clearWriteBuffer();
-
-  // Send "AB" masked with zero mask
-  uint8_t frame[] = {0x81, 0x82, 0x00, 0x00, 0x00, 0x00, 'A', 'B'};
-  client.setReadBuffer(frame, sizeof(frame));
-
+  assertTrue(client.state->output == ping);
+  client.feed(frame(10, {}));
   ws.poll();
+  assertTrue(ws.connected(0));
+  client.clearOutput();
+  wsNow = (uint32_t)(wsNow + WS_PING_INTERVAL_MS);
+  ws.poll();
+  assertTrue(client.state->output == ping);
+  wsNow = (uint32_t)(wsNow + WS_PING_TIMEOUT_MS);
+  ws.poll();
+  assertFalse(ws.connected(0));
+}
 
-  // Should have sent two binary frames (one per byte)
-  assertTrue(client.getWriteLength() > 0);
+unittest(message_stream_peek_and_exhaustion) {
+  uint8_t data[] = {'A', 'B'};
+  WsMessage msg(data, sizeof(data), WsMessage::TEXT, 7);
+  assertEqual(2, msg.available());
+  assertEqual((int)'A', msg.peek());
+  assertEqual((int)'A', msg.read());
+  assertEqual((int)'B', msg.read());
+  assertEqual(-1, msg.peek());
+  assertEqual(-1, msg.read());
+  assertEqual(0, msg.available());
+  assertEqual((size_t)0, msg.write('x'));
+  assertTrue(msg.isText());
+  assertEqual(7, msg.socketId());
 }
 
 unittest_main()

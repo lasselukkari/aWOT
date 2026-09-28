@@ -5,7 +5,7 @@
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 EthernetServer server(80);
 
-Application app;
+App app;
 
 // define a handler function
 void indexCmd(Request& req, Response& res) {

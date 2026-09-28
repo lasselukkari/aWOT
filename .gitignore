@@ -20,3 +20,9 @@ vendor
 
 test/build/
 
+# Native build artifacts
+*.o
+*.d
+/examples/MacOSNative/HelloWorld
+/examples/MacOSNative/SocketTests
+/examples/MacOSNative/ShimTests

@@ -10,7 +10,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-Application app;
+App app;
 
 class Counter {
  public:

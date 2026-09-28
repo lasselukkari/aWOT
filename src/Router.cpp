@@ -9,8 +9,8 @@ using namespace awot;
 Router::Router() : m_head(NULL) {}
 
 Router::~Router() {
-  MiddlewareNode *current = m_head;
-  MiddlewareNode *next;
+  MiddlewareNode* current = m_head;
+  MiddlewareNode* next;
 
   while (current != NULL) {
     next = current->next;
@@ -22,56 +22,56 @@ Router::~Router() {
   m_head = NULL;
 }
 
-void Router::del(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::del(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::DELETE, path, middleware);
 }
 
 void Router::del(MIDDLEWARE_PARAM middleware) { del(NULL, middleware); }
 
-void Router::get(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::get(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::GET, path, middleware);
 }
 
 void Router::get(MIDDLEWARE_PARAM middleware) { get(NULL, middleware); }
 
-void Router::head(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::head(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::HEAD, path, middleware);
 }
 
 void Router::head(MIDDLEWARE_PARAM middleware) { head(NULL, middleware); }
 
-void Router::options(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::options(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
 void Router::options(MIDDLEWARE_PARAM middleware) { options(NULL, middleware); }
 
-void Router::post(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::post(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::POST, path, middleware);
 }
 
 void Router::post(MIDDLEWARE_PARAM middleware) { post(NULL, middleware); }
 
-void Router::put(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::put(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::PUT, path, middleware);
 }
 
 void Router::put(MIDDLEWARE_PARAM middleware) { put(NULL, middleware); }
 
-void Router::patch(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::patch(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::PATCH, path, middleware);
 }
 
 void Router::patch(MIDDLEWARE_PARAM middleware) { patch(NULL, middleware); }
 
-void Router::use(const char *path, MIDDLEWARE_PARAM middleware) {
+void Router::use(const char* path, MIDDLEWARE_PARAM middleware) {
   m_addMiddleware(Request::ALL, path, middleware);
 }
 
 void Router::use(MIDDLEWARE_PARAM middleware) { use(NULL, middleware); }
 
-void Router::use(const char *path, Router *router) {
-  MiddlewareNode *tail = new MiddlewareNode();
+void Router::use(const char* path, Router* router) {
+  MiddlewareNode* tail = new MiddlewareNode();
   if (!tail) return;
   tail->path = path;
   tail->middleware = NULL;
@@ -80,11 +80,11 @@ void Router::use(const char *path, Router *router) {
   m_mountMiddleware(tail);
 }
 
-void Router::use(Router *router) { use(NULL, router); }
+void Router::use(Router* router) { use(NULL, router); }
 
-void Router::m_addMiddleware(Request::MethodType type, const char *path,
+void Router::m_addMiddleware(Request::MethodType type, const char* path,
                              MIDDLEWARE_PARAM middleware) {
-  MiddlewareNode *tail = new MiddlewareNode();
+  MiddlewareNode* tail = new MiddlewareNode();
   if (!tail) return;
   tail->path = path;
   tail->middleware = middleware;
@@ -95,11 +95,11 @@ void Router::m_addMiddleware(Request::MethodType type, const char *path,
   m_mountMiddleware(tail);
 }
 
-void Router::m_mountMiddleware(MiddlewareNode *tail) {
+void Router::m_mountMiddleware(MiddlewareNode* tail) {
   if (m_head == NULL) {
     m_head = tail;
   } else {
-    MiddlewareNode *current = m_head;
+    MiddlewareNode* current = m_head;
 
     while (current->next != NULL) {
       current = current->next;
@@ -109,21 +109,22 @@ void Router::m_mountMiddleware(MiddlewareNode *tail) {
   }
 }
 
-void Router::m_dispatchMiddleware(Request &request, Response &response,
+void Router::m_dispatchMiddleware(Request& request, Response& response,
                                   int urlShift) {
-  MiddlewareNode *middleware = m_head;
+  MiddlewareNode* middleware = m_head;
 
   while (middleware != NULL && !response.ended() && request.m_next) {
     if (middleware->router != NULL) {
       int prefixLength = middleware->path ? strlen(middleware->path) : 0;
+      while (prefixLength > 0 && middleware->path[prefixLength - 1] == '/') {
+        --prefixLength;
+      }
       int shift = urlShift + prefixLength;
 
-      const char *pathAtShift = request.path() + urlShift;
-      bool prefixEndsWithSlash =
-          prefixLength > 0 && middleware->path[prefixLength - 1] == '/';
+      const char* pathAtShift = request.path() + urlShift;
       if (middleware->path == NULL ||
           (strncmp(middleware->path, pathAtShift, prefixLength) == 0 &&
-           (prefixEndsWithSlash || pathAtShift[prefixLength] == '/' ||
+           (pathAtShift[prefixLength] == '/' ||
             pathAtShift[prefixLength] == '\0'))) {
         middleware->router->m_dispatchMiddleware(request, response, shift);
       }
@@ -141,9 +142,12 @@ void Router::m_dispatchMiddleware(Request &request, Response &response,
   }
 }
 
-bool Router::m_routeMatch(const char *route, const char *pattern) {
-  if (pattern[0] == '\0' && route[0] == '\0') {
-    return true;
+bool Router::m_routeMatch(const char* route, const char* pattern) {
+  if (route[0] == '\0') {
+    return pattern[0] == '\0' || (pattern[0] == '/' && pattern[1] == '\0');
+  }
+  if (pattern[0] == '\0') {
+    return route[0] == '/' && route[1] == '\0';
   }
 
   bool match = false;

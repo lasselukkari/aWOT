@@ -16,7 +16,7 @@
 #define READ_BUFFER_SIZE 128
 
 WiFiServer server(80);
-Application app;
+App app;
 File dataFile;
 byte readBuffer[READ_BUFFER_SIZE];
 
@@ -57,12 +57,17 @@ uint32_t lookupTableIndex(const char * key, uint32_t length) {
 
 void fileHandler(Request &req, Response &res) {
   uint32_t fileCount = readNumber(0);
+  if (!fileCount) {
+    req.next();
+    return;
+  }
   uint32_t tableIndex = lookupTableIndex(req.path(), fileCount);
   uint32_t infoIndex = 4 + (fileCount * 4) + (tableIndex * 12);
   uint32_t calculatedHash = calculateHash(req.path());
   uint32_t storedHash = readNumber(infoIndex);
 
   if (calculatedHash != storedHash) {
+    req.next();
     return;
   }
 

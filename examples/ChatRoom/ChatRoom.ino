@@ -7,8 +7,13 @@
   The example works with WiFi-enabled boards (ESP8266, ESP32).
 */
 
-#include <WiFi.h>  // Use <ESP8266WiFi.h> for ESP8266
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 #include <aWOT.h>
+#include <WsChannel.h>
 
 // WiFi credentials
 const char* ssid = "YOUR_SSID";
@@ -16,7 +21,8 @@ const char* password = "YOUR_PASSWORD";
 
 WiFiServer server(80);
 App app;
-awot::WebSocket ws;
+WsChannel<WiFiClient, 4, 1> sockets;
+int chatRoom;
 
 // HTML page stored in PROGMEM
 P(indexHtml) =
@@ -139,24 +145,11 @@ void indexHandler(Request& req, Response& res) {
 
 // Handle WebSocket upgrade
 void wsHandler(Request& req, Response& res) {
-  char key[32] = {0};
-  char* keyHeader = req.get("Sec-WebSocket-Key");
-
-  if (keyHeader) {
-    strncpy(key, keyHeader, sizeof(key) - 1);
-  }
-
-  if (ws.upgrade(req.stream(), key)) {
-    res.keepOpen();
-  } else {
-    res.sendStatus(400);
-  }
+  if (!sockets.upgrade(req, res)) res.sendStatus(400);
 }
 
-// Handle incoming WebSocket messages
-void onMessage(int clientId, const uint8_t* data, size_t len) {
-  // Echo message to all connected clients
-  ws.broadcast(data, len);
+void onMessage(WsMessage& msg) {
+  sockets.to(chatRoom, msg.data(), msg.length(), msg.isBinary());
 }
 
 void onConnect(int clientId) {
@@ -164,12 +157,12 @@ void onConnect(int clientId) {
   Serial.println(clientId);
 
   // Join the "chat" room
-  ws.join(clientId, "chat");
+  sockets.join(clientId, chatRoom);
 
   // Send welcome message
   const char* welcome =
       "{\"user\":\"System\",\"text\":\"Welcome to the chat room!\"}";
-  ws.sendText(clientId, welcome);
+  sockets.send(clientId, welcome);
 }
 
 void onDisconnect(int clientId) {
@@ -193,10 +186,12 @@ void setup() {
   Serial.print("Connected! IP: ");
   Serial.println(WiFi.localIP());
 
+  chatRoom = sockets.defineRoom("chat");
+
   // Set up WebSocket handlers
-  ws.onMessage(onMessage);
-  ws.onConnect(onConnect);
-  ws.onDisconnect(onDisconnect);
+  sockets.onMessage(onMessage);
+  sockets.onConnect(onConnect);
+  sockets.onDisconnect(onDisconnect);
 
   // Set up routes
   app.get("/", &indexHandler);
@@ -210,9 +205,19 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    char upgrade[16], connection[64], key[25], version[4];
+    Request::HeaderNode headers[] = {
+        {"Upgrade", upgrade, sizeof(upgrade), nullptr},
+        {"Connection", connection, sizeof(connection), nullptr},
+        {"Sec-WebSocket-Key", key, sizeof(key), nullptr},
+        {"Sec-WebSocket-Version", version, sizeof(version), nullptr}};
+    App::ProcessOptions options;
+    options.headers = headers;
+    options.headerCount = 4;
+    App::ProcessResult result = app.process(&client, options);
+    if (!result.responseOpen) client.stop();
   }
 
   // Poll WebSocket for incoming messages
-  ws.poll();
+  sockets.poll();
 }

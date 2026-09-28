@@ -14,9 +14,11 @@ Response::Response(Client* client, uint8_t* writeBuffer, int writeBufferLength)
     : m_stream(client),
       m_headers(),
       m_contentLengthSet(false),
+      m_chunkedEncoding(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
       m_responseOpen(false),
+      m_head(false),
       m_statusSent(0),
       m_headersSent(false),
       m_sendingStatus(false),
@@ -34,7 +36,8 @@ int Response::m_capacity() const {
   if (m_bufferLength <= CHUNK_OVERHEAD) return 0;
   int chunkLimit = 0;
   for (int i = 0; i < CHUNK_HEADER_SIZE - 2; ++i) {
-    chunkLimit = chunkLimit > (INT_MAX - 15) / 16 ? INT_MAX : chunkLimit * 16 + 15;
+    chunkLimit =
+        chunkLimit > (INT_MAX - 15) / 16 ? INT_MAX : chunkLimit * 16 + 15;
   }
   return min(m_bufferLength - CHUNK_OVERHEAD, chunkLimit);
 }
@@ -49,11 +52,30 @@ void Response::beginHeaders() {
     status(200);
   }
 
-  setDefaults();
   m_sendingHeaders = true;
 
+  // Streaming HTTP responses continue directly on the client after process().
+  // They must be close-delimited, even after keep-alive middleware ran.
+  bool streaming = m_responseOpen && m_statusSent >= 200;
+  if (streaming) {
+    m_keepAlive = false;
+    m_chunkedEncoding = false;
+  }
+  P(connectionName) = "Connection";
+  P(lengthName) = "Content-Length";
+  P(encodingName) = "Transfer-Encoding";
   P(headerSeparator) = ": ";
   for (int i = 0; i < m_headersCount; i++) {
+    const char* name = m_headers[i].name;
+    bool length = App::strcmpiP(name, lengthName) == 0;
+    bool encoding = App::strcmpiP(name, encodingName) == 0;
+    if (streaming &&
+        (length || encoding || App::strcmpiP(name, connectionName) == 0))
+      continue;
+    if ((m_statusSent < 200 || m_statusSent == 204) && (length || encoding))
+      continue;
+    if (m_statusSent == 205 && (length || encoding)) continue;
+    if (length && m_chunkedEncoding) continue;
     this->print(m_headers[i].name);
     printP(headerSeparator);
     this->print(m_headers[i].value);
@@ -62,15 +84,20 @@ void Response::beginHeaders() {
   // Defaults do not occupy caller header slots. Protocol switches and interim
   // responses have only their explicitly supplied headers.
   if (m_statusSent >= 200) {
-    if (!m_contentTypeSet) {
+    if (!m_contentTypeSet && m_statusSent != 204 && m_statusSent != 205 &&
+        m_statusSent != 304) {
       P(contentType) = "Content-Type: text/plain\r\n";
       printP(contentType);
     }
-    if (m_keepAlive && !m_contentLengthSet && !get("Transfer-Encoding")) {
+    if (m_chunked() && !get("Transfer-Encoding")) {
       P(chunked) = "Transfer-Encoding: chunked\r\n";
       printP(chunked);
     }
-    if (!m_keepAlive && !get("Connection")) {
+    if (m_statusSent == 205) {
+      P(emptyContent) = "Content-Length: 0\r\n";
+      printP(emptyContent);
+    }
+    if (streaming || (!m_keepAlive && !get("Connection"))) {
       P(close) = "Connection: close\r\n";
       printP(close);
     }
@@ -132,7 +159,7 @@ void Response::sendStatus(int code) {
   if (code < 200) return;
   m_printHeaders();
 
-  if (code != 204 && code != 304) {
+  if (m_bodyAllowed()) {
     m_printStatus(code);
   }
 }
@@ -157,6 +184,13 @@ void Response::set(const char* name, const char* value) {
     m_contentLengthSet = true;
   }
 
+  P(transferEncoding) = "Transfer-Encoding";
+  P(chunked) = "chunked";
+  if (App::strcmpiP(name, transferEncoding) == 0 &&
+      App::strcmpiP(value, chunked) == 0) {
+    m_chunkedEncoding = true;
+  }
+
   P(connection) = "Connection";
   if (App::strcmpiP(name, connection) == 0) {
     P(keepAlive) = "keep-alive";
@@ -165,9 +199,18 @@ void Response::set(const char* name, const char* value) {
 }
 
 void Response::setDefaults() {
-  // This flag also selects unchunked output for close-delimited and bodyless
-  // responses. Defaults are emitted directly by beginHeaders().
-  if (!m_keepAlive || m_statusSent < 200) m_contentLengthSet = true;
+  // Kept for callers that explicitly prepare headers. Defaults are now
+  // derived in beginHeaders(), once the status and connection mode are known.
+}
+
+bool Response::m_bodyAllowed() const {
+  return !m_head && m_statusSent >= 200 && m_statusSent != 204 &&
+         m_statusSent != 205 && m_statusSent != 304;
+}
+
+bool Response::m_chunked() const {
+  return m_bodyAllowed() &&
+         (m_chunkedEncoding || (m_keepAlive && !m_contentLengthSet));
 }
 
 void Response::status(int code) {
@@ -198,12 +241,10 @@ void Response::status(int code) {
     m_headersSent = false;
     m_headersCount = 0;
     m_contentLengthSet = false;
+    m_chunkedEncoding = false;
     m_contentTypeSet = false;
     m_keepAlive = false;
     m_responseOpen = false;
-  } else if (code == 204 || code == 304) {
-    m_contentLengthSet = true;
-    m_contentTypeSet = true;
   }
 
   m_sendingStatus = false;
@@ -215,6 +256,7 @@ size_t Response::write(uint8_t data) {
   if (getWriteError()) return 0;
   if (m_shouldPrintHeaders()) m_printHeaders();
   if (getWriteError()) return 0;
+  if (m_headersSent && !m_bodyAllowed()) return 1;
   m_buffer[CHUNK_HEADER_SIZE + m_bufFill++] = data;
   if (m_bufFill == m_capacity()) m_flushBuf();
   if (getWriteError()) return 0;
@@ -226,6 +268,7 @@ size_t Response::write(const uint8_t* buffer, size_t bufferLength) {
   if (getWriteError() || bufferLength == 0) return 0;
   if (m_shouldPrintHeaders()) m_printHeaders();
   if (getWriteError()) return 0;
+  if (m_headersSent && !m_bodyAllowed()) return bufferLength;
 
   size_t written = 0;
   int capacity = m_capacity();
@@ -237,7 +280,7 @@ size_t Response::write(const uint8_t* buffer, size_t bufferLength) {
     m_flushBuf();
     while (written < bufferLength && !getWriteError()) {
       size_t length = bufferLength - written;
-      bool chunked = m_headersSent && !m_contentLengthSet;
+      bool chunked = m_headersSent && m_chunked();
       if (chunked && length > (size_t)capacity) length = capacity;
       if (chunked) {
         int headerLength = m_writeChunkHeader((int)length);
@@ -713,7 +756,7 @@ void Response::m_printCRLF() { print(CRLF); }
 
 void Response::m_flushBuf() {
   if (m_bufFill > 0 && !getWriteError()) {
-    if (m_headersSent && !m_contentLengthSet) {
+    if (m_headersSent && m_chunked()) {
       // Write chunk header into reserved space at start of buffer
       int headerLen = m_writeChunkHeader(m_bufFill);
 
@@ -737,7 +780,7 @@ void Response::m_flushBuf() {
 void Response::m_finalize() {
   m_flushBuf();
 
-  if (!getWriteError() && !m_responseOpen && m_headersSent && !m_contentLengthSet) {
+  if (!getWriteError() && !m_responseOpen && m_headersSent && m_chunked()) {
     // Write final chunk: "0\r\n\r\n"
     m_writeAll((const uint8_t*)"0\r\n\r\n", 5);
   }

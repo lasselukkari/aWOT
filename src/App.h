@@ -180,7 +180,8 @@ class App {
 #if defined(__GNUC__)
   __attribute__((noinline))
 #endif
-  ProcessResult m_processWithDefaultWrite(Client* client, ProcessOptions options);
+  ProcessResult m_processWithDefaultWrite(Client* client,
+                                          ProcessOptions options);
 
   Router::MIDDLEWARE_PARAM m_final;
   Router::MIDDLEWARE_PARAM m_notFound;
