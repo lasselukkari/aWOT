@@ -49,7 +49,8 @@ void index(Request &req, Response &res) {
 void update(Request &req, Response &res) {
   int contentLength = req.left();
 
-  if (strcmp(req.get("Expect"), "100-continue") == 0) {
+  const char *expectHeaderValue = req.get("Expect");
+  if (expectHeaderValue && strcmp(expectHeaderValue, "100-continue") == 0) {
     res.status(100);
   }
 

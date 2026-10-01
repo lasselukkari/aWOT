@@ -40,7 +40,7 @@ Response::Response(Client* client, uint8_t * writeBuffer, int writeBufferLength)
       m_bufFill(0) {}
 
 int Response::availableForWrite() {
-  return SERVER_OUTPUT_BUFFER_SIZE - m_bufFill - 1;
+  return m_bufferLength - m_bufFill - 1;
 }
 
 void Response::beginHeaders() {
@@ -83,7 +83,7 @@ void Response::flush() {
 const char *Response::get(const char *name) {
   for (int i = 0; i < m_headersCount; i++) {
     if (Application::strcmpi(name, m_headers[i].name) == 0) {
-      return m_headers[m_headersCount].value;
+      return m_headers[i].value;
     }
   }
 
@@ -193,13 +193,13 @@ size_t Response::write(uint8_t data) {
 
   m_buffer[m_bufFill++] = data;
 
-  if (m_bufFill == SERVER_OUTPUT_BUFFER_SIZE) {
+  if (m_bufFill == m_bufferLength) {
     if (m_headersSent && !m_contentLengthSet) {
       m_stream->print(m_bufFill, HEX);
       m_stream->print(CRLF);
     }
 
-    m_stream->write(m_buffer, SERVER_OUTPUT_BUFFER_SIZE);
+    m_stream->write(m_buffer, m_bufferLength);
 
     if (m_headersSent && !m_contentLengthSet) {
       m_stream->print(CRLF);
