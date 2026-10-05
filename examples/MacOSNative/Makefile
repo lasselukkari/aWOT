@@ -1,30 +1,12 @@
-# macOS Native aWOT Example
 CXX = clang++
 
-# Include paths:
-# Use -isystem for ArduinoCore to treat as system headers
 # Keep the local shim in dependency files so edits rebuild every user of it.
 CXXFLAGS = -std=c++11 -Wall -Wextra -MMD -MP -I../../src -I. -isystem ArduinoCore-API/api -isystem ArduinoCore-API/api/deprecated-avr-comp
 
-# Arduino core source files (from ArduinoCore-API)
-ARDUINO_SOURCES = ArduinoCore-API/api/Print.cpp \
-                  ArduinoCore-API/api/Stream.cpp \
-                  ArduinoCore-API/api/WString.cpp \
-                  ArduinoCore-API/api/IPAddress.cpp \
-                  ArduinoCore-API/api/Common.cpp
-
-# Application source files
-APP_SOURCES = HelloWorld.cpp MacOSSocket.cpp
-
-# aWOT source files
-AWOT_SOURCES = ../../src/App.cpp ../../src/Request.cpp ../../src/Response.cpp ../../src/Router.cpp
-
-# Object files
 ARDUINO_OBJECTS = Print.o Stream.o WString.o IPAddress.o Common.o
 APP_OBJECTS = HelloWorld.o MacOSSocket.o
 AWOT_OBJECTS = App.o Request.o Response.o Router.o
 
-# Target
 TARGET = HelloWorld
 TEST_TARGETS = SocketTests ShimTests
 TEST_OBJECTS = SocketTests.o ShimTests.o
@@ -48,14 +30,12 @@ SocketTests.o: tests/sockets.cpp
 ShimTests.o: tests/shims.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# Application objects
 HelloWorld.o: HelloWorld.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 MacOSSocket.o: MacOSSocket.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# Arduino Core objects
 Print.o: ArduinoCore-API/api/Print.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
@@ -71,7 +51,6 @@ IPAddress.o: ArduinoCore-API/api/IPAddress.cpp
 Common.o: ArduinoCore-API/api/Common.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# aWOT objects
 App.o: ../../src/App.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 

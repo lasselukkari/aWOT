@@ -1,7 +1,3 @@
-/*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-*/
-
 #ifndef AWOT_ROUTER_H_
 #define AWOT_ROUTER_H_
 

@@ -74,7 +74,6 @@
 #endif
 #endif
 
-// Calculate chunk header size based on buffer size
 // Header format: "<hex_size>\r\n" + data + "\r\n"
 #if SERVER_OUTPUT_BUFFER_SIZE <= 0xF
 #define CHUNK_HEADER_SIZE 3  // "F\r\n"
@@ -107,7 +106,6 @@
 
 namespace awot {
 
-// Forward declarations
 class Response;
 class Request;
 class Router;

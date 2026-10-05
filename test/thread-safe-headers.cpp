@@ -17,7 +17,6 @@ unittest(custom_headers_stack_allocation) {
   MockStream stream(request);
   App app;
 
-  // Define headers on stack
   char valueBuffer[20];
   Request::HeaderNode headers[] = {
       {"X-Test", valueBuffer, sizeof(valueBuffer), nullptr},
@@ -25,7 +24,6 @@ unittest(custom_headers_stack_allocation) {
 
   app.get("/", &checkHeaderHandler);
 
-  // Pass the custom headers to process
   App::ProcessOptions options;
   options.headers = headers;
   options.headerCount = 1;

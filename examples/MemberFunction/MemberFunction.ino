@@ -41,7 +41,6 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  // New cleaner syntax for member functions
   app.get("/", &counter, &Counter::handleRequest);
 
   app.get("/callback", callback);

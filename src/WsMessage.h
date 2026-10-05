@@ -1,6 +1,4 @@
 /*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-
   WsMessage: Stream-derived wrapper over a completed WebSocket frame payload.
   Handed to application message callbacks so they can consume payload through
   the same Stream interface aWOT uses elsewhere.

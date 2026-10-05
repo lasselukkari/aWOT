@@ -27,13 +27,10 @@ unsigned long millis(void);
 // micros() - returns monotonic microseconds from the same origin as millis()
 unsigned long micros(void);
 
-// delay() - delay in milliseconds
 void delay(unsigned long ms);
 
-// yield() - allow other processes to run
 void yield(void);
 
-// itoa family - integer to ASCII conversion
 char* itoa(int value, char* buffer, int base);
 char* ltoa(long value, char* buffer, int base);
 char* utoa(unsigned value, char* buffer, int base);
@@ -46,14 +43,13 @@ char* ultoa(unsigned long value, char* buffer, int base);
 // dtostrf uses Arduino's signature; callers provide enough output storage.
 #include "deprecated-avr-comp/avr/dtostrf.h"
 
-// Now include the Arduino Core API headers (order matters!)
 #include "Client.h"
 #include "Common.h"
 #include "IPAddress.h"
 #include "Print.h"
 #include "Printable.h"
 #include "Stream.h"
-#include "WString.h"  // String class - must come first
+#include "WString.h"
 
 // Bring Arduino classes into global namespace for aWOT compatibility
 using arduino::Client;
@@ -66,7 +62,6 @@ using arduino::Stream;
 #undef INADDR_NONE
 #endif
 
-// Serial console output for macOS
 class SerialClass : public Stream {
  public:
   void begin(unsigned long) {}

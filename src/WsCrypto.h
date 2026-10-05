@@ -1,6 +1,4 @@
 /*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-
   WebSocket handshake crypto: SHA-1 + Base64.
 
   SHA-1 implementation adapted from Steve Reid's public domain reference

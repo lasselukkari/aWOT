@@ -1,7 +1,3 @@
-/*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-*/
-
 #include "Response.h"
 
 #include <limits.h>
@@ -757,19 +753,15 @@ void Response::m_printCRLF() { print(CRLF); }
 void Response::m_flushBuf() {
   if (m_bufFill > 0 && !getWriteError()) {
     if (m_headersSent && m_chunked()) {
-      // Write chunk header into reserved space at start of buffer
       int headerLen = m_writeChunkHeader(m_bufFill);
 
-      // Write trailer at end of data
       m_buffer[CHUNK_HEADER_SIZE + m_bufFill] = '\r';
       m_buffer[CHUNK_HEADER_SIZE + m_bufFill + 1] = '\n';
 
-      // Single write: header + data + trailer
       int startOffset = CHUNK_HEADER_SIZE - headerLen;
       m_writeAll(m_buffer + startOffset,
                  headerLen + m_bufFill + CHUNK_TRAILER_SIZE);
     } else {
-      // No chunking - just write the data portion
       m_writeAll(m_buffer + CHUNK_HEADER_SIZE, m_bufFill);
     }
 
@@ -781,7 +773,6 @@ void Response::m_finalize() {
   m_flushBuf();
 
   if (!getWriteError() && !m_responseOpen && m_headersSent && m_chunked()) {
-    // Write final chunk: "0\r\n\r\n"
     m_writeAll((const uint8_t*)"0\r\n\r\n", 5);
   }
 }
@@ -791,11 +782,9 @@ void Response::m_finalize() {
 int Response::m_writeChunkHeader(int dataSize) {
   static const char hexDigits[] = "0123456789abcdef";
 
-  // Position to write the CRLF at end of header space
   m_buffer[CHUNK_HEADER_SIZE - 2] = '\r';
   m_buffer[CHUNK_HEADER_SIZE - 1] = '\n';
 
-  // Write hex digits right-to-left before the CRLF
   int pos = CHUNK_HEADER_SIZE - 3;
   int hexLen = 0;
   int n = dataSize;

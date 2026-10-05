@@ -31,7 +31,6 @@ void indexCmd(Request&, Response& res) {
   res.print("</html>");
 }
 
-// Handle a single client - one request and close
 void handleClient(MacOSClient client) {
   activeConnections++;
   app.process(&client);
@@ -54,7 +53,6 @@ void loop() {
   // Sleep in poll until a connection arrives instead of spinning while idle.
   MacOSClient client = server.available(-1);
   if (client.connected()) {
-    // Spawn a new thread to handle this client
     std::thread(handleClient, std::move(client)).detach();
   }
 }

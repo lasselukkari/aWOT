@@ -1,6 +1,4 @@
 /*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-
   WsChannel: RFC 6455 WebSocket channel with server-driven "rooms" for
   broadcast targeting. Mirrors SseChannel's template/static-allocation design.
 
@@ -110,8 +108,8 @@ class WsChannel {
     res.set("Upgrade", "websocket");
     res.set("Connection", "Upgrade");
     res.set("Sec-WebSocket-Accept", accept);
-    res.beginHeaders();  // flushes the accumulated headers to the wire
-    res.endHeaders();    // terminates the header block with the final CRLF
+    res.beginHeaders();
+    res.endHeaders();
     if (res.getWriteError()) return false;
     res.keepOpen();
 
@@ -132,8 +130,6 @@ class WsChannel {
       if (m_slots[i].active) pollSlot(i);
     }
   }
-
-  // -------- rooms (server-driven) --------
 
   int defineRoom(const char* name) {
     if (m_roomCount >= MAX_ROOMS) return -1;
@@ -160,8 +156,6 @@ class WsChannel {
     if (!validRoom(roomIdx) || !validSocket(socketId)) return false;
     return (m_rooms[socketId] & (1UL << roomIdx)) != 0;
   }
-
-  // -------- sends --------
 
   void send(int socketId, const char* text) {
     if (!validSocket(socketId) || !m_slots[socketId].active) return;
@@ -225,8 +219,6 @@ class WsChannel {
     closeSlot(socketId, validCloseCode(code) ? code : 1002);
   }
 
-  // -------- callbacks --------
-
   void onConnect(ConnectCb cb) { m_onConnect = cb; }
   void onDisconnect(DisconnectCb cb) { m_onDisconnect = cb; }
   void onMessage(MessageCb cb) { m_onMessage = cb; }
@@ -235,7 +227,6 @@ class WsChannel {
   struct Slot {
     TClient client;
     bool active;
-    // rx state
     uint8_t rxHeader[14];
     uint8_t rxHeaderFilled;
     uint8_t rxHeaderNeeded;
@@ -246,7 +237,6 @@ class WsChannel {
     uint32_t rxExpected;
     uint32_t rxFilledPayload;
     uint8_t rxPayload[WS_RX_BUFFER_SIZE];
-    // liveness
     uint32_t lastPingSentMs;
     bool awaitingPong;
   };
@@ -376,7 +366,6 @@ class WsChannel {
       }
       if (s.rxHeaderFilled < 2) break;
 
-      // Decode required header size once
       if (!s.rxHeaderDecoded) {
         uint8_t fin = s.rxHeader[0] & 0x80;
         uint8_t rsv = s.rxHeader[0] & 0x70;
@@ -428,7 +417,6 @@ class WsChannel {
       }
       if (s.rxHeaderFilled < s.rxHeaderNeeded) break;
 
-      // Resolve payload length + mask (once)
       if (!s.rxPayloadResolved) {
         uint8_t len7 = s.rxHeader[1] & 0x7F;
         uint32_t len = 0;
@@ -491,7 +479,6 @@ class WsChannel {
       dispatchFrame(i);
       if (!s.active) return;
 
-      // Ready for next frame
       resetRxState(i);
       progress = true;
     }

@@ -44,7 +44,6 @@ class MockClient : public Client {
 
   void setConnected(bool connected) { m_connected = connected; }
 
-  // Client interface implementation
   int connect(IPAddress ip, uint16_t port) override {
     (void)ip;
     (void)port;
@@ -109,7 +108,6 @@ class MockClient : public Client {
 
   operator bool() override { return m_connected; }
 
-  // Test helpers
   const uint8_t* getWriteBuffer() const { return m_writeBuffer; }
   size_t getWriteLength() const { return m_writePosition; }
 

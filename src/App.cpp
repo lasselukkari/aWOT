@@ -1,7 +1,3 @@
-/*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-*/
-
 #include "App.h"
 
 using namespace awot;

@@ -46,7 +46,6 @@ class MacOSClient : public Client {
   explicit MacOSClient(int socket);
   ~MacOSClient() { stop(); }
 
-  // Move constructor - transfer ownership
   MacOSClient(MacOSClient&& other) noexcept
       : _socket(other._socket), _connected(other._connected) {
     moveReceiveBuffer(other);
@@ -54,7 +53,6 @@ class MacOSClient : public Client {
     other._connected = false;
   }
 
-  // Move assignment
   MacOSClient& operator=(MacOSClient&& other) noexcept {
     if (this != &other) {
       stop();
@@ -71,7 +69,6 @@ class MacOSClient : public Client {
   MacOSClient(const MacOSClient&) = delete;
   MacOSClient& operator=(const MacOSClient&) = delete;
 
-  // Client interface implementation
   int connect(IPAddress ip, uint16_t port) override;
   int connect(const char* host, uint16_t port) override;
   size_t write(uint8_t byte) override;
@@ -87,7 +84,6 @@ class MacOSClient : public Client {
     return _connected || _receiveOffset < _receiveLength;
   }
 
-  // Get the underlying socket (for debugging)
   int getSocket() const { return _socket; }
 };
 

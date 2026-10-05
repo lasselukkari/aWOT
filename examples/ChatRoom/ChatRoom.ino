@@ -15,7 +15,6 @@
 #include <aWOT.h>
 #include <WsChannel.h>
 
-// WiFi credentials
 const char* ssid = "YOUR_SSID";
 const char* password = "YOUR_PASSWORD";
 
@@ -137,13 +136,11 @@ P(indexHtml) =
     "</body>\n"
     "</html>\n";
 
-// Serve the index page
 void indexHandler(Request& req, Response& res) {
   res.set("Content-Type", "text/html");
   res.printP(indexHtml);
 }
 
-// Handle WebSocket upgrade
 void wsHandler(Request& req, Response& res) {
   if (!sockets.upgrade(req, res)) res.sendStatus(400);
 }
@@ -156,10 +153,8 @@ void onConnect(int clientId) {
   Serial.print("Client connected: ");
   Serial.println(clientId);
 
-  // Join the "chat" room
   sockets.join(clientId, chatRoom);
 
-  // Send welcome message
   const char* welcome =
       "{\"user\":\"System\",\"text\":\"Welcome to the chat room!\"}";
   sockets.send(clientId, welcome);
@@ -173,7 +168,6 @@ void onDisconnect(int clientId) {
 void setup() {
   Serial.begin(115200);
 
-  // Connect to WiFi
   Serial.print("Connecting to WiFi");
   WiFi.begin(ssid, password);
 
@@ -188,12 +182,10 @@ void setup() {
 
   chatRoom = sockets.defineRoom("chat");
 
-  // Set up WebSocket handlers
   sockets.onMessage(onMessage);
   sockets.onConnect(onConnect);
   sockets.onDisconnect(onDisconnect);
 
-  // Set up routes
   app.get("/", &indexHandler);
   app.get("/ws", &wsHandler);
 
@@ -218,6 +210,5 @@ void loop() {
     if (!result.responseOpen) client.stop();
   }
 
-  // Poll WebSocket for incoming messages
   sockets.poll();
 }

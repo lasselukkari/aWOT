@@ -7,7 +7,6 @@ EthernetServer server(80);
 
 App app;
 
-// define a handler function
 void indexCmd(Request& req, Response& res) {
   // P macro for printing strings from program memory
   P(index) =
@@ -35,7 +34,6 @@ void setup() {
 
   server.begin();
 
-  // mount the handler to the default router
   app.get("/", &indexCmd);
 }
 

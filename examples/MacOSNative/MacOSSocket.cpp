@@ -8,10 +8,6 @@
 #include <iostream>
 #include <thread>
 
-// ============================================================================
-// SerialClass implementation (from Arduino.h)
-// ============================================================================
-
 SerialClass Serial;
 
 size_t SerialClass::write(uint8_t c) {
@@ -25,10 +21,6 @@ size_t SerialClass::write(const uint8_t* buffer, size_t size) {
 }
 
 void SerialClass::flush() { std::cout.flush(); }
-
-// ============================================================================
-// Platform function implementations (extern "C" from Arduino.h)
-// ============================================================================
 
 namespace {
 
@@ -124,10 +116,6 @@ char* dtostrf(double value, signed char width, unsigned char precision,
 
 }  // extern "C"
 
-// ============================================================================
-// MacOSClient implementation
-// ============================================================================
-
 namespace {
 
 bool suppressSigpipe(int socket) {
@@ -172,8 +160,7 @@ int MacOSClient::connect(IPAddress ip, uint16_t port) {
 }
 
 int MacOSClient::connect(const char* host, uint16_t port) {
-  // Simple implementation - just try to parse as IP address
-  // For a full implementation, you'd use getaddrinfo()
+  // Only numeric IPv4 addresses are supported; DNS is not resolved.
   struct in_addr addr;
   if (host && inet_aton(host, &addr)) {
     return connect(IPAddress((uint32_t)addr.s_addr), port);
@@ -265,10 +252,6 @@ uint8_t MacOSClient::connected() {
   return _connected || buffered ? 1 : 0;
 }
 
-// ============================================================================
-// MacOSServer implementation
-// ============================================================================
-
 bool MacOSServer::begin() {
   stop();
   _socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -303,7 +286,6 @@ bool MacOSServer::begin() {
     return false;
   }
 
-  // Set non-blocking for accept
   int flags = fcntl(_socket, F_GETFL, 0);
   if (flags < 0 || fcntl(_socket, F_SETFL, flags | O_NONBLOCK) < 0) {
     perror("Error configuring listener");
@@ -350,7 +332,6 @@ MacOSClient MacOSServer::available(int timeoutMs) {
     return MacOSClient();
   }
 
-  // Set client socket to blocking mode
   int flags = fcntl(clientSocket, F_GETFL, 0);
   if (flags < 0 || fcntl(clientSocket, F_SETFL, flags & ~O_NONBLOCK) < 0) {
     close(clientSocket);
