@@ -57,14 +57,12 @@ static bool handshake(Channel& ws, SharedClient& client,
   app.use(upgradeHandler);
   client.feed(input);
   char upgrade[40], connection[40], key[64], version[16];
-  Request::HeaderNode headers[] = {
-      {"Upgrade", upgrade, sizeof(upgrade), nullptr},
-      {"Connection", connection, sizeof(connection), nullptr},
-      {"Sec-WebSocket-Key", key, sizeof(key), nullptr},
-      {"Sec-WebSocket-Version", version, sizeof(version), nullptr}};
+  Request::Header headers[] = {{"Upgrade", upgrade},
+                               {"Connection", connection},
+                               {"Sec-WebSocket-Key", key},
+                               {"Sec-WebSocket-Version", version}};
   App::ProcessOptions options;
   options.headers = headers;
-  options.headerCount = 4;
   App::ProcessResult result = app.process(&client, options);
   return upgradeResult && result.responseOpen;
 }

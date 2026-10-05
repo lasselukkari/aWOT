@@ -54,38 +54,37 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
   }
 
   // A null pointer selects its default capacity regardless of the unused
-  // length. Supplied storage always requires an explicit valid capacity.
-  if ((options.urlBuffer && options.urlBufferLength < 2) ||
-      (options.writeBuffer && options.writeBufferLength <= CHUNK_OVERHEAD) ||
-      options.headerCount < 0 ||
-      (options.headerCount > 0 && !options.headers)) {
+  // length. Supplied storage always requires a valid capacity.
+  if ((options.urlBuffer.data() && options.urlBuffer.size() < 2) ||
+      (options.writeBuffer.data() &&
+       options.writeBuffer.size() <= CHUNK_OVERHEAD) ||
+      options.headers.size() < 0 ||
+      (options.headers.size() > 0 && !options.headers.data())) {
     client->stop();
     return result;
   }
-  for (int i = 0; i < options.headerCount; ++i) {
-    const Request::HeaderNode& header = options.headers[i];
-    if (!header.name || !header.buffer || header.bufferLength <= 0) {
+  for (int i = 0; i < options.headers.size(); ++i) {
+    const Request::Header& header = options.headers[i];
+    if (!header.name || !header.buffer.data() || header.buffer.size() <= 0) {
       client->stop();
       return result;
     }
   }
-  if (!options.urlBuffer) return m_processWithDefaultUrl(client, options);
-  if (!options.writeBuffer) return m_processWithDefaultWrite(client, options);
+  if (!options.urlBuffer.data())
+    return m_processWithDefaultUrl(client, options);
+  if (!options.writeBuffer.data())
+    return m_processWithDefaultWrite(client, options);
 
-  char* urlBuffer = options.urlBuffer;
-  int urlBufferLength = options.urlBufferLength;
-  uint8_t* writeBuffer = options.writeBuffer;
-  int writeBufferLength = options.writeBufferLength;
-  Request::HeaderNode* headers = options.headers;
-  int headerCount = options.headerCount;
-  for (int i = 0; i < headerCount; ++i) {
+  ArrayView<Request::Header> headers = options.headers;
+  for (int i = 0; i < headers.size(); ++i) {
     headers[i].buffer[0] = '\0';
-    headers[i].next = i + 1 < headerCount ? &headers[i + 1] : nullptr;
+    headers[i].m_present = false;
   }
 
-  Response response(client, writeBuffer, writeBufferLength);
-  Request request(client, &response, headerCount > 0 ? headers : nullptr,
-                  urlBuffer, urlBufferLength, m_timeout, options.context);
+  Response response(client, options.writeBuffer.data(),
+                    options.writeBuffer.size());
+  Request request(client, &response, headers, options.urlBuffer.data(),
+                  options.urlBuffer.size(), m_timeout, options.context);
 
   m_process(request, response);
 
@@ -103,7 +102,10 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
                      response.m_keepAlive;
   if (!parsed) client->stop();
 
-  for (int i = 0; i < headerCount; ++i) headers[i].buffer[0] = '\0';
+  for (int i = 0; i < headers.size(); ++i) {
+    headers[i].buffer[0] = '\0';
+    headers[i].m_present = false;
+  }
 
   return result;
 }
@@ -114,7 +116,6 @@ App::ProcessResult App::m_processWithDefaultUrl(Client* client,
                                                 ProcessOptions options) {
   char buffer[SERVER_URL_BUFFER_SIZE];
   options.urlBuffer = buffer;
-  options.urlBufferLength = sizeof(buffer);
   return process(client, options);
 }
 
@@ -122,7 +123,6 @@ App::ProcessResult App::m_processWithDefaultWrite(Client* client,
                                                   ProcessOptions options) {
   uint8_t buffer[SERVER_OUTPUT_BUFFER_SIZE];
   options.writeBuffer = buffer;
-  options.writeBufferLength = sizeof(buffer);
   return process(client, options);
 }
 

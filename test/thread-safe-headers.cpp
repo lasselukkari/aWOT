@@ -18,15 +18,14 @@ unittest(custom_headers_stack_allocation) {
   App app;
 
   char valueBuffer[20];
-  Request::HeaderNode headers[] = {
-      {"X-Test", valueBuffer, sizeof(valueBuffer), nullptr},
+  Request::Header headers[] = {
+      {"X-Test", valueBuffer},
   };
 
   app.get("/", &checkHeaderHandler);
 
   App::ProcessOptions options;
   options.headers = headers;
-  options.headerCount = 1;
   app.process(&stream, options);
 
   String response = stream.response();

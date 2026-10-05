@@ -87,12 +87,8 @@ void loop() {
 
   if (client.connected()) {
     char authBuffer[64];
-    Request::HeaderNode headers[] = {
-        {"Authorization", authBuffer, sizeof(authBuffer), nullptr}};
-    App::ProcessOptions options;
-    options.headers = headers;
-    options.headerCount = 1;
-    app.process(&client, options);
+    Request::Header headers[] = {{"Authorization", authBuffer}};
+    app.process(&client, headers);
     client.stop();
   }
 }

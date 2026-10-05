@@ -97,10 +97,10 @@ unittest(header_prefixes_are_independent_of_registration_order) {
                            {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
   for (const auto& order : orders) {
     char values[3][16];
-    Request::HeaderNode headers[] = {
-        {names[order[0]], values[0], sizeof(values[0]), nullptr},
-        {names[order[1]], values[1], sizeof(values[1]), nullptr},
-        {names[order[2]], values[2], sizeof(values[2]), nullptr},
+    Request::Header headers[] = {
+        {names[order[0]], values[0]},
+        {names[order[1]], values[1]},
+        {names[order[2]], values[2]},
     };
     MockStream stream("GET / HTTP/1.1" CRLF "Accept-Languages: ignored" CRLF
                       "aCcEpT-EnCoDiNg: gzip" CRLF "Accept-Language: en" CRLF
@@ -111,7 +111,6 @@ unittest(header_prefixes_are_independent_of_registration_order) {
     App::ProcessOptions options;
     options.context = &observation;
     options.headers = headers;
-    options.headerCount = 3;
     app.process(&stream, options);
     assertTrue(observation.called);
     assertTrue(observation.matched);
@@ -130,9 +129,9 @@ void observeLongHeaders(Request& req, Response& res) {
 
 unittest(header_names_can_exceed_avr_pushback_capacity) {
   char a[4], b[4];
-  Request::HeaderNode headers[] = {
-      {longHeaderA, a, sizeof(a), nullptr},
-      {longHeaderB, b, sizeof(b), nullptr},
+  Request::Header headers[] = {
+      {longHeaderA, a},
+      {longHeaderB, b},
   };
   MockStream stream(
       "GET / HTTP/1.1" CRLF
@@ -144,7 +143,6 @@ unittest(header_names_can_exceed_avr_pushback_capacity) {
   App::ProcessOptions options;
   options.context = &observation;
   options.headers = headers;
-  options.headerCount = 2;
   app.process(&stream, options);
   assertTrue(observation.called);
   assertTrue(observation.matched);

@@ -50,9 +50,10 @@ boards with more memory.
 ## Migrating from 3.x
 
 - Replace `Application` with `App`.
-- Pass captured request headers, custom buffers, and context in
-  `App::ProcessOptions`. `app.header(...)` and `process(client, context)` are
-  replaced by the per-request options below.
+- Replace `app.header(...)` with a per-request `Request::Header` array passed to
+  `process(client, headers)`. Use `App::ProcessOptions` to combine headers, custom
+  buffers, and context; `process(client, context)` becomes
+  `options.context = context` followed by `process(client, options)`.
 - Call `req.next()` when middleware should continue to the next matching
   handler. Returning from a handler alone stops dispatch.
 - Mount a router with `app.use("/prefix", &router)`. Routers and applications
@@ -107,20 +108,14 @@ void search(Request& req, Response& res) {
 }
 ```
 
-Capture only the headers a handler needs. Their buffers and the options remain
-alive for the duration of `process()`; header values are cleared when processing
-finishes.
+Capture only the headers a handler needs. Buffer capacities and the number of
+headers are inferred from the arrays:
 
 ```cpp
-void handleClient(Client& client, void* context) {
+void handleClient(Client& client) {
   char userAgent[128];
-  Request::HeaderNode headers[] = {
-      {"User-Agent", userAgent, sizeof(userAgent), nullptr}};
-  App::ProcessOptions options;
-  options.headers = headers;
-  options.headerCount = 1;
-  options.context = context;
-  app.process(&client, options);
+  Request::Header headers[] = {{"User-Agent", userAgent}};
+  app.process(&client, headers);
 }
 
 void showAgent(Request& req, Response& res) {
@@ -128,6 +123,12 @@ void showAgent(Request& req, Response& res) {
   res.print(agent ? agent : "Unknown");
 }
 ```
+
+`req.get(name)` returns `nullptr` if the header is absent or was not selected for
+capture. A present header with an empty value returns an empty string. The
+header array, names, and value buffers must remain alive throughout `process()`.
+Each concurrent invocation needs its own header array and buffers; header values
+are cleared before parsing and after processing.
 
 Form bodies can be read field by field with
 `req.form(name, sizeof(name), value, sizeof(value))`, or through `req.read()`,
@@ -167,9 +168,37 @@ P(page) = "<html><body>Hello</body></html>";
 res.printP(page);
 ```
 
-`ProcessOptions` can supply a URL buffer and output buffer for an individual
-request. Null pointers select defaults. A URL buffer needs at least two bytes;
-an output buffer must be larger than `CHUNK_OVERHEAD`.
+`ProcessOptions` combines headers, custom buffers, and context for an individual
+request. Assign arrays directly to infer their sizes:
+
+```cpp
+void handleClient(Client& client, void* context) {
+  char authorization[64];
+  char url[128];
+  uint8_t output[256];
+  Request::Header headers[] = {{"Authorization", authorization}};
+
+  App::ProcessOptions options;
+  options.headers = headers;
+  options.urlBuffer = url;
+  options.writeBuffer = output;
+  options.context = context;
+  app.process(&client, options);
+}
+```
+
+Options reference caller-owned storage, which must remain alive throughout
+`process()`. Omitted buffers or null buffer pointers select defaults. A URL
+buffer needs at least two bytes; an output buffer must be larger than
+`CHUNK_OVERHEAD`. When using raw pointers, provide capacities explicitly, for
+example `options.urlBuffer = {urlPointer, urlCapacity}` or
+`options.headers = {headerPointer, headerCount}`. A header with a raw buffer
+pointer is constructed as `Request::Header{"Name", valuePointer, valueCapacity}`.
+
+Code using the earlier 4.0 options API should replace `Request::HeaderNode` with
+`Request::Header`, remove header `next` pointers, and remove the separate
+`headerCount`, `urlBufferLength`, and `writeBufferLength` option assignments.
+Use arrays directly or pair raw pointers with their sizes as above.
 
 Advanced builds can override `SERVER_URL_BUFFER_SIZE`,
 `SERVER_OUTPUT_BUFFER_SIZE`, `SERVER_PUSHBACK_BUFFER_SIZE`, or `LOW_MEMORY_MCU`

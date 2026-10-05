@@ -125,15 +125,13 @@ class App {
   }
 #endif
 
-  // Null buffers select default storage; non-null buffers require capacities.
+  // Storage is borrowed for process(). Arrays infer capacities and counts.
+  // Null buffers select default storage; pointers require explicit capacities.
   // Invalid options close the client without invoking handlers.
   struct ProcessOptions {
-    char* urlBuffer = nullptr;
-    int urlBufferLength = 0;
-    uint8_t* writeBuffer = nullptr;
-    int writeBufferLength = 0;
-    Request::HeaderNode* headers = nullptr;
-    int headerCount = 0;
+    ArrayView<char> urlBuffer;
+    ArrayView<uint8_t> writeBuffer;
+    ArrayView<Request::Header> headers;
     void* context = nullptr;
   };
 
@@ -146,6 +144,19 @@ class App {
   ProcessResult process(Client* client, const ProcessOptions& options);
   ProcessResult process(Stream* stream);
   ProcessResult process(Stream* stream, const ProcessOptions& options);
+
+  template <size_t N>
+  ProcessResult process(Client* client, Request::Header (&headers)[N]) {
+    ProcessOptions options;
+    options.headers = headers;
+    return process(client, options);
+  }
+  template <size_t N>
+  ProcessResult process(Stream* stream, Request::Header (&headers)[N]) {
+    ProcessOptions options;
+    options.headers = headers;
+    return process(stream, options);
+  }
 
   void setTimeout(unsigned long timeoutMillis);
   void use(const char* path, Router* router);

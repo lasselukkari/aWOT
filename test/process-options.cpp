@@ -23,8 +23,26 @@ unittest(process_options_basic) {
   assertEqual(expected, stream.response());
 }
 
-unittest(process_options_custom_buffers) {
-  const char* request = "GET /test HTTP/1.0" CRLF CRLF;
+struct ProcessObservation {
+  bool called;
+  bool matched;
+  char* url;
+  char* header;
+};
+
+static void observeOptions(Request& req, Response& res) {
+  ProcessObservation& observation =
+      *static_cast<ProcessObservation*>(req.context);
+  observation.called = true;
+  observation.matched = req.path() == observation.url &&
+                        req.get("X-Test") == observation.header &&
+                        strcmp(req.path(), "/test") == 0 &&
+                        strcmp(req.get("X-Test"), "test") == 0;
+  res.print(req.get("X-Test"));
+}
+
+unittest(process_options_combines_inferred_buffers_headers_and_context) {
+  const char* request = "GET /test HTTP/1.0" CRLF "X-Test: test" CRLF CRLF;
 
   const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
                          "Connection: close" CRLF CRLF "test";
@@ -32,20 +50,26 @@ unittest(process_options_custom_buffers) {
   MockStream stream(request);
   App app;
 
-  app.get("/test", &handler);
+  app.get("/test", observeOptions);
 
   char urlBuffer[128];
   uint8_t writeBuffer[256];
+  char headerBuffer[8];
+  Request::Header headers[] = {{"X-Test", headerBuffer}};
+  ProcessObservation observation = {false, false, urlBuffer, headerBuffer};
 
   App::ProcessOptions options;
   options.urlBuffer = urlBuffer;
-  options.urlBufferLength = 128;
   options.writeBuffer = writeBuffer;
-  options.writeBufferLength = 256;
+  options.headers = headers;
+  options.context = &observation;
 
   app.process(&stream, options);
 
+  assertTrue(observation.called);
+  assertTrue(observation.matched);
   assertEqual(expected, stream.response());
+  assertEqual("", headerBuffer);
 }
 
 static bool visited;
@@ -61,31 +85,42 @@ unittest(invalid_options_close_client_without_touching_buffers) {
   char url[2] = {'!', '!'};
   uint8_t output[CHUNK_OVERHEAD + 1] = {};
   char headerValue[4] = "old";
-  Request::HeaderNode header = {"X", headerValue, sizeof(headerValue), nullptr};
+  Request::Header header = {"X", headerValue};
 
-  for (int testCase = 0; testCase < 7; ++testCase) {
+  for (int testCase = 0; testCase < 12; ++testCase) {
     App::ProcessOptions options;
     switch (testCase) {
       case 0:
-        options.urlBuffer = url;
-        options.urlBufferLength = 1;
+        options.urlBuffer = {url, 1};
         break;
       case 1:
-        options.writeBuffer = output;
-        options.writeBufferLength = CHUNK_OVERHEAD;
+        options.writeBuffer = {output, CHUNK_OVERHEAD};
         break;
       case 2:
-        options.headerCount = -1;
+        options.headers = {nullptr, -1};
         break;
       case 3:
-        options.headerCount = 1;
+        options.headers = {nullptr, 1};
+        break;
+      case 8:
+        options.urlBuffer = {url, -1};
+        break;
+      case 9:
+        options.writeBuffer = {output, -1};
+        break;
+      case 10:
+        options.urlBuffer = {url, 0};
+        break;
+      case 11:
+        options.writeBuffer = {output, 0};
         break;
       default:
-        options.headers = &header;
-        options.headerCount = 1;
+        options.headers = {&header, 1};
         header.name = testCase == 4 ? nullptr : "X";
-        header.buffer = testCase == 5 ? nullptr : headerValue;
-        header.bufferLength = testCase == 6 ? 0 : sizeof(headerValue);
+        header.buffer = {testCase == 5 ? nullptr : headerValue,
+                         testCase == 6   ? 0
+                         : testCase == 7 ? -1
+                                         : 4};
     }
     SharedClient client;
     client.feed("GET / HTTP/1.1" CRLF CRLF);
@@ -104,12 +139,11 @@ unittest(invalid_options_close_client_without_touching_buffers) {
 unittest(null_buffers_ignore_unused_lengths_and_zero_header_count) {
   SharedClient client;
   client.feed("GET / HTTP/1.1" CRLF CRLF);
-  Request::HeaderNode ignored = {nullptr, nullptr, -1, nullptr};
+  Request::Header ignored = {nullptr, nullptr, -1};
   App::ProcessOptions options;
-  options.urlBufferLength = -1;
-  options.writeBufferLength = -1;
-  options.headers = &ignored;
-  options.headerCount = 0;
+  options.urlBuffer = {nullptr, -1};
+  options.writeBuffer = {nullptr, -1};
+  options.headers = {&ignored, 0};
   App app;
   app.get("/", recordVisit);
   visited = false;
@@ -123,8 +157,7 @@ unittest(minimum_url_buffer_accepts_root) {
   client.feed("GET / HTTP/1.1" CRLF CRLF);
   char url[4] = {'!', '!', '!', '!'};
   App::ProcessOptions options;
-  options.urlBuffer = url + 1;
-  options.urlBufferLength = 2;
+  options.urlBuffer = {url + 1, 2};
   App app;
   app.get("/", recordVisit);
   visited = false;

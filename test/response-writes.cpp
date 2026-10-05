@@ -57,8 +57,7 @@ unittest(custom_output_capacities_preserve_chunked_payload) {
       std::vector<uint8_t> storage(capacities[i] + 2, 0xA5);
       WriteOptions write = {std::string(10000, 'x'), bytewise != 0, false};
       App::ProcessOptions options;
-      options.writeBuffer = &storage[1];
-      options.writeBufferLength = capacities[i];
+      options.writeBuffer = {&storage[1], capacities[i]};
       options.context = &write;
       App app;
       app.get("/", writeBody);

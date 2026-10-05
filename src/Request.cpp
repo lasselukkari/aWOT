@@ -6,9 +6,9 @@
 
 using namespace awot;
 
-Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
-                 char* urlBuffer, int urlBufferLength, unsigned long timeout,
-                 void* context)
+Request::Request(Client* client, Response* m_response,
+                 ArrayView<Header> headers, char* urlBuffer,
+                 int urlBufferLength, unsigned long timeout, void* context)
     : context(context),
       m_stream(client),
       m_response(m_response),
@@ -19,7 +19,7 @@ Request::Request(Client* client, Response* m_response, HeaderNode* headerTail,
       m_readingContent(false),
       m_left(0),
       m_bytesRead(0),
-      m_headerTail(headerTail),
+      m_headers(headers),
       m_query(NULL),
       m_readTimedout(false),
       m_path(urlBuffer),
@@ -41,14 +41,11 @@ int Request::bytesRead() { return m_bytesRead; }
 Client* Request::client() { return m_stream; }
 
 char* Request::get(const char* name) {
-  HeaderNode* headerNode = m_headerTail;
-
-  while (headerNode != NULL) {
-    if (App::strcmpi(headerNode->name, name) == 0) {
-      return headerNode->buffer;
+  for (int i = 0; i < m_headers.size(); ++i) {
+    Header& header = m_headers[i];
+    if (header.m_present && App::strcmpi(header.name, name) == 0) {
+      return header.buffer.data();
     }
-
-    headerNode = headerNode->next;
   }
 
   return NULL;
@@ -409,12 +406,14 @@ int Request::m_processHeaders() {
       P(TransferEncoding) = "Transfer-Encoding:";
       // Request transfer codings are unsupported, including chunked.
       if (m_expectP(TransferEncoding)) return 400;
-      HeaderNode* headerNode;
-      if (!m_headerName(headerNode)) return 400;
-      if (headerNode) {
-        if (!m_headerValue(headerNode->buffer, headerNode->bufferLength)) {
+      Header* header;
+      if (!m_headerName(header)) return 400;
+      if (header) {
+        if (!m_headerValue(header->buffer.data(), header->buffer.size(),
+                           header->m_present)) {
           return 431;
         }
+        header->m_present = true;
         canEnd = true;
       }
     }
@@ -435,8 +434,9 @@ int Request::m_processHeaders() {
   return 0;
 }
 
-bool Request::m_headerName(HeaderNode*& header) {
-  header = m_headerTail;
+bool Request::m_headerName(Header*& header) {
+  int index = 0;
+  header = m_headers.size() > 0 ? &m_headers[0] : nullptr;
   size_t matched = 0;
   bool hasName = false;
   int ch;
@@ -454,8 +454,9 @@ bool Request::m_headerName(HeaderNode*& header) {
       // The current candidate remembers the prefix already read. Find the
       // next candidate with that prefix and this character without rewinding
       // the stream or storing a copy of an arbitrarily long field name.
-      HeaderNode* candidate = header->next;
-      while (candidate) {
+      Header* candidate = nullptr;
+      while (++index < m_headers.size()) {
+        candidate = &m_headers[index];
         size_t i = 0;
         while (i < matched && candidate->name[i] &&
                tolower((unsigned char)candidate->name[i]) ==
@@ -466,7 +467,7 @@ bool Request::m_headerName(HeaderNode*& header) {
             tolower((unsigned char)candidate->name[i]) == expected) {
           break;
         }
-        candidate = candidate->next;
+        candidate = nullptr;
       }
       header = candidate;
     }
@@ -476,9 +477,9 @@ bool Request::m_headerName(HeaderNode*& header) {
   return false;
 }
 
-bool Request::m_headerValue(char* buffer, int bufferLength) {
+bool Request::m_headerValue(char* buffer, int bufferLength, bool append) {
   if (!buffer || bufferLength <= 0) return false;
-  if (*buffer) {
+  if (append) {
     int length = strlen(buffer);
     if (length + 1 >= bufferLength) return false;
     buffer[length] = ',';

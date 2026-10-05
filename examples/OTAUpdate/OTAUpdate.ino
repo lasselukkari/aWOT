@@ -99,12 +99,8 @@ void loop() {
 
   if (client.connected()) {
     char expectHeader[20];
-    Request::HeaderNode headers[] = {
-        {"Expect", expectHeader, sizeof(expectHeader), nullptr}};
-    App::ProcessOptions options;
-    options.headers = headers;
-    options.headerCount = 1;
-    app.process(&client, options);
+    Request::Header headers[] = {{"Expect", expectHeader}};
+    app.process(&client, headers);
     client.stop();
   }
 

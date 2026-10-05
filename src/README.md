@@ -2,15 +2,24 @@
 
 ## Request and buffer contracts
 
-- A null `ProcessOptions` buffer pointer selects default storage with its own
-  capacity; its unused length is ignored. A supplied URL buffer needs at least
+- `ProcessOptions` buffer and header fields are non-owning views. Assigning an
+  array infers its capacity or entry count; `{pointer, size}` supplies it
+  explicitly. A null buffer pointer selects default storage with its own
+  capacity; its unused size is ignored. A supplied URL buffer needs at least
   two bytes, and a supplied output buffer needs more than `CHUNK_OVERHEAD` bytes.
   Invalid options close the client without invoking handlers. Caller buffers
   avoid the default arrays; convenience helpers allocate only missing buffers.
-- `headers` is a contiguous array with `headerCount` active entries. Active
-  entries require non-null names/buffers and positive capacities. Their buffers
-  are cleared before parsing and after processing. A zero count ignores the
-  pointer and all entries, including `next`.
+- `Request::Header` captures a named header in caller-owned storage. Its
+  `{name, array}` constructor infers the buffer capacity; `{name, pointer, size}`
+  supplies it explicitly. `headers` is a contiguous array with an inferred or
+  explicit entry count. Active entries require non-null names/buffers and
+  positive capacities. Their buffers and presence state are cleared before
+  parsing and after processing. A zero count ignores the pointer and all entries.
+  The array, names, and buffers must remain alive throughout `process()`, and
+  concurrent invocations require separate storage.
+- `get(name)` returns `nullptr` for an absent or uncaptured header. A captured
+  header present with an empty value returns a non-null pointer to an empty
+  string. Header values are available only while the request is being processed.
 - `path()` returns the percent-decoded path. The literal `?` boundary is found
   before decoding. `query()` returns the raw encoded query without `?`.
   `query(name, buffer, length)` matches decoded names and returns decoded values;
