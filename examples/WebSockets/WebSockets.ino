@@ -1,5 +1,5 @@
 /*
-  ChatRoom.ino - WebSocket chat room example for aWOT
+  WebSockets.ino - WebSocket chat room example for aWOT
 
   This example demonstrates using WebSocket for real-time
   bidirectional communication to create a simple chat room.
@@ -31,7 +31,7 @@ P(indexHtml) =
     "  <meta charset=\"UTF-8\">\n"
     "  <meta name=\"viewport\" content=\"width=device-width, "
     "initial-scale=1\">\n"
-    "  <title>aWOT Chat Room</title>\n"
+    "  <title>aWOT WebSockets</title>\n"
     "  <style>\n"
     "    * { box-sizing: border-box; margin: 0; padding: 0; }\n"
     "    body { font-family: system-ui, sans-serif; background: #1a1a2e; "
@@ -65,7 +65,7 @@ P(indexHtml) =
     "</head>\n"
     "<body>\n"
     "  <header>\n"
-    "    <h1>aWOT Chat Room</h1>\n"
+    "    <h1>aWOT WebSockets</h1>\n"
     "    <div id=\"status\" class=\"disconnected\">Connecting...</div>\n"
     "  </header>\n"
     "  <div id=\"username-area\">\n"

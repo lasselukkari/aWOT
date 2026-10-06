@@ -59,7 +59,7 @@ boards with more memory.
 - Mount a router with `app.use("/prefix", &router)`. Routers and applications
   cannot be copied; mounted routers must outlive the application using them.
 - Use `WsChannel` and `WsMessage` for WebSockets. Include `<WsChannel.h>`
-  explicitly. The [chat example](examples/ChatRoom/ChatRoom.ino) shows header
+  explicitly. The [WebSockets example](examples/WebSockets/WebSockets.ino) shows header
   capture, upgrades, callbacks, and rooms.
 - Use `SseChannel` from `<SseChannel.h>` for server-sent events. The
   [SSE example](examples/ServerSentEvents/ServerSentEvents.ino) shows how to retain
