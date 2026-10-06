@@ -29,15 +29,26 @@ library release, after Arduino Library Manager offers the documented version.
 - [x] The existing tutorial and companion project validation remains applicable
   at LedBlink revision `ece7d3e1ab0a57c977742468af619a201c199959`: clean npm install,
   Vite/TypeScript build, generated asset and LED HTTP behavior, and ESP32 build.
-- [ ] Complete the remaining full ESP32 documentation sketch build batch.
+- [x] All 13 ESP32 documentation/repository sketch cases compile with core
+  3.3.10 and ArduinoJson 7.4.3, including both tutorial stages, middleware,
+  request context/storage, keep-alive/open responses, channels, static files,
+  SerialBridge, and MemberFunction. The compiler caught the old handler name
+  `index` colliding with a platform overload; the corrected `home` handler
+  compiled in the focused middleware rerun.
 - [ ] Review the hosted documentation check workflow results before merging.
+  Its first native and Uno jobs passed. The initial Linux site job read a
+  Jekyll template inside Bundler's `vendor/bundle`; excluding `vendor` fixes
+  that trigger and passes the same build/link checks locally. Final CI results
+  must be checked on the corrected revision.
 
 The local library baseline is branch `4` at `4117ee51`. CI uses the public
 `bb13af5963ad950015312fe73107766056ccd936` revision, whose C++ headers and sources
 match that local baseline. The later local commits reorganize development
 files/examples and packaging. Update the CI pin to the released source revision
 when preparing final publication. Local sketch logs are under
-`/private/tmp/awot-docs-uno` and `/private/tmp/awot-docs-esp32`; native/snippet logs
+`/private/tmp/awot-docs-uno`, `/private/tmp/awot-docs-esp32`,
+`/private/tmp/awot-docs-esp32-fixed`, and
+`/private/tmp/awot-docs-esp32-final-tutorial`; native/snippet logs
 are under `/private/tmp/awot-docs-partials-*`. Browser reports/screenshots are
 under `/private/tmp/awot-docs-browser`, with the preview at
 <http://127.0.0.1:4173> while its local server remains running.
@@ -54,7 +65,8 @@ under `/private/tmp/awot-docs-browser`, with the preview at
   merging.
 - [ ] Publish the aWOT `4.0.0` library package from the reviewed release revision.
   GitHub currently has no `v4.0.0` tag/release; the latest listed release is
-  `v3.5.0`. The library checkout's uncommitted README work is separate from this
+  `v3.5.0`. The current official Arduino library index was also checked and
+  does not contain aWOT 4.0.0. The library checkout's uncommitted README work is separate from this
   documentation change.
 - [ ] Wait for Arduino Library Manager to index 4.0.0, install that version in a
   clean environment, and compile the starter through that installation.

@@ -16,6 +16,7 @@ github: [metadata]
 
 # Validation sources and dependency metadata are not published pages.
 exclude:
+  - vendor
   - scripts
   - README.md
   - CONTRIBUTING.md

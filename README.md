@@ -77,7 +77,7 @@ python3 scripts/check-sketches.py --library /path/to/aWOT --fqbn esp32:esp32:nod
 ```
 
 Use `--libraries /path/to/additional/libraries` for an isolated Ethernet install,
-and `--work-dir /path/to/builds` to retain logs. The checker includes the library's
+and `--work-dir /path/to/builds` to retain logs. The checker compiles both tutorial stages and includes the library's
 SerialBridge example on Uno and ESP32, and MemberFunction on ESP32. Native tests
 do not establish support for additional boards. The library's
 [CompileExamples workflow](https://github.com/lasselukkari/aWOT/blob/4/.github/workflows/CompileExamples.yml)
