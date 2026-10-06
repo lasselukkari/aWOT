@@ -3,11 +3,11 @@
 *.bin
 *.bin.dSYM
 
-test/build/
+.extras/test/build/
 
 # Native build artifacts
 *.o
 *.d
-/examples/MacOSNative/HelloWorld
-/examples/MacOSNative/SocketTests
-/examples/MacOSNative/ShimTests
+/.extras/MacOSNative/HelloWorld
+/.extras/MacOSNative/SocketTests
+/.extras/MacOSNative/ShimTests

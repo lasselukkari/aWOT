@@ -17,4 +17,4 @@ jobs:
       run: sudo apt-get install -y clang-format
 
     - name: Check Formatting
-      run: find src test -name "*.cpp" -o -name "*.h" | grep -v "test/build" | xargs clang-format -n -Werror --verbose
+      run: find src .extras/test -name "*.cpp" -o -name "*.h" | grep -v ".extras/test/build" | xargs clang-format -n -Werror --verbose

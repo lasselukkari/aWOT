@@ -1,2 +1,3 @@
-/test/          export-ignore
-.git*           export-ignore
+# Git source archives omit development files. Arduino Library Manager also
+# omits dot-prefixed paths, but does not honor export-ignore.
+.*              export-ignore

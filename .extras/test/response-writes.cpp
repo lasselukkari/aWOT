@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../src/aWOT.h"
+#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 struct WriteOptions {

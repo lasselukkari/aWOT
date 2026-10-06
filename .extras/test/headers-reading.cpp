@@ -1,6 +1,6 @@
 #include <ArduinoUnitTests.h>
 
-#include "../src/aWOT.h"
+#include "../../src/aWOT.h"
 #include "./mocks/MockStream.h"
 #include "./mocks/SharedClient.h"
 

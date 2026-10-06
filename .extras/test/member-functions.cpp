@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "../src/aWOT.h"
+#include "../../src/aWOT.h"
 #include "./mocks/MockStream.h"
 
 class MyController {

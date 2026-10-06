@@ -80,5 +80,5 @@ translation unit. Do not define this only inside a sketch. Defining both it and
 `STD_FUNCTION_MIDDLEWARE` is an error.
 
 For build commands, supported configurations, and migration examples, see the
-[project README](../README.md). Native tests live in `test/`; Arduino examples
+[project README](../README.md). Native tests live in `.extras/test/`; Arduino examples
 are compiled separately for the boards listed in the examples workflow.

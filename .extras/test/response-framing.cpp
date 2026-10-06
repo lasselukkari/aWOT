@@ -1,6 +1,6 @@
 #include <ArduinoUnitTests.h>
 
-#include "../src/aWOT.h"
+#include "../../src/aWOT.h"
 #include "mocks/MockStream.h"
 
 static void keepAlive(Request& req, Response& res) {

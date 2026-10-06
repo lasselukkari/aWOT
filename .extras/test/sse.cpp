@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
 
-#include "../src/SseChannel.h"
-#include "../src/aWOT.h"
+#include "../../src/SseChannel.h"
+#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 using namespace awot;

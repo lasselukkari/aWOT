@@ -46,9 +46,9 @@ file(GLOB UNITTEST CONFIGURE_DEPENDS unittest/*.cpp)
 add_library(${PROJECT_NAME}-unittest OBJECT ${UNITTEST})
 target_include_directories(${PROJECT_NAME}-unittest PUBLIC epoxy unittest)
 
-file(GLOB AWOT_SOURCES CONFIGURE_DEPENDS ../src/*.cpp)
+file(GLOB AWOT_SOURCES CONFIGURE_DEPENDS ../../src/*.cpp)
 add_library(${PROJECT_NAME}-aWOT OBJECT ${AWOT_SOURCES})
-target_include_directories(${PROJECT_NAME}-aWOT PUBLIC ../src epoxy)
+target_include_directories(${PROJECT_NAME}-aWOT PUBLIC ../../src epoxy)
 
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS *.cpp)
 foreach(TEST_FILE ${TEST_SOURCES})

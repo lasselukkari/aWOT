@@ -1,9 +1,9 @@
 name: Unit Tests
 on:
   push:
-    paths: ["src/**", "test/**", "examples/MacOSNative/**", ".github/workflows/NativeUnitTests.yml"]
+    paths: ["src/**", ".extras/**", ".github/workflows/NativeUnitTests.yml"]
   pull_request:
-    paths: ["src/**", "test/**", "examples/MacOSNative/**", ".github/workflows/NativeUnitTests.yml"]
+    paths: ["src/**", ".extras/**", ".github/workflows/NativeUnitTests.yml"]
   schedule:
     - cron: "0 0 1 * *"
   workflow_dispatch:
@@ -31,11 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S test -B test/build ${{ matrix.flags }}
+        run: cmake -S .extras/test -B .extras/test/build ${{ matrix.flags }}
       - name: Build
-        run: cmake --build test/build --parallel 4
+        run: cmake --build .extras/test/build --parallel 4
       - name: Test
-        run: ctest --test-dir test/build --output-on-failure --parallel 4
+        run: ctest --test-dir .extras/test/build --output-on-failure --parallel 4
       - name: Native macOS example
         if: runner.os == 'macOS'
-        run: make -C examples/MacOSNative test
+        run: make -C .extras/MacOSNative test

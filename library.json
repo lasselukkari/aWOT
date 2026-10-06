@@ -11,16 +11,19 @@
     "url": "https://github.com/lasselukkari/aWOT.git"
   },
   "frameworks": "arduino",
-  "platforms":
-  [
-    "atmelavr",
-    "atmelsam",
-    "espressif",
-    "teensy"
-  ],
-  "exclude": [
-    "*.bin",
-    "*.bin.dSYM",
-    "test"
-  ]
+  "platforms": "*",
+  "export": {
+    "include": [
+      "src",
+      "examples",
+      "keywords.txt"
+    ],
+    "exclude": [
+      "**/.*",
+      "**/*.bin",
+      "**/*.bin.dSYM",
+      "**/*.o",
+      "**/*.d"
+    ]
+  }
 }

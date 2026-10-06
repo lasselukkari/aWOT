@@ -219,10 +219,15 @@ and transport failure handling.
 
 ## Development
 
-The native C++11 tests use the Arduino stubs in `test/epoxy`:
+Development files are available in a Git checkout under `.extras/` and are
+excluded from library releases. The [macOS native example](.extras/MacOSNative/README.md)
+runs the server without Arduino hardware; build and test it with
+`make -C .extras/MacOSNative test`.
+
+The native C++11 tests use the Arduino stubs in `.extras/test/epoxy`:
 
 ```sh
-cmake -S test -B /tmp/awot-tests
+cmake -S .extras/test -B /tmp/awot-tests
 cmake --build /tmp/awot-tests --parallel
 ctest --test-dir /tmp/awot-tests --output-on-failure
 ```
@@ -230,7 +235,7 @@ ctest --test-dir /tmp/awot-tests --output-on-failure
 Run with AddressSanitizer and UndefinedBehaviorSanitizer:
 
 ```sh
-cmake -S test -B /tmp/awot-sanitized -DAWOT_ENABLE_SANITIZERS=ON
+cmake -S .extras/test -B /tmp/awot-sanitized -DAWOT_ENABLE_SANITIZERS=ON
 cmake --build /tmp/awot-sanitized --parallel
 ctest --test-dir /tmp/awot-sanitized --output-on-failure
 ```
@@ -239,7 +244,7 @@ The smaller configuration also tests function-pointer callbacks consistently
 across the library and test translation units:
 
 ```sh
-cmake -S test -B /tmp/awot-small -DAWOT_ENABLE_SANITIZERS=ON \
+cmake -S .extras/test -B /tmp/awot-small -DAWOT_ENABLE_SANITIZERS=ON \
   -DAWOT_NO_STD_FUNCTION_MIDDLEWARE=ON -DAWOT_SMALL_BUFFERS=ON
 cmake --build /tmp/awot-small --parallel
 ctest --test-dir /tmp/awot-small --output-on-failure
@@ -257,6 +262,24 @@ arduino-cli compile --fqbn arduino:avr:uno --library . examples/SerialBridge
 CI runs native tests on Linux and macOS, sanitizer and small-buffer configurations
 on Linux, and example builds for Uno, Leonardo, Mega, Due, and ESP32. Native tests
 do not measure on-device stack usage or network timing.
+
+## Library releases
+
+Keep the versions in `library.properties` and `library.json` identical before
+creating a release tag. Arduino Library Manager packages the tagged repository
+and excludes dot-prefixed paths, including `.extras/`; it does not honor
+`.gitattributes`. Git source archives use `.gitattributes` to omit those same
+paths. PlatformIO's `export` settings include `src/`, Arduino `examples/`, and
+`keywords.txt`, alongside the manifests, README, and license that PlatformIO
+always includes.
+
+Check the metadata and inspect a local PlatformIO package before publishing:
+
+```sh
+arduino-lint --library-manager update --compliance strict "$PWD"
+pio pkg pack --output /tmp/aWOT.tar.gz
+tar -tzf /tmp/aWOT.tar.gz
+```
 
 ## Acknowledgements and license
 
