@@ -1,23 +1,10 @@
 ---
-layout: 3x-api
-title: aWOT 3.x - API Reference
+layout: 4x-api
+title: aWOT 4.x - API Reference
+menu: api
 lang: en
-redirect_from: "/api.html"
+api_version: 4x
 ---
-<div id="api-doc" markdown="1">
-
-  <h1>3.x API</h1>
-
-  <a id='app' class='h2'></a>
-  {% include api/{{ page.lang }}/3x/app.md %}
-
-  <a id='req' class='h2'></a>
-  {% include api/{{ page.lang }}/3x/req.md %}
-
-  <a id='res' class='h2'></a>
-  {% include api/{{ page.lang }}/3x/res.md %}
-
-  <a id='router' class='h2'></a>
-  {% include api/{{ page.lang }}/3x/router.md %}
-
+<div id="api-doc" data-api-version="4x" markdown="1">
+{% include api/en/4x/reference.md %}
 </div>

@@ -3,121 +3,157 @@ layout: page
 title: Using JSON in aWOT apps
 menu: guide
 lang: en
-redirect_from: "/guide/json.html"
 ---
+
 # Working with JSON data
 
-The [Request](/{{ page.lang }}/3x/api.html#req) inherits from the Arduino [Stream](https://www.arduino.cc/reference/en/language/functions/communication/stream/) base class. This makes it possible to directly forward the request to Arduino JSON libraries for parsing and serializing. 
+`Request` inherits Arduino `Stream` and `Response` inherits `Print`. Read JSON
+with `deserializeJson(doc, req)` and write it with `serializeJson(doc, res)`;
+the request and response have different roles.
 
-This example uses the [aJSON](https://github.com/interactive-matter/aJson/) library but [ArduinoJson](https://arduinojson.org/) can [serialize](https://arduinojson.org/v6/api/json/serializejson/) and [deserialize ](https://arduinojson.org/v6/api/json/deserializejson/) Streams as well. 
+Install **ArduinoJson 7.4.3** through Arduino Library Manager, alongside
+[aWOT 4.0.0](/en/starter/hello-world.html). The
+[ArduinoJson installation guide](https://arduinojson.org/v7/how-to/install-arduinojson/)
+describes version selection. Its official API documents
+[Stream input](https://arduinojson.org/v7/api/json/deserializejson/) and
+[Print output](https://arduinojson.org/v7/api/json/serializejson/).
 
-The app has two routes: one or reading the JSON encoded data and one for updating it.
+<h2 id="example">Read and update a user</h2>
+
+This complete ESP32 sketch returns a user name at `GET /user` and updates it at
+`PUT /user`. It limits the request body to 256 bytes, checks the parser result,
+requires a string name of at most 32 bytes, and rejects non-whitespace bytes
+after the JSON object. Set the Wi-Fi credentials before uploading.
 
 ```arduino
 #include <WiFi.h>
-#include <aJSON.h>
-#include "aWOT.h"
+#include <ArduinoJson.h>
+#include <aWOT.h>
+#include <ctype.h>
+#include <string.h>
 
 WiFiServer server(80);
-Application app;
+App app;
+char userName[33] = "John Smith";
 
-char* userFilter[3] = {"name", "password", NULL};
-aJsonObject* user = aJson.parse("{\"name\":\"John Smith\",\"password\":\"secret\"}");
-
-void readUser(Request & req, Response & res) {
+void readUser(Request& req, Response& res) {
+  JsonDocument doc;
+  doc["name"] = userName;
+  if (doc.overflowed()) {
+    res.sendStatus(500);
+    return;
+  }
   res.set("Content-Type", "application/json");
-  aJsonStream stream(&req);
-  aJson.print(user, &stream);
+  serializeJson(doc, res);
+  res.flush();
+  if (res.getWriteError()) Serial.println("JSON response write failed");
 }
 
-void updateUser(Request & req, Response & res) {
-  aJsonStream stream(&req);
-
-  aJsonObject* newUser = aJson.parse(&stream, userFilter);
-  if (!newUser) {
-    return res.sendStatus(400);
+void updateUser(Request& req, Response& res) {
+  const char* type = req.get("Content-Type");
+  if (!type || strcmp(type, "application/json") != 0) {
+    res.sendStatus(415);
+    return;
+  }
+  if (req.left() <= 0 || req.left() > 256) {
+    res.sendStatus(400);
+    return;
   }
 
-  aJsonObject* name = aJson.getObjectItem(newUser, "name");
-  if (!name || name->type != aJson_String) {
-    return res.sendStatus(400);
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(
+      doc, req, DeserializationOption::NestingLimit(4));
+  if (error) {
+    Serial.println(error.c_str());
+    res.sendStatus(400);
+    return;
+  }
+  if (!doc["name"].is<const char*>()) {
+    res.sendStatus(400);
+    return;
+  }
+  const char* name = doc["name"].as<const char*>();
+  if (strlen(name) == 0 || strlen(name) >= sizeof(userName)) {
+    res.sendStatus(400);
+    return;
   }
 
-  aJsonObject* password = aJson.getObjectItem(newUser, "password");
-  if (!password || password->type != aJson_String) {
-    return res.sendStatus(400);
+  // The parser can stop at the closing brace; consume trailing whitespace.
+  while (req.left() > 0) {
+    char ch;
+    if (req.readBytes(&ch, 1) != 1 || !isspace((unsigned char)ch)) {
+      res.sendStatus(400);
+      return;
+    }
   }
-
-  aJson.deleteItem(user);
-  user = newUser;
-
-  return readUser(req, res);
+  strcpy(userName, name);
+  readUser(req, res);
 }
 
 void setup() {
   Serial.begin(115200);
-
-  WiFi.begin("network", "password");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
+  while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-
-  app.get("/user", &readUser);
-  app.put("/user", &updateUser);
-
+  app.get("/user", readUser);
+  app.put("/user", updateUser);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
-
   if (client.connected()) {
-    app.process(&client);
+    char contentType[48];
+    Request::Header headers[] = { {"Content-Type", contentType} };
+    app.process(&client, headers);
+    client.stop();
   }
 }
 ```
 
-You can test the api with curl. To read the current data:
+The example accepts exactly `Content-Type: application/json`. Extend that
+check if your clients send media type parameters. It reads the body directly
+from `req`, while the document keeps the parsed values in memory. ArduinoJson
+7 allocates document storage on the heap; the 256-byte body limit is an input
+limit, rather than a promise about heap usage. Choose limits for your board.
 
-```sh
-$ curl 'http://192.168.1.140/user' -v
-*   Trying 192.168.1.140...
-* TCP_NODELAY set
-* Connected to 192.168.1.140 (192.168.1.140) port 80 (#0)
-> GET /user HTTP/1.1
-> Host: 192.168.1.140
-> User-Agent: curl/7.54.0
-> Accept: */*
-> 
-* HTTP 1.0, assume close after body
-< HTTP/1.0 200 OK
-< Content-Type: application/json
-< 
-* Closing connection 0
-{"name":"John Smith","password":"secret"}
+The parser returns a
+[DeserializationError](https://arduinojson.org/v7/api/misc/deserializationerror/)
+on invalid or incomplete input. The
+[type check](https://arduinojson.org/v7/api/jsonvariant/is/)
+prevents a missing or non-string name from reaching `strcpy()`. The response
+document checks
+[allocation failure](https://arduinojson.org/v7/api/jsondocument/overflowed/)
+before sending headers.
+
+`res.flush()` makes buffered output reach the transport before checking
+`getWriteError()`. Bytes accepted by `serializeJson()` are not a guarantee of
+delivery to the browser. See [connections](/en/guide/connections.html#writes).
+
+<h2 id="test-with-curl">Test with curl</h2>
+
+Replace the IP address with the one printed by your board:
+
+```bash
+curl --silent http://192.168.1.140/user
 ```
 
-And to update:
-
-```sh
-$ curl 'http://192.168.1.140/user' -X PUT -H "Content-Type: application/json" -d '{"name":"4N0NYM0U5", "password":"pwn3d"}' -v
-*   Trying 192.168.1.140...
-* TCP_NODELAY set
-* Connected to 192.168.1.140 (192.168.1.140) port 80 (#0)
-> PUT /user HTTP/1.1
-> Host: 192.168.1.140
-> User-Agent: curl/7.54.0
-> Accept: */*
-> Content-Type: application/json
-> Content-Length: 40
-> 
-* upload completely sent off: 40 out of 40 bytes
-* HTTP 1.0, assume close after body
-< HTTP/1.0 200 OK
-< Content-Type: application/json
-< 
-* Closing connection 0
-{"name":"4N0NYM0U5","password":"pwn3d"}
+```json
+{"name":"John Smith"}
 ```
+
+```bash
+curl --silent --request PUT http://192.168.1.140/user \
+  --header 'Content-Type: application/json' \
+  --data '{"name":"Arduino"}'
+```
+
+```json
+{"name":"Arduino"}
+```
+
+A body such as `{"name":42}` receives `400 Bad Request`; omitting the
+Content-Type header receives `415 Unsupported Media Type`. Send a body with
+Content-Length: aWOT rejects incoming Transfer-Encoding, including chunked
+bodies. This sketch closes each connection after the response, so unread bytes
+on a rejected request cannot become a subsequent request.

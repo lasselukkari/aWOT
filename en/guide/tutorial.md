@@ -3,7 +3,6 @@ layout: page
 title: Arduino Full Stack Tutorial
 menu: guide
 lang: en
-redirect_from: "/guide/tutorial.html"
 ---
 
 # Arduino Full Stack Tutorial

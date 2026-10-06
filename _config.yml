@@ -13,3 +13,16 @@ kramdown:
     disable : true
 
 github: [metadata]
+
+# Validation sources and dependency metadata are not published pages.
+exclude:
+  - scripts
+  - README.md
+  - CONTRIBUTING.md
+  - RELEASE_CHECKLIST.md
+  - Gemfile
+  - Gemfile.lock
+  - package.json
+  - package-lock.json
+  - node_modules
+  - .docs-build

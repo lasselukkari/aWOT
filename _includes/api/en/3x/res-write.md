@@ -1,4 +1,4 @@
-<h3 id='req-write'>Response::write</h3>
+<h3 id='res-write'>Response::write</h3>
 <h4 class='variant'>size_t write(const char *str)</h4>
 <h4 class='variant'>size_t write(String str)</h4>
 <h4 class='variant'>size_t write(const uint8_t *buffer, size_t lenght)</h4>

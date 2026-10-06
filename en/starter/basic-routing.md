@@ -3,80 +3,77 @@ layout: page
 title: aWOT basic routing
 menu: starter
 lang: en
-redirect_from: "/starter/basic-routing.html"
 ---
 
 # Basic routing
 
-_Routing_ refers to determining how an application responds to a client request to a particular endpoint, which is a URI (or path) and a specific HTTP request method (GET, POST, and so on).
+A route pairs an HTTP method and a path with a handler. An `App` named `app`
+registers routes in `setup()` and processes incoming clients in `loop()`, as in
+the [complete hello world sketches](/en/starter/hello-world.html).
 
-Each route can have one or more handler functions, which are executed when the route is matched.
-
-Route definition takes the following structure:
-
-```arduino
-app.METHOD(PATH, HANDLER)
-```
-
-Where:
-
-- `app` is an instance of `aWOT Application`.
-- `METHOD` is an [HTTP request method](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol#Request_methods), in lowercase.
-- `PATH` is a path on the server.
-- `HANDLER` is the Middleware executed when the route is matched.
-
-<div class="doc-box doc-notice" markdown="1">
-This tutorial assumes that a network connection has been created and instance of `aWOT Application` named `app` is processing incoming connections in the main loop. If you are not familiar with creating an app and starting it, see the [Hello world example](/{{ page.lang }}/starter/hello-world.html).
-</div>
-
-The following examples illustrate defining simple routes.
-
-Respond with `Hello World!` on the homepage:
+The following are partial examples: place the handler functions above `setup()`
+in a hello world sketch and add their registrations before `server.begin()`.
 
 ```arduino
-void index(Request &req, Response &res) {
+void readHome(Request& req, Response& res) {
   res.print("Hello World!");
 }
 
-void setup() {
-  app.get("/", &index);
+void createUser(Request& req, Response& res) {
+  res.status(201);
+  res.print("Created a user");
+}
+
+void updateUser(Request& req, Response& res) {
+  res.print("Updated the user");
+}
+
+void removeUser(Request& req, Response& res) {
+  res.sendStatus(204);
 }
 ```
-
-Respond to POST request on the root route (`/`), the application's home page:
 
 ```arduino
-void post(Request &req, Response &res) {
-  res.print("Got a POST request");
-}
-
-void setup() {
-  app.post("/", &post);
-}
+// Add inside setup().
+app.get("/", readHome);
+app.post("/user", createUser);
+app.put("/user", updateUser);
+app.del("/user", removeUser);
 ```
 
-Respond to a PUT request to the `/user` route:
+Use `del()` for DELETE because `delete` is a C++ keyword. The supported route
+methods are `get`, `head`, `post`, `put`, `patch`, `del`, and `options`. HEAD
+needs its own registration; aWOT suppresses its response body. `app.use(handler)`
+runs for every supported method and path. `app.use("/user", handler)` matches
+that route pattern for every method.
+
+<h2 id="multiple-handlers">Multiple handlers and continuation</h2>
+
+Register the same route more than once to run several handlers in order. Each
+handler must call `req.next()` if it wants dispatch to continue. This partial
+example logs a request before producing the response:
 
 ```arduino
-void updateUser(Request &req, Response &res) {
-  res.print("Got a PUT request at /user");
+void logUser(Request& req, Response& res) {
+  Serial.println(req.path());
+  req.next();
 }
 
-void setup() {
-  app.put("/user", &updateUser);
+void readUser(Request& req, Response& res) {
+  res.print("User details");
 }
 ```
-
-Respond to a DELETE request to the `/user` route:
 
 ```arduino
-void removeUser(Request &req, Response &res) {
-  res.print("Got a DELETE request at /user");
-}
-
-void setup() {
-  app.del("/user", &removeUser);
-}
+// Add inside setup().
+app.get("/user", logUser);
+app.get("/user", readUser);
 ```
 
-For more details about routing, see the [routing guide](/{{ page.lang }}/guide/routing.html).
+Returning without `req.next()` stops routing. `res.end()` marks the response as
+ended and also prevents subsequent route handlers, even if `req.next()` was
+called. aWOT finalizes the output when `process()` returns; the caller then
+closes or retains the client.
+
+See [routing](/en/guide/routing.html) for parameters and mounted routers, and
+[middleware](/en/guide/middleware.html) for logging and authentication.

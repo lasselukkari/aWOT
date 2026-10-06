@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Redirecting…</title>
+<link rel="canonical" href="{{ page.redirect_target }}">
+<meta http-equiv="refresh" content="0; url={{ page.redirect_target }}">
+<h1>Redirecting…</h1>
+<a href="{{ page.redirect_target }}">Continue to the documentation</a>
+<script>location.replace({{ page.redirect_target | jsonify }} + location.hash);</script>
+</html>

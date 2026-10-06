@@ -3,195 +3,174 @@ layout: page
 title: aWOT routing
 menu: guide
 lang: en
-redirect_from: "/guide/routing.html"
 ---
 
 # Routing
 
-_Routing_ refers to how an application's endpoints (URIs) respond to client requests.
-For an introduction to routing, see [Basic routing](/{{ page.lang }}/starter/basic-routing.html).
+An `App` selects handlers using an HTTP method and the decoded URL path.
+Registrations run in order. Call `req.next()` to continue to the next matching
+handler; returning without it stops dispatch. See
+[basic routing](/en/starter/basic-routing.html) and
+[middleware](/en/guide/middleware.html).
 
-You define routing using methods of the aWOT `Application` instance object that correspond to HTTP methods;
-for example, `app.get()` to handle GET requests and `app.post()` to handle POST requests.  For a full list,
-see [req.methodType](/{{ page.lang }}/3x/api.html#req-methodType).  You can also use [app.all()](/{{ page.lang }}/3x/api.html#app-all) to handle all HTTP methods and [app.use()](/{{ page.lang }}/3x/api.html#app-use) to
-specify middleware as the callback function (See [Using middleware](/{{ page.lang }}/guide/using-middleware.html) for details).
-
-These routing methods specify a callback function (sometimes called "handler functions") called when the application receives a request to the specified route (endpoint) and HTTP method.  In other words, the application "listens" for requests that match the specified route(s) and method(s), and when it detects a match, it calls the specified callback function.
-
-
-The following code is an example of a very basic route.
-
-```arduino
-void index(Request &req, Response &res) {
-  res.print("Hello World!");
-}
-
-void setup() {
-  app.get("/", &index);
-}
-```
+The snippets below are partial examples for the
+[hello world sketch](/en/starter/hello-world.html): declare handlers and routers
+at file scope and put registrations in `setup()` before `server.begin()`.
 
 <h2 id="route-methods">Route methods</h2>
 
-A route method is derived from one of the HTTP methods, and is attached to an instance of the `aWOT` class.
-
-The following code is an example of routes that are defined for the GET and the POST methods to the root of the app.
+Use `get`, `head`, `post`, `put`, `patch`, `del`, and `options` for the
+corresponding methods. There is no `app.all()` method: use `app.use()` for all
+supported methods. A registration without a path matches every path for that
+method. HEAD requires an explicit `head()` route and suppresses payload output.
 
 ```arduino
-void getIndex(Request &req, Response &res) {
+void readIndex(Request& req, Response& res) {
   res.print("GET request to the homepage");
 }
 
-void postIndex(Request &req, Response &res) {
-  res.print("POST request to the homepage");
+void createItem(Request& req, Response& res) {
+  res.status(201);
+  res.print("Created an item");
 }
 
-void setup() {
-  // GET method route
-  app.get("/", &getIndex);
-  // POST method route
-  app.post("/", &postIndex);
+void headIndex(Request& req, Response& res) {
+  res.set("Content-Type", "text/plain");
+  res.set("Content-Length", "27");
+  res.status(200);
 }
 ```
 
-aWOT supports methods that correspond to all HTTP request methods: `get`, `post`, and so on.
-For a full list, see [req.MethodType](/{{ page.lang }}/3x/api.html#req-methodType).
-
-There is a special routing method, `app.use()`, used to load middleware functions at a path for all HTTP request methods.  For example, the following handler is executed for requests to the route "/secret" whether using GET, POST, PUT, DELETE, or any other HTTP request method supported.
-
 ```arduino
-void secret(Request &req, Response &res) {
-  Serial.println("Accessing the secret section ...");
-}
-
-void setup() {
-  app.use("/secret", &secret);
-}
+// Add inside setup().
+app.get("/", readIndex);
+app.post("/", createItem);
+app.head("/", headIndex);
 ```
 
 <h2 id="route-paths">Route paths</h2>
 
-Route paths, in combination with a request method, define the endpoints at which requests can be made. Route paths can be strings or string patterns.
+Paths are case sensitive. Query strings do not participate in route matching:
+`/about?view=short` matches `/about`. `req.path()` returns a percent-decoded
+path; `req.query()` returns the raw query without `?`. A literal `+` remains
+`+` in the path. See [request data](/en/guide/request-data.html) for decoding.
 
-<div class="doc-box doc-warn" markdown="1">
-Query strings are not part of the route path.
-</div>
+Callback registrations use a complete route pattern. For example,
+`app.use("/secret", handler)` matches `/secret` and `/secret/`, but does not
+match `/secret/page`. `app.use(handler)` has no path restriction. A single
+trailing slash on the request is accepted for a pattern without one:
+`/about` matches `/about/`. A pattern ending in `/` requires that slash.
+The root patterns `""` and `"/"` also match the root of a mounted router.
 
-Here are some examples of route paths based on strings.
-
-This route path will match requests to the root route, `/`.
-
-```arduino
-void index(Request &req, Response &res) {
-  res.print("root");
-}
-
-void setup() {
-  app.get("/", &index);
-}
-```
-
-This route path will match requests to `/about`.
-
-```arduino
-void about(Request &req, Response &res) {
-  res.print("about");
-}
-
-void setup() {
-  app.get("/about", &about);
-}
-```
-
-This route path will match requests to `/random.text`.
-
-```arduino
-void random(Request &req, Response &res) {
-  res.print("random.text");
-}
-
-void setup() {
-  app.get("/random.text", &random);
-}
-```
+Patterns support `:name` parameters for path segments. They do not implement
+Express regular expressions, wildcards, or optional segments.
 
 <h3 id="route-parameters">Route parameters</h3>
 
-Route parameters are named URL segments that are used to capture the values specified at their position in the URL. The captured values can be accessed by req.route() method, with the name of the route parameter specified in the path as their respective keys.
-
-```
-Route path: /users/:userId/books/:bookId
-Request URL: http://arduino.ip/users/34/books/8989
-char user[10];
-req.route("userId", user, 10);
-// => "34"
-char book[10];
-req.route("bookId", book, 10);
-// => "8989"
-```
-
-To define routes with route parameters, simply specify the route parameters in the path of the route as shown below.
+For `/users/34/books/8989`, this partial handler extracts both named segments.
+The capacity includes the NUL terminator; always check `req.route()` before
+using the result.
 
 ```arduino
-void usersBook(Request &req, Response &res) {
+void usersBook(Request& req, Response& res) {
   char user[10];
   char book[10];
-  
-  req.route("userId", user, 10);
-  req.route("bookId", book, 10);
-
+  if (!req.route("userId", user, sizeof(user)) ||
+      !req.route("bookId", book, sizeof(book))) {
+    res.sendStatus(400);
+    return;
+  }
   res.print("User: ");
   res.println(user);
-
   res.print("Book: ");
   res.println(book);
 }
-
-void setup() {
-  router.get("/users/:userId/books/:bookId", &usersBook);;
-} 
 ```
+
+```arduino
+// Add inside setup().
+app.get("/users/:userId/books/:bookId", usersBook);
+```
+
+Route values come from the decoded path. Encoded slashes become segment
+separators during decoding; they cannot hide a slash inside a parameter.
 
 <h2 id="aWOT-router">Router</h2>
 
-Use the `Router` class to create modular, mountable route handlers. A `Router` instance is a complete middleware and routing system; for this reason, it is often referred to as a "mini-app".
-
-The following example creates a router, loads a middleware functions in it, defines some routes, and mounts the router instance on a path in the main app.
+`Router` groups registrations. Mount a router with `app.use("/prefix", &router)`.
+Mount matching uses a literal prefix at a path segment boundary, rather than a
+callback route pattern. `/cats` matches `/cats`, `/cats/`, and `/cats/long`, but
+not `/catsup`. Trailing slashes on a mount are ignored. Mounts do not capture
+`:name` parameters.
 
 ```arduino
-Application app;
 Router cats;
+Router details;
 
-void catIndex(Request &req, Response &res) {
-  res.print("There are 3 cats: /long, /ceiling and /nyan");
+void catIndex(Request& req, Response& res) {
+  res.print("Try /cats/long or /cats/details/nyan");
 }
 
-void looooong(Request &req, Response &res) {
-  res.success("text/html");
-  res.print("looooong cat is long!");
+void longCat(Request& req, Response& res) {
+  res.set("Content-Type", "text/html");
+  res.print("<p>looooong cat is long!</p>");
 }
 
-void ceiling(Request &req, Response &res) {
-  res.success("text/html");
-  res.print("ceiling cat is watching you debug!");
-}
-
-void nyannyan(Request &req, Response &res) {
-  res.success("text/html");
-
-  for (int i = 0; i < 100; i++) {
-      res.print("nyan ");
+void catDetails(Request& req, Response& res) {
+  char name[32];
+  if (!req.route("name", name, sizeof(name))) {
+    res.sendStatus(400);
+    return;
   }
-}
-
-void setup() {
-  cats.get("/", &catIndex);
-  cats.get("/long", &looooong);
-  cats.get("/ceiling", &ceiling);
-  cats.get("/nyan", &nyannyan);
-
-  app.use("/cats", &cats);
+  res.print("Details for ");
+  res.print(name);
 }
 ```
 
-The app will now be able to handle requests to `/cats/` and `/cats/long` and so on.
+```arduino
+// Add inside setup().
+cats.get("/", catIndex);
+cats.get("/long", longCat);
+details.get("/:name", catDetails);
+cats.use("/details", &details);
+app.use("/cats", &cats);
+```
+
+Nested mounts accumulate prefixes: `catDetails` handles
+`/cats/details/nyan`. `req.path()` still exposes the complete decoded path;
+`req.route()` uses the pattern inside the currently executing router. A mounted
+handler that calls `req.next()` allows matching registrations after the mount
+to run too.
+
+Apps and routers cannot be copied. They own their registration nodes but
+borrow mounted routers and registered path strings. Keep routers and path
+strings alive while requests may use them; file-scope declarations and string
+literals satisfy that requirement.
+
+<h2 id="member-callbacks">Member callbacks and lambdas</h2>
+
+On platforms with automatic `std::function` support, including ESP32, aWOT
+accepts member callbacks and capturing lambdas. This partial example belongs
+at file scope, with its registration in `setup()`:
+
+```arduino
+class Counter {
+ public:
+  void handle(Request& req, Response& res) {
+    res.print(++count);
+  }
+ private:
+  unsigned long count = 0;
+};
+
+Counter counter;
+```
+
+```arduino
+// Add inside setup() on a std::function build.
+app.get("/count", &counter, &Counter::handle);
+```
+
+Keep the instance alive as long as its registration. Function-pointer builds
+accept ordinary functions and noncapturing lambdas. See
+[configuration](/en/guide/configuration.html) before changing callback macros.

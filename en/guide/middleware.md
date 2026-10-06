@@ -3,108 +3,101 @@ layout: page
 title: Writing middleware for use in aWOT apps
 menu: guide
 lang: en
-redirect_from: "/guide/middleware.html"
 ---
+
 # Middleware
 
-_Middleware_ functions are functions that have access to the [request](/{{ page.lang }}/3x/api.html#req)  (`req`) and the [response](/{{ page.lang }}/3x/api.html#res) (`res`) parameters.
+Middleware receives the current `Request` and `Response`, just like a route
+handler. Registrations execute in order. In aWOT 4, call `req.next()` to pass
+control to the next matching registration. Returning without it stops dispatch.
+`res.end()` marks a response as ended and stops dispatch even when continuation
+was requested. The final callback still runs before aWOT finalizes the output.
 
-Middleware functions can execute any code and optionally end the request-response cycle.
+<h2 id="example">Logging and authentication</h2>
 
-If the current middleware function wants end the request-response cycle, it must call `res.end()` to prevent any further middleware from being executed.
-<h2>Example</h2>
-
-Here is an example of a simple "Hello World" aWOT application.
-In this article will define and add a middleware function to the application called `myLogger` that prints a simple log message.
-
-```arduino
-#include <WiFi.h.h>
-#include <aWOT.h>
-  
-WiFiServer server(80);
-Application app;
-  
-void index(Request &req, Response &res) {
-  res.print("Hello World!");
-}
-  
-void setup() {
-  Serial.begin(115200);
-  
-  WiFi.begin("ssid", "password");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println(WiFi.localIP());
-
-  app.get("/", &index);
-  server.begin();
-}
-  
-void loop() {  
-  WiFiClient client = server.available();
-  
-  if (client.connected()) {
-    app.process(&client);
-  }
-}
-```
-
-<h3>Middleware function myLogger</h3>
-Here is a simple example of a middleware function called "myLogger". This function just prints "LOGGED" when a request to the app passes through it.
-
-```arduino
-void myLogger(Request &req, Response &res) {
-  Serial.println("LOGGED");
-}
-```
-
-To load the middleware function, call `app.use()`, specifying the middleware function.
-For example, the following code loads the `myLogger` middleware function before the route to the root path (/).
+This complete ESP32 sketch logs each request and protects `/secret` with HTTP
+Basic authentication. Install [aWOT 4.0.0](/en/starter/hello-world.html) and set
+the Wi-Fi credentials. The demonstration credentials are `super` / `admin`.
+Basic authentication sends reusable credentials; use a protected transport or
+network for an application that relies on it.
 
 ```arduino
 #include <WiFi.h>
 #include <aWOT.h>
-  
-WiFiServer server(80);
-Application app;
+#include <string.h>
 
-void myLogger(Request &req, Response &res) {
-  Serial.println("LOGGED");
+WiFiServer server(80);
+App app;
+
+void logRequest(Request& req, Response& res) {
+  Serial.println(req.path());
+  req.next();
 }
-  
-void index(Request &req, Response &res) {
-  res.print("Hello World!");
-  res.end();
+
+void authenticate(Request& req, Response& res) {
+  const char* authorization = req.get("Authorization");
+  if (!authorization ||
+      strcmp(authorization, "Basic c3VwZXI6YWRtaW4=") != 0) {
+    res.set("WWW-Authenticate", "Basic realm=\"Secret Area\"");
+    res.sendStatus(401);
+    res.end();
+    return;
+  }
+  req.next();
 }
-  
+
+void secret(Request& req, Response& res) {
+  res.print("Welcome to the secret area.");
+}
+
+void home(Request& req, Response& res) {
+  res.print("Visit /secret with super / admin.");
+}
+
 void setup() {
   Serial.begin(115200);
-  
-  WiFi.begin("ssid", "password");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
+  while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-
-  app.use(&myLogger);
-  app.get("/", &index);
+  app.use(logRequest);
+  app.use("/secret", authenticate);
+  app.get("/secret", secret);
+  app.get("/", home);
   server.begin();
 }
-  
-void loop() {  
+
+void loop() {
   WiFiClient client = server.available();
-  
   if (client.connected()) {
-    app.process(&client);
+    char authorization[64];
+    Request::Header headers[] = {
+      {"Authorization", authorization}
+    };
+    app.process(&client, headers);
+    client.stop();
   }
 }
 ```
-The middleware function `myLogger` simply prints a message, then passes the control to the next middleware function in the chain. Every time the app receives a request, it prints the message "LOGGED" to the terminal.
 
-The order of middleware loading is important: middleware functions that are loaded first are also executed first.
+The logger calls `req.next()` so authentication and routes can run. Authentication
+calls it only after a successful check. Its `401` branch calls `res.end()` and
+returns, so `secret` cannot execute. Put middleware before the handlers that
+depend on it. The `/secret` callback pattern also accepts `/secret/`; protecting
+a group of paths is best done with middleware inside a
+[mounted router](/en/guide/routing.html#aWOT-router).
 
-If `myLogger` is loaded after the route to the root path, the request never reaches it and the app doesn't print "LOGGED", because the route handler of the root path terminates the request-response cycle by calling res.end().
+Header capture belongs to each `process()` call. The `Request::Header` array
+borrows its names and buffers, infers the array sizes, and clears the captured
+values before and after processing. Keep them alive throughout the call and
+use separate storage for concurrent requests. `req.get()` returns null for an
+absent or uncaptured header, and a non-null empty string for a captured header
+with an empty value. See [request data](/en/guide/request-data.html).
 
+Replace the IP address below with the address printed by your board:
+
+```bash
+curl -i http://192.168.1.140/secret
+curl -i --user super:admin http://192.168.1.140/secret
+```
+
+The first command receives `401`; the second receives the welcome message.

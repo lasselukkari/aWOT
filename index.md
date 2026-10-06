@@ -14,7 +14,7 @@ redirect_from: "/en/index.html"
   <div id="homepage-rightpane" class="pane">
     <section id="description">
       <div class="awot"><a href="/">aWOT</a></div>
-      <span class="description">Fast, unopinionated, minimalist web server library for <a href='https://arduino.cc'>Arduino</a>.
+      <span class="description">A portable HTTP server library for <a href='https://arduino.cc'>Arduino</a>. Install aWOT 4.0.0 through Arduino Library Manager and <a href="/en/starter/hello-world.html">start with a complete sketch</a>.
       </span>
     </section>
   </div>
@@ -23,16 +23,16 @@ redirect_from: "/en/index.html"
 
   <div id="boxes" class="clearfix">
     <div id="simplicity">
-      <h3>Simple</h3> aWOT provides essential web application features, without obscuring the Arduino simplicity that you know and love.
+      <h3>Simple</h3> Define routes with <code>App</code>, read requests as Arduino Streams, and write responses with familiar Print methods.
     </div>
     <div id="compatibile">
-      <h3>Compatible</h3>Target mutltiple different platforms and harware configurations with the same code.
+      <h3>Compatible</h3> Use the same HTTP handlers with Arduino Client transports, including Ethernet and Wi-Fi, or with a Stream such as Serial.
     </div>
     <div id="small">
-      <h3>Small</h3> Less than 20kB of ROM and 1kB of RAM needed when compiled for a 8-bit AVR microcontroller.
+      <h3>Configurable</h3> Choose request and output buffers for your board. Start with Uno Ethernet or ESP32 Wi-Fi, then explore <a href="/en/guide/configuration.html">memory and callback settings</a>.
     </div>
     <div id="like-express">
-      <h3><a href="https://expressjs.com">Like Express</a></h3> With familiar patterns and sane defaults creating a HTTP API is quick and easy.
+      <h3><a href="https://expressjs.com">Like Express</a></h3> Compose routes and middleware with explicit continuation. Add browser interfaces, WebSockets, or server-sent events with the <a href="/en/guide/tutorial.html">v4 guides</a>.
     </div>
   </div>
 </section>

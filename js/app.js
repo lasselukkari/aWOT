@@ -16,7 +16,7 @@ $(function(){
   }
 
   var doc = $(document);
-  var lang = document.location.pathname.split('/')[1]
+  var lang = document.documentElement.lang
 
   // hilight the menu item of the current page
   $('#navmenu ul ul').find('a[href="'+ document.location.pathname + '"]').addClass('current')
@@ -41,29 +41,23 @@ $(function(){
   })
 
   // edit page link
-  var latest = '';
   var branchPath = 'https://github.com/lasselukkari/aWOT';
   var pathName = document.location.pathname;
-
-  var currentVersion = pathName.split('/').splice(-2)[0] || '3x'; // defaults to current version
-  var fileName = pathName.split('/').splice(-2)[1];
-  var pagePath;
+  var sourcePath = $('html').attr('data-source-path');
+  var apiVersion = $('#api-doc').attr('data-api-version');
   var editPath;
 
-  // the api doc cannot be edited individually, we'll have to link to the dir instead
-  if (fileName == 'api.html') {
-    editPath = branchPath + '/tree/gh-pages/_includes/api/en/'+ currentVersion;
-  }
-  // link to individual doc files
-  else {
-    pagePath = pathName.replace(/\.html$/, '.md');
-    editPath = branchPath + '/blob/gh-pages' + pagePath;
+  // The default and versioned references share include files.
+  if (apiVersion) {
+    editPath = branchPath + '/tree/gh-pages/_includes/api/' + lang + '/' + apiVersion;
+  } else {
+    editPath = branchPath + '/blob/gh-pages/' + sourcePath;
   }
 
   var editLink;
 
   if (lang === 'en') {
-    if (pathName == '/') editLink = '<a href="' + branchPath + '">Fork the website on GitHub</a>.';
+    if (pathName == '/') editLink = '<a href="' + editPath + '">Edit this page on GitHub</a>.';
     else editLink = '<a href="' + editPath + '">Edit this page on GitHub</a>.';
     $('#fork').html(editLink);
   }
@@ -85,12 +79,18 @@ $(function(){
   var prev;
   var n = 0;
 
-  var headings = $('h2, h3').map(function(i, el){
-    return {
-      top: $(el).offset().top - 150,
-      id: el.id
-    }
-  });
+  var headings;
+
+  function updateHeadings() {
+    headings = $('h2[id], h3[id]').map(function(i, el){
+      return {
+        top: $(el).offset().top - 150,
+        id: el.id
+      }
+    });
+  }
+
+  updateHeadings();
 
   function closest() {
     var h;
@@ -106,11 +106,20 @@ $(function(){
   var parentMenuSelector;
   var lastApiPrefix;
 
-  $(window).bind('load resize', function() {
+  $(window).bind('load resize hashchange', function() {
 
     $('#menu').css('height', ($(this).height() - 150) + 'px');
+    updateHeadings();
+    doc.triggerHandler('scroll');
 
   });
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() {
+      updateHeadings();
+      doc.triggerHandler('scroll');
+    });
+  }
 
   $(document).scroll(function() {
 

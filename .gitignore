@@ -9,3 +9,7 @@ _site
 Gemfile.lock
 .jekyll-metadata
 .vscode
+!Gemfile.lock
+.bundle
+.docs-build
+__pycache__/
