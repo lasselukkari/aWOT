@@ -1,16 +1,12 @@
-node_modules
+node_modules/
+.astro/
+dist/
 .DS_Store
-*.sublime*
-_site
-.sass-cache
-*.iml
-**/.idea
-**/Thumbs.db
-Gemfile.lock
-.jekyll-metadata
-.vscode
-!Gemfile.lock
-.bundle
-.docs-build
+.vscode/
+.docs-build/
 __pycache__/
-vendor/
+
+# Retired local Ruby dependencies; only the AstroWind integration is source.
+.bundle/
+vendor/*
+!vendor/integration/

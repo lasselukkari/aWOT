@@ -21,10 +21,11 @@ source checkouts support validation and are not the installation workflow.
 
 ## Validate changes
 
-Follow the pinned Ruby/Bundler preview and check commands in [README.md](README.md).
+Follow the Node.js/Astro preview and check commands in [README.md](README.md).
 Before review:
 
-1. Build the full Jekyll site and run `scripts/check-site.py` on its output.
+1. Run `npm run check`, build the full Astro site with `npm run build`, and run
+   `python3 scripts/check-site.py dist`.
 2. Compile changed complete sketches and register new partial examples in a
    `scripts/partial-*.json` manifest. Block numbers count `arduino` and `cpp`
    fences together. A `decl` wrapper compiles file-scope code; a `body` wrapper
@@ -47,18 +48,24 @@ when changed. Keep all five historical tutorial anchors: `environment`, `setup`,
 
 ## Content structure and translations
 
-Use the established Jekyll layouts, Markdown, and Liquid includes. Keep stable
-URLs, heading IDs, and redirect aliases. Add new current guide pages to
-`_includes/header/header-en.html`; current API headings also need sidebar links
-in `_includes/api/en/4x/menu.md`. The rendered reference declares its API version
-explicitly for edit-link generation.
+Use Astro layouts and native Markdown content collections. Current pages live in
+`src/content/docs/guide/` and `src/content/docs/starter/`; the expanded reference
+lives in `src/content/docs/4x/api.md`. Preserve frontmatter `route`, heading IDs,
+and redirect aliases in `src/data/redirects.json`. Add new current guide pages to
+`src/navigation.ts`. The API sidebar is generated from headings; its rendered
+wrapper declares the API version for validation and archive notices.
 
-For a translation, create a language directory using its ISO 639-1 code, copy
-the relevant current pages and versioned references, and set `lang`, `title`,
-and navigation for that language. Supply corresponding header/footer and API
-includes and verify translated internal links. Retain a clearly labeled archive
-menu wherever archived references are translated; do not remove historical URLs
-as part of a current-version update.
+The native reference is shared by `/en/api.html` and `/en/4x/api.html` through
+its `routeAlias`. Partial-example manifests point to the same source and count
+all `cpp`/`arduino` fences, including signatures. Update block numbers when
+inserting or removing a preceding fence; retain the behavior-handler checks.
+The archived 3.x reference has its own expanded Markdown source and stable IDs.
+
+For a translation, create a language-specific content directory using its ISO
+639-1 code, copy the relevant current pages and versioned references, and update
+the content collection loader, routes, navigation, and layout language together.
+Verify translated internal links. Retain a clearly labeled archive menu wherever
+archived references are translated; preserve historical URLs during updates.
 
 Content is licensed under [CC BY-SA 3.0 US](https://creativecommons.org/licenses/by-sa/3.0/us/).
 See [LICENSE.md](LICENSE.md) for the full license.

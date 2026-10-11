@@ -1,47 +1,47 @@
 [
   {
-    "file": "_includes/api/en/4x/ws.md",
-    "block": 3,
+    "file": "src/content/docs/4x/api.md",
+    "block": 87,
     "wrapper": "decl",
     "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
   },
   {
-    "file": "_includes/api/en/4x/ws.md",
-    "block": 6,
+    "file": "src/content/docs/4x/api.md",
+    "block": 90,
     "wrapper": "body",
     "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
   },
   {
-    "file": "_includes/api/en/4x/ws.md",
-    "block": 8,
+    "file": "src/content/docs/4x/api.md",
+    "block": 92,
     "wrapper": "decl",
     "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
   },
   {
-    "file": "_includes/api/en/4x/wsmessage.md",
-    "block": 3,
+    "file": "src/content/docs/4x/api.md",
+    "block": 99,
     "wrapper": "decl"
   },
   {
-    "file": "_includes/api/en/4x/sse.md",
-    "block": 5,
+    "file": "src/content/docs/4x/api.md",
+    "block": 105,
     "wrapper": "body",
     "preamble": "SseChannel<SharedClient, 4> events;"
   },
   {
-    "file": "_includes/api/en/4x/sse.md",
-    "block": 7,
+    "file": "src/content/docs/4x/api.md",
+    "block": 107,
     "wrapper": "decl",
     "preamble": "SseChannel<SharedClient, 4> events;"
   },
   {
-    "file": "_includes/api/en/4x/storage.md",
-    "block": 2,
+    "file": "src/content/docs/4x/api.md",
+    "block": 109,
     "wrapper": "body"
   },
   {
-    "file": "_includes/api/en/4x/configuration.md",
-    "block": 1,
+    "file": "src/content/docs/4x/api.md",
+    "block": 111,
     "wrapper": "body"
   }
 ]

@@ -42,7 +42,7 @@ def main():
         raise SystemExit('No snippet manifests found')
     behavior = includes + '\n#include <cassert>\n'
     # Run the documented query/parameter/authentication handlers, not copies.
-    request_fences = re.findall(r'^```arduino\n(.*?)^```\s*$', (root/'_includes/api/en/4x/req.md').read_text(), re.M | re.S)
+    request_fences = re.findall(r'^```(?:arduino|cpp)\n(.*?)^```\s*$', (root/'src/content/docs/4x/api.md').read_text(), re.M | re.S)
     for code in request_fences:
         if any(f'void {name}(' in code for name in ('authenticate', 'search', 'item')):
             behavior += code+'\n'

@@ -1,11 +1,11 @@
 [
   {
-    "file": "en/starter/basic-routing.md",
+    "file": "src/content/docs/starter/basic-routing.md",
     "block": 1,
     "wrapper": "decl"
   },
   {
-    "file": "en/starter/basic-routing.md",
+    "file": "src/content/docs/starter/basic-routing.md",
     "block": 2,
     "wrapper": "body",
     "preamble_blocks": [
@@ -13,12 +13,12 @@
     ]
   },
   {
-    "file": "en/starter/basic-routing.md",
+    "file": "src/content/docs/starter/basic-routing.md",
     "block": 3,
     "wrapper": "decl"
   },
   {
-    "file": "en/starter/basic-routing.md",
+    "file": "src/content/docs/starter/basic-routing.md",
     "block": 4,
     "wrapper": "body",
     "preamble_blocks": [
@@ -26,12 +26,12 @@
     ]
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 1,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 2,
     "wrapper": "body",
     "preamble_blocks": [
@@ -39,12 +39,12 @@
     ]
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 3,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 4,
     "wrapper": "body",
     "preamble_blocks": [
@@ -52,12 +52,12 @@
     ]
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 5,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 6,
     "wrapper": "body",
     "preamble_blocks": [
@@ -65,12 +65,12 @@
     ]
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 7,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/routing.md",
+    "file": "src/content/docs/guide/routing.md",
     "block": 8,
     "wrapper": "body",
     "std_function": true,
@@ -79,17 +79,17 @@
     ]
   },
   {
-    "file": "en/guide/connections.md",
+    "file": "src/content/docs/guide/connections.md",
     "block": 1,
     "wrapper": "body"
   },
   {
-    "file": "en/guide/connections.md",
+    "file": "src/content/docs/guide/connections.md",
     "block": 4,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/connections.md",
+    "file": "src/content/docs/guide/connections.md",
     "block": 5,
     "wrapper": "body",
     "preamble_blocks": [
@@ -97,46 +97,35 @@
     ]
   },
   {
-    "file": "en/guide/request-data.md",
+    "file": "src/content/docs/guide/request-data.md",
     "block": 2,
     "wrapper": "body",
     "preamble": "char labelStorage[32];\nchar* labelPointer = labelStorage;\nint labelCapacity = sizeof(labelStorage);\nchar urlStorage[64];\nchar* urlPointer = urlStorage;\nint urlCapacity = sizeof(urlStorage);\nuint8_t outputStorage[32];\nuint8_t* outputPointer = outputStorage;\nint outputCapacity = sizeof(outputStorage);\nvoid* contextPointer = nullptr;"
   },
   {
-    "file": "en/guide/migrating-to-v4.md",
+    "file": "src/content/docs/guide/migrating-to-v4.md",
     "block": 4,
     "wrapper": "decl"
   },
   {
-    "file": "en/guide/migrating-to-v4.md",
+    "file": "src/content/docs/guide/migrating-to-v4.md",
     "block": 6,
     "wrapper": "body"
   },
   {
-    "file": "en/guide/migrating-to-v4.md",
+    "file": "src/content/docs/guide/migrating-to-v4.md",
     "block": 8,
     "wrapper": "body",
     "preamble": "struct ContextState { unsigned long started; };\nContextState state = {};"
   },
   {
-    "file": "en/guide/migrating-to-v4.md",
+    "file": "src/content/docs/guide/migrating-to-v4.md",
     "block": 10,
     "wrapper": "body"
   },
   {
-    "file": "en/guide/migrating-to-v4.md",
+    "file": "src/content/docs/guide/migrating-to-v4.md",
     "block": 11,
-    "wrapper": "decl"
-  },
-  {
-    "file": "en/guide/migrating-to-v4.md",
-    "block": 12,
-    "wrapper": "body",
-    "preamble": "Router api;"
-  },
-  {
-    "file": "en/guide/migrating-to-v4.md",
-    "block": 13,
     "wrapper": "body"
   }
 ]

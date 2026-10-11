@@ -1,28 +1,41 @@
 # aWOT 4 documentation release
 
-The `docs/v4` change prepares awot.net to teach aWOT **4.0.0** while retaining the
-existing Jekyll theme and `gh-pages` hosting. Publish this change alongside the
-library release, after Arduino Library Manager offers the documented version.
+The `docs/v4` change prepares awot.net to teach aWOT **4.0.0**, using AstroWind's
+design and Astro's static build with `gh-pages` hosting. Publish this change
+alongside the library release, after Arduino Library Manager offers the
+documented version.
 
 ## Implementation and local validation
 
-- [x] Default and canonical v4 references share the complete API includes.
+- [x] Default and canonical v4 references share the complete native Markdown API.
 - [x] The 3.x API and existing rendered anchors remain available with an archive
   notice; historical generator/static-file pages have labeled archive URLs.
 - [x] Migration, starter, core, WebSocket, SSE, configuration, and static-file
   pages teach the verified v4 API and transport lifecycle.
-- [x] Jekyll 3.3.1 / github-pages 110 builds with Ruby 2.6.10 and Bundler 2.4.22.
-- [x] Rendered checks pass for 38 HTML pages, 1164 local links, 17 aliases,
+- [x] Add the native macOS guide and carousel target. The bundled example at
+  `4117ee51` builds, passes its shim/socket/HTTP tests, and returns the documented
+  200 and 404 responses. Validation used an isolated source copy with port
+  18080 substituted in `HelloWorld.cpp` and the Makefile to avoid the existing
+  local server on 8080; no dependency download was needed.
+- [x] The current generator page and its menu entry are removed. Project setup
+  lives in Hello world, and both legacy generator URLs redirect there. The
+  historical 3.x generator page remains labeled as an archive.
+- [x] Before the Astro migration, Jekyll 3.3.1 / github-pages 110 built with
+  Ruby 2.6.10 and Bundler 2.4.22; this toolchain has now been replaced.
+- [x] Before the Astro migration, rendered checks passed for 38 HTML pages,
+  1110 local links, 18 aliases,
   sidebar targets, both API versions, and preserved 3.x anchors.
-- [x] All 47 partial examples compile with standard callbacks and sanitizers;
-  45 compile with Uno-sized buffers and function-pointer callbacks.
+- [x] On 2026-10-08, all 45 current partial examples compiled with standard
+  callbacks and sanitizers; 43 compiled with Uno-sized buffers and
+  function-pointer callbacks.
 - [x] Native behavior suites pass: 24 test executables with documentation
   behavior checks in standard/sanitized builds; 23 in the small-buffer build.
 - [x] The publicly available CI source revision passes the native snippet and
   behavior checks as well as the planned local library revision.
 - [x] Uno Ethernet starter/configuration and SerialBridge compile with AVR
   1.8.8 and Ethernet 2.0.2.
-- [x] Chrome desktop (1440×1000) and touch-mobile (390×844) previews pass
+- [x] Before the Astro migration, Chrome desktop (1440×1000) and touch-mobile
+  (390×844) previews passed
   navigation, edit links, archive notices, API sidebar highlighting, resize
   behavior, Arduino/Bash/JSON/TSX highlighting, fragment redirects, and all five
   tutorial anchors. No JavaScript errors or horizontal overflow were observed.
@@ -35,13 +48,25 @@ library release, after Arduino Library Manager offers the documented version.
   SerialBridge, and MemberFunction. The compiler caught the old handler name
   `index` colliding with a platform overload; the corrected `home` handler
   compiled in the focused middleware rerun.
-- [ ] Review the hosted documentation check workflow results before merging.
-  Its first native and Uno jobs passed. The initial Linux site job read a
-  Jekyll template inside Bundler's `vendor/bundle`; excluding `vendor` fixes
-  that trigger and passes the same build/link checks locally. Final CI results
-  must be checked on the corrected revision.
+- [x] ESP32 client ownership is explicit in the connections, API, migration, and
+  channel documentation. The pinned core closes a socket when its last client
+  owner is destroyed; result flags do not retain it. The keep-alive sketch now
+  retains six client slots with individual idle timers and processes requests
+  synchronously. Both connection sketches compile in the focused ESP32 rerun;
+  native checks exercised the pool with the real HTTP parser and mocked clients.
+  The guide includes a two-request curl command for checking reuse on the board;
+  no hardware runtime test is claimed. Logs are under
+  `/private/tmp/awot-docs-connection-pool-compilation` and
+  `/private/tmp/awot-pool-check`.
+- [ ] Review hosted documentation check workflow results for the Astro migration
+  after pushing the current changes. On 2026-10-10, both earlier Jekyll workflow
+  runs ([37503121958](https://github.com/lasselukkari/aWOT/actions/runs/37503121958)
+  and [37503113202](https://github.com/lasselukkari/aWOT/actions/runs/37503113202))
+  passed all six jobs: site, three native configurations, Uno, and ESP32.
+  Those results do not validate the pending Astro changes. The local workflow
+  removes the duplicate push trigger so PR updates run once.
 
-The local library baseline is branch `4` at `4117ee51`. CI uses the public
+The local library baseline is revision `4117ee51`. CI uses the public
 `bb13af5963ad950015312fe73107766056ccd936` revision, whose C++ headers and sources
 match that local baseline. The later local commits reorganize development
 files/examples and packaging. Update the CI pin to the released source revision
@@ -53,8 +78,51 @@ are under `/private/tmp/awot-docs-partials-*`. Browser reports/screenshots are
 under `/private/tmp/awot-docs-browser`, with the preview at
 <http://127.0.0.1:4173> while its local server remains running.
 
+## Astro migration validation
+
+- [x] Replace Jekyll, Liquid includes, the old logo, and Prism with AstroWind
+  components and native Markdown documentation.
+- [x] Update snippet manifests and Arduino extraction to read
+  `src/content/docs/`, including the expanded v4 reference.
+- [x] Replace the site CI job with Node.js 22.22.3, `npm ci`, Astro checks,
+  production build, and rendered checks against `dist/`.
+- [x] Prepare a GitHub Actions Pages workflow to build and deploy `dist/` only
+  from `gh-pages`, preserving `awot.net`.
+- [x] Run Astro checks and the production build: zero errors, warnings, or hints;
+  41 HTML pages, 2728 local links, 20 redirect aliases, both current references,
+  archived API IDs, and all five tutorial anchors pass. The sitemap omits
+  redirects and the default API alias.
+- [x] Revalidate documented snippets after remapping their native Markdown sources:
+  on 2026-10-08, 45 exact snippets and 24 suites passed in native/sanitized
+  configurations; 43 snippets and 23 suites passed with small buffers and
+  function-pointer callbacks.
+- [x] Compile all three Uno documentation/repository sketches from their migrated
+  paths with AVR 1.8.8 and Ethernet 2.0.2. Logs are under
+  `/private/tmp/awot-astro-sketches-uno`.
+- [x] Compile the updated custom-buffer configuration sketch on Uno, using
+  separate static URL and output arrays. Logs are under
+  `/private/tmp/awot-docs-custom-buffers`.
+- [x] Compile ten migrated ESP32 documentation sketches with core 3.3.10 and
+  ArduinoJson 7.4.3, with no failures. The redundant full
+  rerun was intentionally halted during the next sketch. At that migration
+  checkpoint, the code bodies matched the earlier successful 13-case validation;
+  the remaining three cases were not rerun. Subsequent connection and
+  configuration changes received the focused compilation checks recorded above.
+  Partial logs are under
+  `/private/tmp/awot-astro-sketches-esp32`.
+- [x] Preview the AstroWind design: all 12 browser checks pass for desktop/mobile,
+  light/dark themes, navigation, references, syntax highlighting, fragment
+  redirects, blocked local storage, and mobile browsing without JavaScript.
+  Fragment targets sit 100px below the viewport top, clearing the 70px sticky
+  header. No runtime errors were observed. Reports/screenshots are under `/private/tmp/awot-astro-browser`.
+
 ## Publication prerequisites
 
+- [x] On 2026-10-11 the user authorized pushing the local Astro documentation
+  changes and duplicate CI trigger fix to `docs/v4`, updating draft
+  [PR #170](https://github.com/lasselukkari/aWOT/pull/170). This supersedes the
+  earlier no-push instruction for those changes. Leave the draft unmerged and
+  the live site unchanged until separately approved.
 - [ ] Obtain explicit approval for the remote companion merge. The plan's
   [LedBlink PR #40](https://github.com/lasselukkari/LedBlink/pull/40) remains open,
   mergeable, at the verified revision above. Automatic approval review rejected
@@ -68,16 +136,22 @@ under `/private/tmp/awot-docs-browser`, with the preview at
   `v3.5.0`. The current official Arduino library index was also checked and
   does not contain aWOT 4.0.0. The library checkout's uncommitted README work is separate from this
   documentation change.
+- [ ] Ensure the published library source includes `.extras/MacOSNative`
+  and its bundled ArduinoCore-API before publishing the macOS guide. The guide
+  uses a Git checkout because release archives omit `.extras`; the earlier
+  public source baseline has the native example under `examples/MacOSNative`.
 - [ ] Wait for Arduino Library Manager to index 4.0.0, install that version in a
   clean environment, and compile the starter through that installation.
-- [ ] Merge the documentation change into `gh-pages`. GitHub Pages currently
-  serves the root of that branch through its existing legacy build path and
-  custom domain `awot.net`; no hosting migration is required.
+- [ ] Change the repository Pages source from its legacy branch build to
+  **GitHub Actions** as part of approved publication; retain custom domain
+  `awot.net` and `public/CNAME`.
+- [ ] Merge the documentation change into `gh-pages`. The new Pages workflow
+  builds, validates, uploads, and deploys the Astro `dist/` artifact.
 - [ ] Check the live home page, default and canonical v4 references, 3.x archive,
   aliases with fragments, starter and guide pages, and actual Library Manager
   installation. Keep the tutorial's five section anchors and both API menu
   versions working.
 
-The advertised current version is staged as `4.0.0` in `_data/awot.yml`. Keep
+The native Markdown pages and homepage stage the current version as `4.0.0`. Keep
 that switch with this coordinated publication; the local preview is not a live
 release or evidence that Library Manager has indexed the package.

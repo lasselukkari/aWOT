@@ -1,0 +1,131 @@
+---
+const boards = ['Arduino', 'Uno', 'ESP32', 'Teensy', 'ESP8266', 'Mega', 'Leonardo', 'Due', 'macOS'];
+const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next' : index === boards.length - 1 ? 'previous' : 'hidden';
+---
+
+<awot-board-headline>
+  <h1 class="font-bold tracking-tighter font-heading text-heading">
+    <span class="sr-only">Web server for Arduino-compatible boards and macOS.</span>
+    <span aria-hidden="true">
+      <span class="block">Web server for</span>
+      <span class="board-reel">
+        {boards.map((board, index) => <span data-board data-position={position(index)}>{board}</span>)}
+      </span>
+    </span>
+  </h1>
+  <span class="board-markers" aria-hidden="true">
+    {boards.map((_, index) => <span data-board-marker data-active={index === 0 ? '' : undefined} />)}
+  </span>
+</awot-board-headline>
+
+<style>
+  awot-board-headline { display: block; margin-bottom: 1.75rem; }
+  h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.1; }
+  .board-reel {
+    position: relative;
+    display: grid;
+    align-items: center;
+    max-width: 48rem;
+    min-height: clamp(6rem, 17vw, 10rem);
+    margin: 1.25rem auto 1.1rem;
+    overflow: hidden;
+    border-block: 1px solid color-mix(in srgb, var(--aw-color-accent) 16%, transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--aw-color-primary) 4%, transparent), transparent);
+    font-size: clamp(3rem, 10vw, 6rem);
+    font-weight: 750;
+    letter-spacing: -.06em;
+  }
+  .board-reel::before, .board-reel::after {
+    content: '';
+    position: absolute;
+    z-index: 3;
+    inset-block: 0;
+    width: .6rem;
+    border: 1px solid color-mix(in srgb, var(--aw-color-accent) 45%, transparent);
+    pointer-events: none;
+  }
+  .board-reel::before { inset-inline-start: 0; border-inline-end: 0; }
+  .board-reel::after { inset-inline-end: 0; border-inline-start: 0; }
+  [data-board] {
+    grid-area: 1 / 1;
+    width: 100%;
+    padding: .1em 0 .15em;
+    color: var(--aw-color-text-muted);
+    opacity: 0;
+    transform: translateX(58%) scale(.28);
+  }
+  [data-position="active"] {
+    z-index: 2;
+    background: linear-gradient(110deg, var(--aw-color-link) 20%, var(--aw-color-accent) 75%);
+    background-clip: text;
+    color: transparent;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  [data-position="previous"] { opacity: .55; transform: translateX(-38%) scale(.28); }
+  [data-position="next"] { opacity: .55; transform: translateX(38%) scale(.28); }
+  [data-position="leaving"] { transform: translateX(-58%) scale(.28); }
+  .board-markers { display: flex; justify-content: center; gap: .4rem; }
+  [data-board-marker] {
+    width: 1rem;
+    height: 2px;
+    background: color-mix(in srgb, var(--aw-color-accent) 18%, transparent);
+  }
+  [data-board-marker][data-active] { background: var(--aw-color-accent); }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-board] { transition: transform 650ms cubic-bezier(.22, 1, .36, 1), opacity 450ms ease, color 450ms ease; }
+    [data-board-marker] { transition: background-color 450ms ease; }
+  }
+  @media (max-width: 560px) {
+    [data-position="previous"], [data-position="next"] { opacity: 0; }
+  }
+  @media (forced-colors: active) {
+    [data-position="active"] { background: none; color: CanvasText; }
+    .board-reel, .board-reel::before, .board-reel::after { border-color: CanvasText; }
+  }
+</style>
+
+<script>
+  class BoardHeadline extends HTMLElement {
+    connectedCallback() {
+      const boards = Array.from(this.querySelectorAll<HTMLElement>('[data-board]'));
+      const markers = Array.from(this.querySelectorAll<HTMLElement>('[data-board-marker]'));
+      if (boards.length < 2) return;
+
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const events = new AbortController();
+      let current = Math.max(0, boards.findIndex((board) => board.dataset.position === 'active'));
+      let timer: number | undefined;
+
+      const show = (index: number) => {
+        current = index;
+        boards.forEach((board, i) => {
+          const offset = (i - current + boards.length) % boards.length;
+          board.dataset.position = offset === 0 ? 'active' : offset === 1 ? 'next' :
+            offset === boards.length - 1 ? 'previous' : offset === boards.length - 2 ? 'leaving' : 'hidden';
+          markers[i]?.toggleAttribute('data-active', offset === 0);
+        });
+      };
+
+      const sync = () => {
+        window.clearInterval(timer);
+        if (motion.matches) show(0);
+        if (!motion.matches && !document.hidden) {
+          timer = window.setInterval(() => show((current + 1) % boards.length), 3200);
+        }
+      };
+
+      motion.addEventListener('change', sync, { signal: events.signal });
+      document.addEventListener('visibilitychange', sync, { signal: events.signal });
+      this.cleanup = () => { events.abort(); window.clearInterval(timer); };
+      sync();
+    }
+
+    disconnectedCallback() { this.cleanup?.(); }
+    private cleanup?: () => void;
+  }
+
+  if (!customElements.get('awot-board-headline')) {
+    customElements.define('awot-board-headline', BoardHeadline);
+  }
+</script>

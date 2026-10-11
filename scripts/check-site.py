@@ -3,6 +3,7 @@
 import argparse
 from collections import Counter
 from html.parser import HTMLParser
+import json
 from pathlib import Path
 import re
 from urllib.parse import unquote, urljoin, urlsplit
@@ -24,7 +25,7 @@ class Document(HTMLParser):
             self.ids.append(attrs['id'])
             if tag in ('h2', 'h3'):
                 self.headings.append(attrs['id'])
-        if tag == 'div' and attrs.get('id') == 'api-doc':
+        if attrs.get('id') == 'api-doc':
             self.api_version = attrs.get('data-api-version')
         for name in ('href', 'src'):
             if attrs.get(name):
@@ -50,7 +51,7 @@ def main():
             errors.append(f'{path}: duplicate IDs: {duplicates}')
         for link in doc.links:
             parts = urlsplit(urljoin('https://awot.net/' + path, link))
-            if parts.scheme not in ('http', 'https') or parts.netloc not in ('awot.net', 'localhost:4000', '127.0.0.1:4000'):
+            if parts.scheme not in ('http', 'https') or parts.netloc not in ('awot.net', 'localhost:4321', '127.0.0.1:4321', 'localhost:4173', '127.0.0.1:4173'):
                 continue
             target = unquote(parts.path).lstrip('/') or 'index.html'
             if target.endswith('/'):
@@ -65,7 +66,9 @@ def main():
                     errors.append(f'{path}: redirect cycle at {target}')
                     break
                 seen.add(target)
-                target = urlsplit(urljoin('https://awot.net/' + target, documents[target].redirect)).path.lstrip('/')
+                target = unquote(urlsplit(urljoin('https://awot.net/' + target, documents[target].redirect)).path).lstrip('/') or 'index.html'
+                if target.endswith('/'):
+                    target += 'index.html'
             if parts.fragment and target in documents and unquote(parts.fragment) not in documents[target].ids:
                 errors.append(f'{path}: missing fragment {link}')
         if doc.api_version == '4x':
@@ -88,26 +91,35 @@ def main():
         errors.append(f'3.x archive lost anchors: {set(baseline) - set(archive.ids)}')
     aliases = {}
     source_root = Path(__file__).resolve().parent.parent
-    for source in source_root.glob('en/**/*.md'):
+    for source in (source_root/'src/content/docs').rglob('*.md'):
         front = source.read_text().split('---', 2)[1]
-        match = re.search(r'^redirect_from:\s*[\'"]([^\'"]+)', front, re.M)
+        route_match = re.search(r'^route:\s*[\'"]?([^\'"\n]+)', front, re.M)
+        if not route_match:
+            errors.append(f'{source.relative_to(source_root)}: missing route')
+            continue
+        destination = route_match[1].strip().lstrip('/')
+        if destination not in documents:
+            errors.append(f'{source.relative_to(source_root)}: missing rendered route {destination}')
+        match = re.search(r'^routeAlias:\s*[\'"]?([^\'"\n]+)', front, re.M)
         if match:
-            alias = match[1].lstrip('/')
-            if alias in aliases:
-                errors.append(f'duplicate redirect source: {alias}')
-            aliases[alias] = source.relative_to(source_root).with_suffix('.html').as_posix()
-    for source in (source_root/'redirects').glob('*.html'):
-        front = source.read_text().split('---', 2)[1]
-        alias = re.search(r'^permalink:\s*[\'"]?([^\'"\n]+)', front, re.M)[1].lstrip('/')
-        destination = re.search(r'^redirect_target:\s*[\'"]?([^\'"\n]+)', front, re.M)[1].lstrip('/')
+            alias = match[1].strip().lstrip('/')
+            if alias not in documents:
+                errors.append(f'{source.relative_to(source_root)}: missing rendered alias {alias}')
+    for redirect in json.loads((source_root/'src/data/redirects.json').read_text()):
+        alias = redirect['from'].lstrip('/')
+        destination = redirect['to'].lstrip('/') or 'index.html'
         if alias in aliases:
             errors.append(f'duplicate redirect source: {alias}')
         aliases[alias] = destination
     for alias, destination in aliases.items():
         if alias not in documents or not documents[alias].redirect:
             errors.append(f'{alias}: missing redirect')
-        elif urlsplit(documents[alias].redirect).path.lstrip('/') != destination:
+        elif (urlsplit(documents[alias].redirect).path.lstrip('/') or 'index.html') != destination:
             errors.append(f'{alias}: incorrect redirect destination')
+    tutorial = documents.get('en/guide/tutorial.html')
+    for anchor in ('environment', 'setup', 'back-end', 'front-end', 'build'):
+        if tutorial is None or anchor not in tutorial.ids:
+            errors.append(f'en/guide/tutorial.html: missing historical anchor {anchor}')
     if errors:
         raise SystemExit('\n'.join(errors))
     print(f'Checked {len(documents)} HTML pages, {checked} local links, {len(aliases)} aliases, both API versions, and preserved 3.x anchors.')

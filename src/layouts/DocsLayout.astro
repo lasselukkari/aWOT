@@ -1,0 +1,77 @@
+---
+import type { MarkdownHeading } from 'astro';
+import Layout from './Layout.astro';
+import { docsNavigation } from '~/navigation';
+
+interface Props { title: string; description: string; section: string; apiVersion?: string; canonical?: string; source: string; toc: MarkdownHeading[]; }
+const { title, description, section, apiVersion, canonical, source, toc } = Astro.props;
+const current = Astro.url.pathname === '/en/api.html' ? '/en/4x/api.html' : Astro.url.pathname;
+const editUrl = `https://github.com/lasselukkari/aWOT/edit/gh-pages/src/content/docs/${source}.md`;
+---
+<Layout title={title} description={description} canonical={canonical}>
+  <div class:list={['docs-shell', { 'has-toc': toc.length > 0 }]}>
+    <aside class="docs-sidebar">
+      <details class="docs-nav" open>
+        <summary>Documentation <span aria-hidden="true">⌄</span></summary>
+        <nav aria-label="Documentation navigation">
+          <p class="version-label">aWOT 4.0</p>
+          {docsNavigation.map((group) => <div class="nav-group">
+            <p>{group.title}</p>
+            <ul>{group.links.map((link) => <li><a href={link.href} aria-current={current === link.href ? 'page' : undefined}>{link.text}</a></li>)}</ul>
+          </div>)}
+        </nav>
+      </details>
+    </aside>
+    <main id="main-content" class="docs-main" tabindex="-1">
+      <div class="doc-meta"><span>{section === 'api' ? 'API reference' : section === 'archive' ? '3.x archive' : section === 'starter' ? 'Get started' : 'Guide'}</span><a href={editUrl}>Edit this page ↗</a></div>
+      {toc.length > 0 && <details class="mobile-toc"><summary>On this page</summary><nav aria-label="Page contents"><ul>{toc.map((heading) => <li class:list={{ nested: heading.depth === 3 }}><a href={`#${heading.slug}`}>{heading.text}</a></li>)}</ul></nav></details>}
+      <article id={apiVersion ? 'api-doc' : undefined} data-api-version={apiVersion} class="prose prose-slate dark:prose-invert doc-prose max-w-none">
+        <slot />
+      </article>
+      <div class="doc-end"><a href="/en/starter/hello-world.html">Get started</a><a href="/en/4x/api.html">API reference →</a></div>
+    </main>
+    {toc.length > 0 && <aside class="page-toc"><nav aria-label="On this page"><p>On this page</p><ul>{toc.map((heading) => <li class:list={{ nested: heading.depth === 3 }}><a href={`#${heading.slug}`}>{heading.text}</a></li>)}</ul></nav></aside>}
+  </div>
+</Layout>
+<script>
+  const nav = document.querySelector<HTMLDetailsElement>('.docs-nav');
+  const wide = window.matchMedia('(min-width: 1024px)');
+  const sync = () => { if (nav) nav.open = wide.matches; };
+  sync();
+  wide.addEventListener('change', sync);
+  const headings = Array.from(document.querySelectorAll<HTMLElement>('.doc-prose h2[id], .doc-prose h3[id]'));
+  const links = document.querySelectorAll<HTMLAnchorElement>('.page-toc a, .mobile-toc a');
+  if (headings.length && links.length) {
+    let scheduled = false;
+    let currentId = '';
+    const update = () => {
+      scheduled = false;
+      let current = headings[0];
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top > 140) break;
+        current = heading;
+      }
+      if (current.id === currentId) return;
+      currentId = current.id;
+      links.forEach((link) => {
+        if (link.hash === `#${currentId}`) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+      const sidebar = document.querySelector<HTMLElement>('.page-toc');
+      const active = sidebar?.querySelector<HTMLElement>('[aria-current]');
+      if (sidebar && active) {
+        const bounds = sidebar.getBoundingClientRect();
+        const target = active.getBoundingClientRect();
+        if (target.top < bounds.top) sidebar.scrollTop += target.top - bounds.top;
+        else if (target.bottom > bounds.bottom) sidebar.scrollTop += target.bottom - bounds.bottom;
+      }
+    };
+    const schedule = () => {
+      if (!scheduled) { scheduled = true; requestAnimationFrame(update); }
+    };
+    document.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('hashchange', schedule);
+    window.addEventListener('load', schedule);
+    schedule();
+  }
+</script>

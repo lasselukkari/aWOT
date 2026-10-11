@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [gh-pages]
   push:
-    branches: [docs/v4, gh-pages]
+    branches: [gh-pages]
   workflow_dispatch:
 
 concurrency:
@@ -19,13 +19,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/setup-node@v4
         with:
-          ruby-version: '2.6.10'
-          bundler: '2.4.22'
-          bundler-cache: true
-      - run: bundle exec jekyll build --destination .docs-build/site
-      - run: python3 scripts/check-site.py .docs-build/site
+          node-version: '22.22.3'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: python3 scripts/check-site.py dist
 
   native:
     runs-on: ubuntu-22.04
@@ -62,7 +63,7 @@ jobs:
           path: .docs-build/library
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.22.3'
       - run: npm ci --ignore-scripts --prefix scripts/fixtures/static
       - uses: arduino/setup-arduino-cli@v2
       - name: Install pinned platform and dependencies

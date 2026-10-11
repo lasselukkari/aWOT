@@ -24,7 +24,7 @@ def main():
     output = args.work_dir or Path(tempfile.mkdtemp(prefix='awot-docs-sketches-'))
     output.mkdir(parents=True, exist_ok=True)
     cases = []
-    for page in sorted((root/'en').rglob('*.md')):
+    for page in sorted((root/'src/content/docs').rglob('*.md')):
         if args.page and page.relative_to(root).as_posix() not in args.page:
             continue
         if '3x' in page.parts:
@@ -39,7 +39,7 @@ def main():
             if args.fqbn.startswith('esp32:') and ethernet:
                 continue
             variants = [(str(index), code)]
-            if page.relative_to(root).as_posix() == 'en/guide/tutorial.md':
+            if page.relative_to(root).as_posix() == 'src/content/docs/guide/tutorial.md':
                 fragments = [text for _, text in blocks(page.read_text())]
                 include = next(text for text in fragments if text.strip() == '#include "StaticFiles.h"')
                 mount = next(text for text in fragments if 'app.use(staticFiles());' in text)
