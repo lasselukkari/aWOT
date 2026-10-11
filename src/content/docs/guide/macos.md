@@ -15,7 +15,8 @@ handlers work on macOS.
 This builds a regular command-line program with Apple's C++ compiler. You do
 not need Arduino IDE, a board package, or a network shield.
 
-For a Windows PC, follow the [native Windows guide](/en/guide/windows.html).
+For another desktop platform, follow the [native Windows guide](/en/guide/windows.html)
+or [native Linux guide](/en/guide/linux.html).
 
 ## Get the source
 

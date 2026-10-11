@@ -40,6 +40,10 @@
     "to": "/en/guide/windows.html"
   },
   {
+    "from": "/guide/linux.html",
+    "to": "/en/guide/linux.html"
+  },
+  {
     "from": "/guide/middleware.html",
     "to": "/en/guide/middleware.html"
   },

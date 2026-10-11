@@ -16,6 +16,8 @@ This builds a regular Windows command-line program with MinGW GCC. You do not
 need Arduino IDE, a board package, or a network shield. The instructions below
 target 64-bit Intel/AMD Windows with the MSYS2 UCRT64 toolchain.
 
+For a Linux computer, follow the [native Linux guide](/en/guide/linux.html).
+
 ## Get the tools and source
 
 Install [MSYS2](https://www.msys2.org/) and open its **UCRT64** terminal. Install

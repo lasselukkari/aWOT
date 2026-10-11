@@ -13,9 +13,10 @@ and port before uploading. The examples on this site use `App`, the v4
 application class. Existing applications can follow the
 [migration guide](/en/guide/migrating-to-v4.html).
 
-You can also run aWOT on macOS or Windows without a board. Follow the
-[native macOS guide](/en/guide/macos.html) or
-[native Windows guide](/en/guide/windows.html) to build a server for localhost.
+You can also run aWOT on macOS, Windows, or Linux without a board. Follow the
+[native macOS guide](/en/guide/macos.html),
+[native Windows guide](/en/guide/windows.html), or
+[native Linux guide](/en/guide/linux.html) to build a server for localhost.
 
 Create a new sketch in the Arduino IDE and save it in a directory with the same
 name, such as `WebServer/WebServer.ino`. Copy the sketch below for your board,

@@ -29,6 +29,24 @@ documented version.
   the Windows carousel entry, and the fragment-preserving redirect, with no
   runtime errors or failed requests. Preview captures are under
   `/private/tmp/awot-windows-docs-preview`.
+- [x] Add the native Linux guide, navigation, starter link, desktop-guide
+  crosslinks, and `/guide/linux.html` alias. The `.extras/LinuxNative` example
+  reuses the POSIX socket adapter and Arduino API through Linux client/server
+  aliases, with a CMake build and socket/shim/HTTP checks.
+- [x] Build and run the Linux example at `be979fae` in a Debian Linux Docker
+  container with GCC 14.4 and Python 3.13: all three socket/shim/HTTP checks
+  pass. The first hosted Linux CI run remains pending until the library changes
+  are pushed.
+- [x] Compile and link the exact Linux guide program with GCC 14.4 on Linux,
+  then pass its HTTP smoke test. The documented Ninja configure/build commands
+  also pass. Astro check reports no errors or warnings; the production build
+  and site checker pass in an isolated copy of the staged changes for 45 pages,
+  3094 local links, and 22 aliases.
+- [x] Chrome checks at 1440px and 390px pass Linux navigation, code highlighting,
+  edit links, layout width, and the fragment-preserving redirect. The homepage
+  carousel order is Arduino, macOS, Windows, Linux, then boards, with all desktop
+  platforms included in the accessible heading. No runtime errors or failed
+  requests were observed.
 - [x] The current generator page and its menu entry are removed. Project setup
   lives in Hello world, and both legacy generator URLs redirect there. The
   historical 3.x generator page remains labeled as an archive.
@@ -149,12 +167,15 @@ under `/private/tmp/awot-docs-browser`, with the preview at
   does not contain aWOT 4.0.0. The library checkout's uncommitted README work is separate from this
   documentation change.
 - [ ] Ensure the published library source includes `.extras/MacOSNative`,
-  `.extras/WindowsNative`, and the bundled ArduinoCore-API before publishing the
-  native guides. Both guides use a Git checkout of development branch `4`
-  because release archives omit `.extras`; the earlier public source baseline
-  has the macOS example under `examples/MacOSNative` and no Windows adapter.
+  `.extras/WindowsNative`, `.extras/LinuxNative`, and the bundled ArduinoCore-API
+  before publishing the native guides. All three guides use a Git checkout of
+  development branch `4` because release archives omit `.extras`; the earlier
+  public source baseline has the macOS example under `examples/MacOSNative` and
+  no Windows or Linux adapter.
 - [ ] Require the library's native Windows CI job to pass at the published
   source revision; the local Wine run complements that check.
+- [ ] Require the library's native Linux CI job to pass at the published source
+  revision; the local Debian Linux Docker checks complement that check.
 - [ ] Wait for Arduino Library Manager to index 4.0.0, install that version in a
   clean environment, and compile the starter through that installation.
 - [ ] Change the repository Pages source from its legacy branch build to

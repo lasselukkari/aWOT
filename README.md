@@ -67,13 +67,27 @@ identical to that local baseline. The script supports the native tests in either
 `test/` or `.extras/test/` to accommodate their relocation in the local checkout.
 Update the CI source revision when releasing the final library package.
 
-The native [macOS guide](src/content/docs/guide/macos.md) and
-[Windows guide](src/content/docs/guide/windows.md) use a Git checkout of the
+The native [macOS guide](src/content/docs/guide/macos.md),
+[Windows guide](src/content/docs/guide/windows.md), and
+[Linux guide](src/content/docs/guide/linux.md) use a Git checkout of the
 development branch `4`; their `.extras` adapters are omitted from library
 packages. Windows example validation used library revision `dbe250ff`: MinGW
 cross-compilation and all three CTest checks passed under Wine. The library's
 Windows CI job runs the same checks on Windows once that revision is pushed.
 The documentation build does not itself establish native Windows runtime support.
+
+The Linux example at library revision `be979fae` reuses the macOS POSIX adapter
+and bundled ArduinoCore API through `LinuxClient` and `LinuxServer` aliases.
+Its CMake project builds the application and socket/shim/HTTP checks on Linux.
+Run those checks with
+`ctest --test-dir .extras/LinuxNative/build --output-on-failure` from the library
+checkout after configuring and building it as described in the guide. The
+Linux example built with GCC 14.4 and passed all three checks in a Debian Linux
+Docker container using Python 3.13 on 2026-10-11. The library's Linux native CI
+job runs the same checks; its first hosted run is pending. The exact guide
+program also compiled and linked on Linux and passed its HTTP smoke test.
+A documentation build or compilation on macOS does not establish Linux runtime
+support.
 
 Partial examples are extracted from the Markdown using `scripts/partial-*.json`,
 compiled against the actual headers, and wrapped in representative native

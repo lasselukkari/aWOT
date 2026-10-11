@@ -15,6 +15,7 @@ export const docsNavigation = [
     { text: 'Configuration', href: '/en/guide/configuration.html' },
     { text: 'macOS', href: '/en/guide/macos.html' },
     { text: 'Windows', href: '/en/guide/windows.html' },
+    { text: 'Linux', href: '/en/guide/linux.html' },
     { text: 'Full stack tutorial', href: '/en/guide/tutorial.html' },
     { text: 'Migrating to v4', href: '/en/guide/migrating-to-v4.html' },
   ] },
