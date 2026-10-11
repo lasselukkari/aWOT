@@ -42,6 +42,68 @@ header `string.h`; no separate download or renaming is needed. Keep the example
 inside the checkout, since the Makefile also compiles the library from
 `../../src`.
 
+## Hello world example
+
+`HelloWorld.cpp` registers a route and handles each connection in its own thread:
+
+```cpp
+#include <aWOT.h>
+
+#include <atomic>
+#include <thread>
+
+#include "MacOSSocket.h"
+
+MacOSServer server(8080);
+App app;
+std::atomic<int> activeConnections(0);
+
+void indexCmd(Request&, Response& res) {
+  res.set("Content-Type", "text/html");
+  res.print("<html>\n");
+  res.print("<head>\n");
+  res.print("<title>Hello World!</title>\n");
+  res.print("</head>\n");
+  res.print("<body>\n");
+  res.print("<h1>Greetings middle earth!</h1>\n");
+  res.print("</body>\n");
+  res.print("</html>");
+}
+
+void handleClient(MacOSClient client) {
+  activeConnections++;
+  app.process(&client);
+  client.stop();
+  activeConnections--;
+}
+
+bool startServer() {
+  Serial.begin(115200);
+
+  app.get("/", &indexCmd);
+  if (!server.begin()) return false;
+
+  Serial.println("Server listening on port 8080 (multithreaded)");
+  Serial.flush();
+  return true;
+}
+
+void loop() {
+  MacOSClient client = server.available(-1);
+  if (client.connected()) {
+    std::thread(handleClient, std::move(client)).detach();
+  }
+}
+
+int main() {
+  if (!startServer()) return EXIT_FAILURE;
+  while (true) {
+    loop();
+  }
+  return 0;
+}
+```
+
 ## Build and run
 
 From `.extras/MacOSNative`, run:
