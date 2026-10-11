@@ -36,6 +36,10 @@
     "to": "/en/guide/macos.html"
   },
   {
+    "from": "/guide/windows.html",
+    "to": "/en/guide/windows.html"
+  },
+  {
     "from": "/guide/middleware.html",
     "to": "/en/guide/middleware.html"
   },

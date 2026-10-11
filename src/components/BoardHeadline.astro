@@ -1,11 +1,11 @@
 ---
-const boards = ['Arduino', 'Uno', 'ESP32', 'Teensy', 'ESP8266', 'Mega', 'Leonardo', 'Due', 'macOS'];
+const boards = ['Arduino', 'Uno', 'ESP32', 'Teensy', 'ESP8266', 'Mega', 'Leonardo', 'Due', 'macOS', 'Windows'];
 const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next' : index === boards.length - 1 ? 'previous' : 'hidden';
 ---
 
 <awot-board-headline>
   <h1 class="font-bold tracking-tighter font-heading text-heading">
-    <span class="sr-only">Web server for Arduino-compatible boards and macOS.</span>
+    <span class="sr-only">Web server for Arduino-compatible boards, macOS, and Windows.</span>
     <span aria-hidden="true">
       <span class="block">Web server for</span>
       <span class="board-reel">

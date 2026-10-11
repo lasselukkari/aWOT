@@ -15,6 +15,8 @@ handlers work on macOS.
 This builds a regular command-line program with Apple's C++ compiler. You do
 not need Arduino IDE, a board package, or a network shield.
 
+For a Windows PC, follow the [native Windows guide](/en/guide/windows.html).
+
 ## Get the source
 
 Install Xcode Command Line Tools if they are not already installed:
@@ -23,15 +25,15 @@ Install Xcode Command Line Tools if they are not already installed:
 xcode-select --install
 ```
 
-They provide `clang++`, `make`, and Git. Clone the aWOT source and enter the
-native example directory:
+They provide `clang++`, `make`, and Git. Clone the aWOT development branch `4`
+and enter the native example directory:
 
 ```bash
-git clone https://github.com/lasselukkari/aWOT.git
+git clone --branch 4 https://github.com/lasselukkari/aWOT.git
 cd aWOT/.extras/MacOSNative
 ```
 
-If you already have an aWOT checkout, open its
+If you already have an aWOT checkout, use branch `4` and open its
 `.extras/MacOSNative` directory instead. Use a Git checkout for this example:
 `.extras` is omitted from library release archives and Arduino Library Manager
 packages.
@@ -160,7 +162,7 @@ when sharing code with a board.
 
 ## How the native server works
 
-The [native example source](https://github.com/lasselukkari/aWOT/tree/master/.extras/MacOSNative)
+The [native example source](https://github.com/lasselukkari/aWOT/tree/4/.extras/MacOSNative)
 contains these pieces:
 
 | File or directory | Purpose |

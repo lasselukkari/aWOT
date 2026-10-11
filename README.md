@@ -67,6 +67,14 @@ identical to that local baseline. The script supports the native tests in either
 `test/` or `.extras/test/` to accommodate their relocation in the local checkout.
 Update the CI source revision when releasing the final library package.
 
+The native [macOS guide](src/content/docs/guide/macos.md) and
+[Windows guide](src/content/docs/guide/windows.md) use a Git checkout of the
+development branch `4`; their `.extras` adapters are omitted from library
+packages. Windows example validation used library revision `dbe250ff`: MinGW
+cross-compilation and all three CTest checks passed under Wine. The library's
+Windows CI job runs the same checks on Windows once that revision is pushed.
+The documentation build does not itself establish native Windows runtime support.
+
 Partial examples are extracted from the Markdown using `scripts/partial-*.json`,
 compiled against the actual headers, and wrapped in representative native
 contexts. The same run executes aWOT's behavior tests and checks the documented
