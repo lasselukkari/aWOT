@@ -36,15 +36,13 @@ void handleClient(LinuxClient client) {
 
 bool parsePort(int argc, char* argv[], uint16_t& port) {
   if (argc == 1) return true;
-  if (argc != 3 || std::strcmp(argv[1], "--port") != 0 || !argv[2][0]) {
+  if (argc != 3 || std::strcmp(argv[1], "--port") != 0 ||
+      argv[2][0] < '0' || argv[2][0] > '9') {
     return false;
   }
-  unsigned value = 0;
-  for (const char* digit = argv[2]; *digit; ++digit) {
-    if (*digit < '0' || *digit > '9') return false;
-    value = value * 10 + static_cast<unsigned>(*digit - '0');
-    if (value > 65535) return false;
-  }
+  char* end = nullptr;
+  const unsigned long value = std::strtoul(argv[2], &end, 10);
+  if (*end != '\0' || value > 65535) return false;
   port = static_cast<uint16_t>(value);
   return true;
 }

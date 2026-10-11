@@ -164,6 +164,32 @@ def check_bind_failure(command):
             process.stdout.close()
 
 
+def check_invalid_arguments(command):
+    invalid = (
+        ["--port", "65536"],
+        ["--port", "184467440737095516160"],
+        ["--port", "12x"],
+        ["--port", "-18446744073709551615"],
+        ["--port", " 0"],
+        ["--port", ""],
+    )
+    for arguments in invalid:
+        process = spawn(command + arguments)
+        try:
+            output, _ = process.communicate(timeout=15)
+            check(process.returncode != 0, f"HelloWorld accepted invalid arguments: {arguments!r}")
+            check("Usage:" in output, f"No usage message for invalid arguments: {arguments!r}")
+            check(
+                LISTENING.search(output) is None,
+                f"HelloWorld reported readiness for invalid arguments: {arguments!r}",
+            )
+        except subprocess.TimeoutExpired as error:
+            raise AssertionError(f"HelloWorld did not reject invalid arguments: {arguments!r}") from error
+        finally:
+            stop(process)
+            process.stdout.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("executable", type=Path)
@@ -173,6 +199,7 @@ def main():
     check(executable.is_file(), f"Executable does not exist: {executable}")
     command = ([args.runner] if args.runner else []) + [str(executable)]
 
+    check_invalid_arguments(command)
     # This verifies that startup failure reaches main()'s exit status, before
     # launching the working server on its own fresh ephemeral port.
     check_bind_failure(command)
@@ -223,7 +250,7 @@ def main():
         process.stdout.close()
     if port is not None:
         check_port_released(port)
-    print("Native HTTP smoke test passed (200, HTML body, 404, concurrent requests, bind failure)")
+    print("Native HTTP smoke test passed (CLI validation, 200, HTML body, 404, concurrent requests, bind failure)")
 
 
 if __name__ == "__main__":
