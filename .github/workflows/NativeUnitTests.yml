@@ -39,3 +39,27 @@ jobs:
       - name: Native macOS example
         if: runner.os == 'macOS'
         run: make -C .extras/MacOSNative test
+  windows-native:
+    name: Windows native example
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-python
+      - name: Configure
+        run: cmake -S .extras/WindowsNative -B .extras/WindowsNative/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build .extras/WindowsNative/build --parallel 4
+      - name: Test on Windows
+        run: ctest --test-dir .extras/WindowsNative/build --output-on-failure

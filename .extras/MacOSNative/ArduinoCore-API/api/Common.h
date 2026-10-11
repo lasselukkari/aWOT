@@ -100,10 +100,11 @@ typedef uint16_t  word;
 void init(void);
 void initVariant(void);
 
+// Hosted programs supply these entry points, including main's argc/argv signature.
 #ifndef HOST
 int atexit(void (*func)()) __attribute__((weak));
-#endif
 int main() __attribute__((weak));
+#endif
 
 #ifdef EXTENDED_PIN_MODE
 // Platforms who want to declare more than 256 pins need to define EXTENDED_PIN_MODE globally

@@ -11,3 +11,4 @@
 /.extras/MacOSNative/HelloWorld
 /.extras/MacOSNative/SocketTests
 /.extras/MacOSNative/ShimTests
+/.extras/WindowsNative/build*/

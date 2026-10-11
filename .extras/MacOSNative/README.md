@@ -89,12 +89,9 @@ client read APIs, including after the peer disconnects.
 
 ## Windows Portability
 
-The socket implementation uses POSIX/BSD socket APIs. For Windows:
-
-- Replace `<sys/socket.h>`, `<netinet/in.h>`, etc. with `<winsock2.h>`
-- Replace `close()` with `closesocket()`
-- Add `WSAStartup()`/`WSACleanup()` initialization
-- Handle `EAGAIN`/`EWOULDBLOCK` as `WSAEWOULDBLOCK`
+The [Windows native example](../WindowsNative/README.md) provides a Winsock
+adapter, a CMake build with MinGW, and socket/shim/HTTP tests. The Unit Tests
+workflow runs those checks on a Windows runner.
 
 ## License
 

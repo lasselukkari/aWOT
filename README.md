@@ -224,6 +224,15 @@ excluded from library releases. The [macOS native example](.extras/MacOSNative/R
 runs the server without Arduino hardware; build and test it with
 `make -C .extras/MacOSNative test`.
 
+The [Windows native example](.extras/WindowsNative/README.md) uses Winsock and
+MinGW (MSYS2 UCRT64). Build and test it from the repository root:
+
+```sh
+cmake -S .extras/WindowsNative -B .extras/WindowsNative/build -G Ninja
+cmake --build .extras/WindowsNative/build --parallel 4
+ctest --test-dir .extras/WindowsNative/build --output-on-failure
+```
+
 The native C++11 tests use the Arduino stubs in `.extras/test/epoxy`:
 
 ```sh
@@ -259,9 +268,10 @@ arduino-cli compile --fqbn arduino:avr:uno --library . examples/Ethernet
 arduino-cli compile --fqbn arduino:avr:uno --library . examples/SerialBridge
 ```
 
-CI runs native tests on Linux and macOS, sanitizer and small-buffer configurations
-on Linux, and example builds for Uno, Leonardo, Mega, Due, and ESP32. Native tests
-do not measure on-device stack usage or network timing.
+CI runs native tests on Linux and macOS, the Windows native example on Windows,
+sanitizer and small-buffer configurations on Linux, and example builds for Uno,
+Leonardo, Mega, Due, and ESP32. Native tests do not measure on-device stack usage
+or network timing.
 
 ## Library releases
 
