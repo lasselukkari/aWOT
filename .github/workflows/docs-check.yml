@@ -1,0 +1,75 @@
+name: Documentation checks
+
+on:
+  pull_request:
+    branches: [gh-pages]
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.3'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: python3 scripts/check-site.py dist
+
+  native:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [native, sanitized, small]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: lasselukkari/aWOT
+          # Public v4 source revision; C++ sources/headers match local 4117ee51.
+          ref: bb13af5963ad950015312fe73107766056ccd936
+          path: .docs-build/library
+      - run: python3 scripts/check-snippets.py --library .docs-build/library --configuration '${{ matrix.configuration }}' --work-dir .docs-build/native
+
+  sketches:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fqbn: arduino:avr:uno
+            platform: arduino:avr@1.8.8
+          - fqbn: esp32:esp32:nodemcu-32s
+            platform: esp32:esp32@3.3.10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: lasselukkari/aWOT
+          ref: bb13af5963ad950015312fe73107766056ccd936
+          path: .docs-build/library
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.3'
+      - run: npm ci --ignore-scripts --prefix scripts/fixtures/static
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install pinned platform and dependencies
+        run: |
+          arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install '${{ matrix.platform }}'
+          arduino-cli lib install Ethernet@2.0.2 ArduinoJson@7.4.3
+      - run: python3 scripts/check-sketches.py --library .docs-build/library --fqbn '${{ matrix.fqbn }}' --work-dir .docs-build/sketches

@@ -1,0 +1,8 @@
+---
+import Layout from '~/layouts/Layout.astro';
+---
+<Layout title="Page moved" canonical="/" noindex>
+  <meta slot="head" http-equiv="refresh" content="0; url=/" />
+  <main id="main-content" class="mx-auto max-w-3xl px-6 py-24" tabindex="-1"><h1 class="text-3xl font-bold mb-4">This page has moved</h1><p>Continue to the <a class="text-link underline" href="/">aWOT homepage</a>.</p></main>
+  <script is:inline>window.location.replace('/' + window.location.search + window.location.hash);</script>
+</Layout>

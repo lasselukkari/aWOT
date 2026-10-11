@@ -1,0 +1,50 @@
+---
+// Inter is bundled locally through @fontsource-variable/inter in Layout.astro.
+// Keep typography and the light/dark palette centralized here.
+---
+
+<style is:inline>
+  :root {
+    --aw-font-sans: "Inter Variable", sans-serif;
+    --aw-font-serif: "Inter Variable", sans-serif;
+    --aw-font-heading: "Inter Variable", sans-serif;
+
+    --aw-color-primary: rgb(1 97 239);
+    --aw-color-link: rgb(1 84 207);
+    --aw-color-secondary: rgb(1 84 207);
+    --aw-color-accent: rgb(109 40 217);
+
+    --aw-color-text-heading: rgb(0 0 0);
+    --aw-color-text-default: rgb(16 16 16);
+    --aw-color-text-muted: rgb(16 16 16 / 66%);
+    --aw-color-bg-page: rgb(255 255 255);
+
+    --aw-color-bg-page-dark: rgb(8 9 10);
+
+    ::selection {
+      background-color: lavender;
+    }
+  }
+
+  .dark {
+    color-scheme: dark;
+    --aw-color-link: rgb(147 197 253);
+    --aw-font-sans: "Inter Variable", sans-serif;
+    --aw-font-serif: "Inter Variable", sans-serif;
+    --aw-font-heading: "Inter Variable", sans-serif;
+
+    --aw-color-primary: rgb(1 97 239);
+    --aw-color-secondary: rgb(1 84 207);
+    --aw-color-accent: rgb(196 181 253);
+
+    --aw-color-text-heading: rgb(247, 248, 248);
+    --aw-color-text-default: rgb(229 236 246);
+    --aw-color-text-muted: rgb(229 236 246 / 66%);
+    --aw-color-bg-page: rgb(8 9 10);
+
+    ::selection {
+      background-color: black;
+      color: snow;
+    }
+  }
+</style>

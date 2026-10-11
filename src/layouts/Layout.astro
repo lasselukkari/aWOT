@@ -1,0 +1,44 @@
+---
+import '@fontsource-variable/inter';
+import '~/assets/styles/tailwind.css';
+import '~/assets/styles/docs.css';
+import CustomStyles from '~/components/CustomStyles.astro';
+import ApplyColorMode from '~/components/common/ApplyColorMode.astro';
+import Intersect from '~/components/common/Intersect.astro';
+import Header from '~/components/widgets/Header.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import { headerData, footerData } from '~/navigation';
+
+interface Props { title: string; description?: string; canonical?: string; noindex?: boolean; }
+const { title, description = 'A portable HTTP server library for Arduino. Build web interfaces and HTTP APIs with aWOT 4.', canonical = Astro.url.pathname, noindex = false } = Astro.props;
+const canonicalUrl = new URL(canonical, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title === 'aWOT — Arduino web server library' ? title : `${title} — aWOT`}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0161ef" />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="aWOT" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <CustomStyles />
+    <ApplyColorMode />
+    <slot name="head" />
+  </head>
+  <body class="antialiased text-default bg-page tracking-tight min-h-screen flex flex-col">
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <Header {...headerData} isSticky showToggleTheme position="right" />
+    <slot />
+    <Footer {...footerData} />
+    <Intersect />
+  </body>
+</html>

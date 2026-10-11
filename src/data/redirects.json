@@ -1,0 +1,90 @@
+[
+  {
+    "from": "/3x/api.html",
+    "to": "/en/3x/api.html"
+  },
+  {
+    "from": "/4x/api.html",
+    "to": "/en/4x/api.html"
+  },
+  {
+    "from": "/api.html",
+    "to": "/en/api.html"
+  },
+  {
+    "from": "/en/index.html",
+    "to": "/"
+  },
+  {
+    "from": "/en/starter/generator.html",
+    "to": "/en/starter/hello-world.html"
+  },
+  {
+    "from": "/guide/configuration.html",
+    "to": "/en/guide/configuration.html"
+  },
+  {
+    "from": "/guide/connections.html",
+    "to": "/en/guide/connections.html"
+  },
+  {
+    "from": "/guide/json.html",
+    "to": "/en/guide/json.html"
+  },
+  {
+    "from": "/guide/macos.html",
+    "to": "/en/guide/macos.html"
+  },
+  {
+    "from": "/guide/windows.html",
+    "to": "/en/guide/windows.html"
+  },
+  {
+    "from": "/guide/linux.html",
+    "to": "/en/guide/linux.html"
+  },
+  {
+    "from": "/guide/middleware.html",
+    "to": "/en/guide/middleware.html"
+  },
+  {
+    "from": "/guide/migrating-to-v4.html",
+    "to": "/en/guide/migrating-to-v4.html"
+  },
+  {
+    "from": "/guide/request-data.html",
+    "to": "/en/guide/request-data.html"
+  },
+  {
+    "from": "/guide/routing.html",
+    "to": "/en/guide/routing.html"
+  },
+  {
+    "from": "/guide/server-sent-events.html",
+    "to": "/en/guide/server-sent-events.html"
+  },
+  {
+    "from": "/guide/tutorial.html",
+    "to": "/en/guide/tutorial.html"
+  },
+  {
+    "from": "/guide/websockets.html",
+    "to": "/en/guide/websockets.html"
+  },
+  {
+    "from": "/starter/basic-routing.html",
+    "to": "/en/starter/basic-routing.html"
+  },
+  {
+    "from": "/starter/generator.html",
+    "to": "/en/starter/hello-world.html"
+  },
+  {
+    "from": "/starter/hello-world.html",
+    "to": "/en/starter/hello-world.html"
+  },
+  {
+    "from": "/starter/static-files.html",
+    "to": "/en/starter/static-files.html"
+  }
+]

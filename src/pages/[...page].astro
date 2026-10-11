@@ -1,0 +1,27 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import DocsLayout from '~/layouts/DocsLayout.astro';
+import Layout from '~/layouts/Layout.astro';
+import { tableOfContents } from '~/utils/docs';
+import redirects from '~/data/redirects.json';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return [
+    ...docs.flatMap((entry) => [entry.data.route, entry.data.routeAlias].filter(Boolean).map((route) => ({
+      params: { page: route!.replace(/^\//, '').replace(/\.html$/, '') }, props: { entry },
+    }))),
+    ...redirects.filter((redirect) => redirect.from !== '/en/index.html').map((redirect) => ({ params: { page: redirect.from.replace(/^\//, '').replace(/\.html$/, '') }, props: { redirect } })),
+  ];
+}
+interface Props { entry?: CollectionEntry<'docs'>; redirect?: { from: string; to: string }; }
+const { entry, redirect } = Astro.props;
+const rendered = entry ? await render(entry) : undefined;
+const Content = rendered?.Content;
+const toc = entry && rendered ? tableOfContents(entry.body || '', rendered.headings) : [];
+---
+{entry && Content ? <DocsLayout {...entry.data} source={entry.id} toc={toc}><Content /></DocsLayout> : redirect && <Layout title="Page moved" canonical={redirect.to} noindex>
+  <meta slot="head" http-equiv="refresh" content={`0; url=${redirect.to}`} />
+  <main id="main-content" class="mx-auto max-w-3xl px-6 py-24" tabindex="-1"><h1 class="text-3xl font-bold mb-4">This page has moved</h1><p>Continue to <a class="text-link underline" href={redirect.to}>the documentation</a>.</p></main>
+  <script is:inline define:vars={{ destination: redirect.to }}>window.location.replace(destination + window.location.search + window.location.hash);</script>
+</Layout>}

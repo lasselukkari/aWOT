@@ -1,0 +1,38 @@
+---
+import { UI } from 'astrowind:config';
+---
+
+<script is:inline define:vars={{ defaultTheme: UI.theme || 'system' }}>
+  // Set the class before first paint. Storage is optional: browser privacy
+  // settings must not prevent the system theme or the toggle from working.
+  (() => {
+    const system = window.matchMedia('(prefers-color-scheme: dark)');
+    const forced = defaultTheme.endsWith(':only');
+    let preference = null;
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') preference = saved;
+    } catch {
+      // Fall back to the configured theme when storage is unavailable.
+    }
+
+    function applyTheme() {
+      const theme = forced
+        ? defaultTheme.replace(':only', '')
+        : preference || (defaultTheme === 'system' ? (system.matches ? 'dark' : 'light') : defaultTheme);
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      document.documentElement.style.colorScheme = theme;
+    }
+
+    applyTheme();
+    system.addEventListener('change', () => {
+      if (preference || forced) return;
+      applyTheme();
+      document.dispatchEvent(new CustomEvent('aw:theme-change'));
+    });
+    document.addEventListener('aw:theme-change', (event) => {
+      const theme = event.detail && event.detail.theme;
+      if (theme === 'light' || theme === 'dark') preference = theme;
+    });
+  })();
+</script>
