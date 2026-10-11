@@ -142,8 +142,6 @@ void writeLed() {
 }
 
 void readLed(Request& req, Response& res) {
-  res.set("Content-Type", "text/plain; charset=utf-8");
-  res.set("Cache-Control", "no-store");
   res.print(ledOn ? '1' : '0');
 }
 
