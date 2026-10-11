@@ -53,14 +53,11 @@ directory. No separate Arduino download or installation is required.
   HelloWorld.cpp - aWOT example using native Linux POSIX sockets
 
   Run ./HelloWorld, then visit http://localhost:8080/.
-  Use --port PORT to select a different port, or --port 0 for an ephemeral port.
 */
 
 #include <aWOT.h>
 
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <thread>
 #include <utility>
 
@@ -85,33 +82,12 @@ void handleClient(LinuxClient client) {
   client.stop();
 }
 
-bool parsePort(int argc, char* argv[], uint16_t& port) {
-  if (argc == 1) return true;
-  if (argc != 3 || std::strcmp(argv[1], "--port") != 0 ||
-      argv[2][0] < '0' || argv[2][0] > '9') {
-    return false;
-  }
-  char* end = nullptr;
-  const unsigned long value = std::strtoul(argv[2], &end, 10);
-  if (*end != '\0' || value > 65535) return false;
-  port = static_cast<uint16_t>(value);
-  return true;
-}
-
-int main(int argc, char* argv[]) {
-  uint16_t port = 8080;
-  if (!parsePort(argc, argv, port)) {
-    std::fprintf(stderr, "Usage: HelloWorld [--port 0..65535]\n");
-    return EXIT_FAILURE;
-  }
-
+int main() {
   Serial.begin(115200);
   app.get("/", &indexCmd);
-  LinuxServer server(port);
+  LinuxServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
-  Serial.print("Server listening on port ");
-  Serial.print(server.port());
-  Serial.println(" (multithreaded)");
+  Serial.println("Server listening on port 8080 (multithreaded)");
   Serial.flush();
 
   for (;;) {
@@ -154,16 +130,6 @@ curl -i http://127.0.0.1:8080/missing
 The first request returns `200 OK`, a `Content-Type` of `text/html`, and the
 HTML page. Only `GET /` is registered, so `/missing` returns `404 Not Found`.
 Press **Control-C** in the server terminal to stop it.
-
-To use another port, pass `--port`. Port `0` asks Linux to choose a free port;
-the startup message reports the actual number:
-
-```bash
-./.extras/LinuxNative/build/HelloWorld --port 9090
-./.extras/LinuxNative/build/HelloWorld --port 0
-```
-
-Run one command at a time and use the reported port in your browser.
 
 ## Use your own routes
 
@@ -225,13 +191,14 @@ The suite runs three tests:
 - **linux-sockets:** checks socket ownership, buffered and nonblocking reads,
   disconnects, reconnection, timeouts, writes after peer close, listener
   conflicts, and aWOT request processing with POSIX and loopback TCP sockets.
-- **linux-http:** starts the built executable on a free port and checks status
+- **linux-http:** starts the built executable on port 8080 and checks status
   codes, content type, the Hello World body, missing routes, and concurrent
   requests. It also checks startup failure on an occupied port and terminates
   the test server.
 
-The tests choose their own ports and have bounded runtimes. A successful run
-reports `100% tests passed, 0 tests failed out of 3`. Configure with
+Stop the example server before running the tests; port **8080 must be free**.
+Each test has a bounded runtime. A successful run reports
+`100% tests passed, 0 tests failed out of 3`. Configure with
 `-DBUILD_TESTING=OFF` to build only the application without Python or the tests.
 
 The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/master/.github/workflows/NativeUnitTests.yml)
@@ -254,7 +221,7 @@ runtime support.
 - **Python is missing during configuration:** install Python 3 or configure
   with `-DBUILD_TESTING=OFF` for an application-only build.
 - **The server exits at startup:** check whether another process uses the
-  requested port. Try `--port 9090` or `--port 0`.
+  fixed port 8080. Stop that process before starting the example.
 - **You still see the old response:** stop the old process before rebuilding
   and restarting. Recompiling does not replace an already running server.
 

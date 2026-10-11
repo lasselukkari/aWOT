@@ -212,10 +212,7 @@ make clean
 - **The example directory is missing:** use a Git checkout containing
   `.extras/MacOSNative`; release archives omit development files.
 - **The server exits at startup:** check whether another process is already
-  listening on port 8080. For a different port, change
-  `MacOSServer server(8080)` and the startup message in `HelloWorld.cpp`, rebuild,
-  and use the new port in your browser. The `make test` smoke test also has 8080
-  in its readiness check and curl command; update those if you change the port.
+  listening on port 8080. Stop that process before starting the example.
 - **You still see the old response:** stop the old process before rebuilding
   and restarting. Recompiling does not replace an already running server.
 

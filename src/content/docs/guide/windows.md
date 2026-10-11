@@ -59,14 +59,11 @@ download is required.
   HelloWorld.cpp - aWOT example using native Windows Winsock sockets
 
   Run HelloWorld.exe, then visit http://localhost:8080/.
-  Use --port PORT to select a different port, or --port 0 for an ephemeral port.
 */
 
 #include <aWOT.h>
 
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <thread>
 #include <utility>
 
@@ -91,33 +88,12 @@ void handleClient(WindowsClient client) {
   client.stop();
 }
 
-bool parsePort(int argc, char* argv[], uint16_t& port) {
-  if (argc == 1) return true;
-  if (argc != 3 || std::strcmp(argv[1], "--port") != 0 ||
-      argv[2][0] < '0' || argv[2][0] > '9') {
-    return false;
-  }
-  char* end = nullptr;
-  const unsigned long value = std::strtoul(argv[2], &end, 10);
-  if (*end != '\0' || value > 65535) return false;
-  port = static_cast<uint16_t>(value);
-  return true;
-}
-
-int main(int argc, char* argv[]) {
-  uint16_t port = 8080;
-  if (!parsePort(argc, argv, port)) {
-    std::fprintf(stderr, "Usage: HelloWorld.exe [--port 0..65535]\n");
-    return EXIT_FAILURE;
-  }
-
+int main() {
   Serial.begin(115200);
   app.get("/", &indexCmd);
-  WindowsServer server(port);
+  WindowsServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
-  Serial.print("Server listening on port ");
-  Serial.print(server.port());
-  Serial.println(" (multithreaded)");
+  Serial.println("Server listening on port 8080 (multithreaded)");
   Serial.flush();
 
   for (;;) {
@@ -166,16 +142,6 @@ The executable can also run from PowerShell or Explorer after building. CMake
 links the GCC, C++, and thread runtimes statically, so the UCRT64 terminal is
 only needed for the build commands.
 
-To choose a different port, pass `--port`. Port `0` asks Windows to choose a
-free port; the startup message reports the actual number:
-
-```bash
-./.extras/WindowsNative/build/HelloWorld.exe --port 9090
-./.extras/WindowsNative/build/HelloWorld.exe --port 0
-```
-
-Run one of these commands at a time, and use the reported port in your browser.
-
 ## Use your own routes
 
 Edit `.extras/WindowsNative/HelloWorld.cpp` to build your application. Register
@@ -197,7 +163,7 @@ contains these pieces:
 
 | File or directory | Purpose |
 | --- | --- |
-| `HelloWorld.cpp` | Registers routes, selects the port, starts the listener, and moves each connection into a worker thread. |
+| `HelloWorld.cpp` | Registers routes, starts the listener on port 8080, and moves each connection into a worker thread. |
 | `WindowsSocket.h` and `WindowsSocket.cpp` | Implement `WindowsServer` and `WindowsClient` with Winsock. |
 | `Arduino.h` and `Arduino.cpp` | Supply the compatibility layer for timing, formatting, and terminal output. |
 | `../MacOSNative/ArduinoCore-API/` | Supplies Arduino types such as `Client`, `Stream`, `Print`, and `String`. |
@@ -243,14 +209,15 @@ The suite runs three tests:
 - **windows-sockets:** uses real loopback TCP connections to check ownership,
   Winsock lifetime, buffered and nonblocking reads, disconnects, reconnection,
   timeouts, write backpressure, listener conflicts, and aWOT request processing.
-- **windows-http:** starts the built executable on a free port and checks status
+- **windows-http:** starts the built executable on port 8080 and checks status
   codes, content type, the Hello World body, missing routes, and concurrent
   requests. It also checks that startup fails on an occupied port, then
   terminates the test server.
 
-The tests choose their own ports and have bounded runtimes. A successful run
-reports `100% tests passed, 0 tests failed out of 3`. Python is only needed for
-the HTTP test; to build the application without tests, add
+Stop the example server before running the tests; port **8080 must be free**.
+Each test has a bounded runtime. A successful run reports
+`100% tests passed, 0 tests failed out of 3`. Python is only needed for the
+HTTP test; to build the application without tests, add
 `-DBUILD_TESTING=OFF` to the CMake configuration command.
 
 The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/master/.github/workflows/NativeUnitTests.yml)
@@ -277,10 +244,9 @@ the port verified on Windows.
   `mingw-w64-ucrt-x86_64-python`, or configure with `-DBUILD_TESTING=OFF` for an
   application-only build.
 - **The server exits at startup:** read the reported Winsock error and check
-  whether another process uses the requested port. Try `--port 9090` or
-  `--port 0`. Windows exclusive binding can keep a recently used port reserved
-  while closed TCP connections finish; a fresh port also helps with rapid
-  restarts.
+  whether another process uses port 8080. Stop that process before starting
+  the example. Windows exclusive binding can keep a recently used port
+  reserved while closed TCP connections finish; wait before restarting.
 - **You still see the old response:** stop the old process before rebuilding
   and restarting. Recompiling does not replace an already running server.
 
