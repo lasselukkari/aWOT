@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Exercise the built Windows executable over HTTP using Python's stdlib.
+"""Exercise a built native HelloWorld executable over HTTP using Python's stdlib.
 
 Native Windows: python tests/http_smoke.py build/HelloWorld.exe
 Cross-built exe: python tests/http_smoke.py build/HelloWorld.exe --runner wine
+Native Linux: python ../WindowsNative/tests/http_smoke.py build/HelloWorld
 """
 
 import argparse
@@ -222,7 +223,7 @@ def main():
         process.stdout.close()
     if port is not None:
         check_port_released(port)
-    print("Windows HTTP smoke test passed (200, HTML body, 404, concurrent requests, bind failure)")
+    print("Native HTTP smoke test passed (200, HTML body, 404, concurrent requests, bind failure)")
 
 
 if __name__ == "__main__":

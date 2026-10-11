@@ -21,6 +21,9 @@ been adapted for MSVC. See [MSYS2's CMake instructions](https://www.msys2.org/do
 The build reuses the ArduinoCore-API sources bundled in `../MacOSNative`; no
 separate Arduino installation or download is needed.
 
+For the other desktop platforms, see the [macOS native example](../MacOSNative/README.md)
+or [Linux native example](../LinuxNative/README.md).
+
 ## Build and run
 
 From the repository root in the UCRT64 terminal:

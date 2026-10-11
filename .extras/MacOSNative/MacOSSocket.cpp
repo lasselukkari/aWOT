@@ -119,9 +119,17 @@ char* dtostrf(double value, signed char width, unsigned char precision,
 namespace {
 
 bool suppressSigpipe(int socket) {
+#ifdef SO_NOSIGPIPE
   int enabled = 1;
   return setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &enabled,
                     sizeof(enabled)) == 0;
+#elif defined(MSG_NOSIGNAL)
+  // Linux suppresses SIGPIPE on each send instead of through a socket option.
+  (void)socket;
+  return true;
+#else
+#error "This POSIX platform needs a way to suppress socket SIGPIPE"
+#endif
 }
 
 bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
@@ -176,7 +184,11 @@ size_t MacOSClient::write(const uint8_t* buf, size_t size) {
 
   ssize_t result;
   do {
+#ifdef MSG_NOSIGNAL
+    result = send(_socket, buf, size, MSG_NOSIGNAL);
+#else
     result = send(_socket, buf, size, 0);
+#endif
   } while (result < 0 && errno == EINTR);
   if (result < 0) {
     if (!wouldBlock()) _connected = false;

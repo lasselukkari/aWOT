@@ -87,11 +87,16 @@ Each native client uses a 1 KiB receive buffer to avoid a socket call for every
 parsed byte. Buffered data stays available through both the request and raw
 client read APIs, including after the peer disconnects.
 
-## Windows Portability
+## Windows and Linux Portability
 
 The [Windows native example](../WindowsNative/README.md) provides a Winsock
 adapter, a CMake build with MinGW, and socket/shim/HTTP tests. The Unit Tests
 workflow runs those checks on a Windows runner.
+
+The [Linux native example](../LinuxNative/README.md) reuses this POSIX adapter
+and Arduino compatibility layer, with Linux-specific protection against
+`SIGPIPE`. It provides CMake builds and socket, shim, and HTTP tests that also
+run on an Ubuntu CI runner.
 
 ## License
 

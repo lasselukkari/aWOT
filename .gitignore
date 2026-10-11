@@ -12,3 +12,4 @@
 /.extras/MacOSNative/SocketTests
 /.extras/MacOSNative/ShimTests
 /.extras/WindowsNative/build*/
+/.extras/LinuxNative/build*/

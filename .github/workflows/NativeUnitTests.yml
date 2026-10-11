@@ -39,6 +39,18 @@ jobs:
       - name: Native macOS example
         if: runner.os == 'macOS'
         run: make -C .extras/MacOSNative test
+  linux-native:
+    name: Linux native example
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S .extras/LinuxNative -B .extras/LinuxNative/build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build .extras/LinuxNative/build --parallel 4
+      - name: Test on Linux
+        run: ctest --test-dir .extras/LinuxNative/build --output-on-failure
   windows-native:
     name: Windows native example
     runs-on: windows-latest

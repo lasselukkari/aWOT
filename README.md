@@ -3,9 +3,9 @@
 A portable HTTP server library for Arduino, with an API inspired by Express.js.
 
 aWOT is built to work across Arduino platforms, from an Uno to an ESP32, and
-on macOS and Windows with Arduino-compatible socket adapters. It uses the standard
-Arduino `Client` and `Stream` interfaces, so your route handlers work over
-Wi-Fi, Ethernet, or even a serial port.
+on macOS, Windows, and Linux with Arduino-compatible socket adapters. It uses
+the standard Arduino `Client` and `Stream` interfaces, so your route handlers
+work over Wi-Fi, Ethernet, or even a serial port.
 
 Requests are Arduino `Stream` objects and responses are `Print` objects. That
 means you can pass a request directly to ArduinoJson or an OTA updater, and
@@ -69,11 +69,13 @@ Arduino's `Client` or `Stream` interfaces can be passed to `app.process()`.
 | Serial, with a peer sending HTTP | `app.process(&Serial)` |
 | Native macOS sockets | `app.process(&client)` using the supplied adapter |
 | Native Windows sockets | `app.process(&client)` using the Winsock adapter |
+| Native Linux sockets | `app.process(&client)` using the POSIX adapter |
 
 See the [Uno Ethernet example](examples/Ethernet/Ethernet.ino),
 [ESP32/ESP8266 Wi-Fi example](examples/WiFi/WiFi.ino),
-[native macOS example](.extras/MacOSNative/README.md), and
-[native Windows example](.extras/WindowsNative/README.md). The native adapters
+[native macOS example](.extras/MacOSNative/README.md),
+[native Windows example](.extras/WindowsNative/README.md), and
+[native Linux example](.extras/LinuxNative/README.md). The native adapters
 are available in a Git checkout under `.extras/`.
 
 ## Routes and middleware
