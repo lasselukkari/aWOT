@@ -35,10 +35,9 @@ cmake --build .extras/LinuxNative/build --parallel 4
 ```
 
 Visit <http://127.0.0.1:8080/>. The page displays **Greetings middle earth!**.
-Stop the server with Ctrl+C. Use `HelloWorld --port 9090` to select another port,
-or `--port 0` to let Linux choose a free port. The startup message reports the
-actual port. Startup returns an error if the requested port is already occupied.
-The listener binds all IPv4 interfaces.
+Stop the server with Ctrl+C. The server always listens on port 8080 and exits
+with an error if that port is occupied. Stop any existing server before
+starting another instance. The listener binds all IPv4 interfaces.
 
 Configure with `-DBUILD_TESTING=OFF` for an application-only build that omits
 Python and the tests. The CMake project requires Linux; use the
@@ -46,6 +45,8 @@ Python and the tests. The CMake project requires Linux; use the
 [Windows example](../WindowsNative/README.md) on those systems.
 
 ## Test on Linux
+
+Ensure port 8080 is free before running the tests.
 
 ```bash
 ctest --test-dir .extras/LinuxNative/build --output-on-failure
@@ -59,7 +60,7 @@ The suite runs three checks:
   nonblocking reads, read and aWOT timeouts, listener conflicts and waits,
   writes after peer close, and aWOT request processing. It reuses the macOS
   socket tests with POSIX socket pairs and TCP loopback connections.
-- `linux-http`: starts the built executable on a free port and checks HTTP
+- `linux-http`: starts the built executable on port 8080 and checks HTTP
   status, content type, the Hello World body, missing routes, and concurrent
   requests. It also checks startup failure on an occupied port and terminates
   the test server after completion.

@@ -38,14 +38,12 @@ Visit <http://127.0.0.1:8080/>. The page displays **Greetings middle earth!**.
 Stop the server with Ctrl+C. The executable also runs from PowerShell or Explorer;
 its GCC, C++ and thread runtimes are linked statically.
 
-Use `HelloWorld.exe --port 9090` to select another port, or `--port 0` to let
-Windows choose a free port. The startup message reports the actual port.
-Startup returns an error if the requested port is already occupied.
-The listener uses Windows exclusive binding. Winsock can keep a port reserved
-while recently closed TCP connections finish; choose another port or `--port 0`
-for rapid test restarts. See [Microsoft's socket option guidance](https://learn.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse).
+The server always listens on port 8080 and exits with an error if that port is
+occupied. Stop any existing server before starting another instance.
 
 ## Test on Windows
+
+Ensure port 8080 is free before running the tests.
 
 ```bash
 ctest --test-dir .extras/WindowsNative/build --output-on-failure
@@ -59,7 +57,7 @@ The suite runs three checks:
   automatic Winsock initialization and lifetime, buffered reads, disconnects,
   reconnection, nonblocking reads, timeouts, write backpressure, listener
   conflicts and aWOT request processing.
-- `windows-http`: starts the built executable on a free port and checks HTTP
+- `windows-http`: starts the built executable on port 8080 and checks HTTP
   status, content type, the Hello World body, missing routes and concurrent
   requests. It also checks startup failure on an occupied port and terminates
   the test server after completion.

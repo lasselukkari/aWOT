@@ -4,6 +4,8 @@
 Native Windows: python tests/http_smoke.py build/HelloWorld.exe
 Cross-built exe: python tests/http_smoke.py build/HelloWorld.exe --runner wine
 Native Linux: python ../WindowsNative/tests/http_smoke.py build/HelloWorld
+
+Port 8080 must be free before running this test.
 """
 
 import argparse
@@ -21,6 +23,7 @@ import time
 from pathlib import Path
 
 
+PORT = 8080
 LISTENING = re.compile(r"Server listening on port (\d+)\b")
 EXPECTED_BODY = (
     b"<html>\n"
@@ -94,7 +97,7 @@ def wait_started(process, events):
         match = LISTENING.search(line)
         if match:
             port = int(match.group(1))
-            check(0 < port <= 65535, "The ephemeral listening port is invalid")
+            check(port == PORT, f"HelloWorld reported port {port}, expected {PORT}")
             return port
     raise AssertionError("HelloWorld did not report a listening port within 15 seconds")
 
@@ -146,10 +149,12 @@ def check_bind_failure(command):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             occupied.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
-        occupied.bind(("0.0.0.0", 0))
+        try:
+            occupied.bind(("0.0.0.0", PORT))
+        except OSError as error:
+            raise AssertionError(f"Port {PORT} must be free before running the HTTP smoke test") from error
         occupied.listen(1)
-        port = occupied.getsockname()[1]
-        process = spawn(command + ["--port", str(port)])
+        process = spawn(command)
         try:
             output, _ = process.communicate(timeout=15)
             check(process.returncode != 0, "HelloWorld succeeded while its port was occupied")
@@ -164,32 +169,6 @@ def check_bind_failure(command):
             process.stdout.close()
 
 
-def check_invalid_arguments(command):
-    invalid = (
-        ["--port", "65536"],
-        ["--port", "184467440737095516160"],
-        ["--port", "12x"],
-        ["--port", "-18446744073709551615"],
-        ["--port", " 0"],
-        ["--port", ""],
-    )
-    for arguments in invalid:
-        process = spawn(command + arguments)
-        try:
-            output, _ = process.communicate(timeout=15)
-            check(process.returncode != 0, f"HelloWorld accepted invalid arguments: {arguments!r}")
-            check("Usage:" in output, f"No usage message for invalid arguments: {arguments!r}")
-            check(
-                LISTENING.search(output) is None,
-                f"HelloWorld reported readiness for invalid arguments: {arguments!r}",
-            )
-        except subprocess.TimeoutExpired as error:
-            raise AssertionError(f"HelloWorld did not reject invalid arguments: {arguments!r}") from error
-        finally:
-            stop(process)
-            process.stdout.close()
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("executable", type=Path)
@@ -199,12 +178,11 @@ def main():
     check(executable.is_file(), f"Executable does not exist: {executable}")
     command = ([args.runner] if args.runner else []) + [str(executable)]
 
-    check_invalid_arguments(command)
     # This verifies that startup failure reaches main()'s exit status, before
-    # launching the working server on its own fresh ephemeral port.
+    # releasing port 8080 and launching the working server.
     check_bind_failure(command)
 
-    process = spawn(command + ["--port", "0"])
+    process = spawn(command)
     lines = []
     events = queue.Queue()
     reader = threading.Thread(target=read_output, args=(process, lines, events), daemon=True)
@@ -250,7 +228,7 @@ def main():
         process.stdout.close()
     if port is not None:
         check_port_released(port)
-    print("Native HTTP smoke test passed (CLI validation, 200, HTML body, 404, concurrent requests, bind failure)")
+    print("Native HTTP smoke test passed (200, HTML body, 404, concurrent requests, bind failure)")
 
 
 if __name__ == "__main__":

@@ -2,14 +2,11 @@
   HelloWorld.cpp - aWOT example using native Windows Winsock sockets
 
   Run HelloWorld.exe, then visit http://localhost:8080/.
-  Use --port PORT to select a different port, or --port 0 for an ephemeral port.
 */
 
 #include <aWOT.h>
 
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <thread>
 #include <utility>
 
@@ -34,33 +31,12 @@ void handleClient(WindowsClient client) {
   client.stop();
 }
 
-bool parsePort(int argc, char* argv[], uint16_t& port) {
-  if (argc == 1) return true;
-  if (argc != 3 || std::strcmp(argv[1], "--port") != 0 ||
-      argv[2][0] < '0' || argv[2][0] > '9') {
-    return false;
-  }
-  char* end = nullptr;
-  const unsigned long value = std::strtoul(argv[2], &end, 10);
-  if (*end != '\0' || value > 65535) return false;
-  port = static_cast<uint16_t>(value);
-  return true;
-}
-
-int main(int argc, char* argv[]) {
-  uint16_t port = 8080;
-  if (!parsePort(argc, argv, port)) {
-    std::fprintf(stderr, "Usage: HelloWorld.exe [--port 0..65535]\n");
-    return EXIT_FAILURE;
-  }
-
+int main() {
   Serial.begin(115200);
   app.get("/", &indexCmd);
-  WindowsServer server(port);
+  WindowsServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
-  Serial.print("Server listening on port ");
-  Serial.print(server.port());
-  Serial.println(" (multithreaded)");
+  Serial.println("Server listening on port 8080 (multithreaded)");
   Serial.flush();
 
   for (;;) {
