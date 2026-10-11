@@ -70,7 +70,7 @@ Update the CI source revision when releasing the final library package.
 The native [macOS guide](src/content/docs/guide/macos.md),
 [Windows guide](src/content/docs/guide/windows.md), and
 [Linux guide](src/content/docs/guide/linux.md) use a Git checkout of the
-development branch `4`; their `.extras` adapters are omitted from library
+repository; their `.extras` adapters are omitted from library
 packages. Windows example validation used library revision `dbe250ff`: MinGW
 cross-compilation and all three CTest checks passed under Wine. The library's
 Windows CI job runs the same checks on Windows once that revision is pushed.

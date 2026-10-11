@@ -169,7 +169,7 @@ under `/private/tmp/awot-docs-browser`, with the preview at
 - [ ] Ensure the published library source includes `.extras/MacOSNative`,
   `.extras/WindowsNative`, `.extras/LinuxNative`, and the bundled ArduinoCore-API
   before publishing the native guides. All three guides use a Git checkout of
-  development branch `4` because release archives omit `.extras`; the earlier
+  the repository because release archives omit `.extras`; the earlier
   public source baseline has the macOS example under `examples/MacOSNative` and
   no Windows or Linux adapter.
 - [ ] Require the library's native Windows CI job to pass at the published

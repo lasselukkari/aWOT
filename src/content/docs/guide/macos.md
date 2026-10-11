@@ -26,15 +26,15 @@ Install Xcode Command Line Tools if they are not already installed:
 xcode-select --install
 ```
 
-They provide `clang++`, `make`, and Git. Clone the aWOT development branch `4`
+They provide `clang++`, `make`, and Git. Clone the aWOT repository
 and enter the native example directory:
 
 ```bash
-git clone --branch 4 https://github.com/lasselukkari/aWOT.git
+git clone https://github.com/lasselukkari/aWOT.git
 cd aWOT/.extras/MacOSNative
 ```
 
-If you already have an aWOT checkout, use branch `4` and open its
+If you already have an aWOT checkout, open its
 `.extras/MacOSNative` directory instead. Use a Git checkout for this example:
 `.extras` is omitted from library release archives and Arduino Library Manager
 packages.
@@ -163,7 +163,7 @@ when sharing code with a board.
 
 ## How the native server works
 
-The [native example source](https://github.com/lasselukkari/aWOT/tree/4/.extras/MacOSNative)
+The [native example source](https://github.com/lasselukkari/aWOT/tree/master/.extras/MacOSNative)
 contains these pieces:
 
 | File or directory | Purpose |

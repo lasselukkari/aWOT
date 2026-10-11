@@ -28,11 +28,10 @@ sudo apt update
 sudo apt install build-essential cmake ninja-build python3 git curl
 ```
 
-The Linux example is in aWOT's **4 development branch**. Clone that branch and
-stay in the repository root:
+Clone the aWOT repository and stay in the repository root:
 
 ```bash
-git clone --branch 4 https://github.com/lasselukkari/aWOT.git
+git clone https://github.com/lasselukkari/aWOT.git
 cd aWOT
 ```
 
@@ -184,7 +183,7 @@ sharing handlers with a board.
 
 ## How the native server works
 
-The [Linux native source](https://github.com/lasselukkari/aWOT/tree/4/.extras/LinuxNative)
+The [Linux native source](https://github.com/lasselukkari/aWOT/tree/master/.extras/LinuxNative)
 contains the application and CMake build. `LinuxSocket.h` aliases the shared
 `MacOSClient` and `MacOSServer` classes as `LinuxClient` and `LinuxServer`;
 `Arduino.h` forwards the shared Arduino compatibility header. CMake compiles
@@ -237,7 +236,7 @@ The tests choose their own ports and have bounded runtimes. A successful run
 reports `100% tests passed, 0 tests failed out of 3`. Configure with
 `-DBUILD_TESTING=OFF` to build only the application without Python or the tests.
 
-The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/4/.github/workflows/NativeUnitTests.yml)
+The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/master/.github/workflows/NativeUnitTests.yml)
 includes a **Linux native example** job that builds and runs these checks on
 Ubuntu. On 11 October 2026, the example built with GCC **14.4** and passed all
 three checks in a Debian Linux Docker container using Python **3.13**. The first
@@ -249,8 +248,8 @@ runtime support.
 
 ## Troubleshooting
 
-- **The example directory is missing:** use the `4` development branch of a Git
-  checkout containing `.extras/LinuxNative`; release archives omit `.extras`.
+- **The example directory is missing:** use a Git checkout containing
+  `.extras/LinuxNative`; release archives omit `.extras`.
 - **CMake rejects the platform:** this project requires Linux. Use the
   [macOS guide](/en/guide/macos.html) or [Windows guide](/en/guide/windows.html)
   on those systems.

@@ -34,11 +34,10 @@ native Windows executables; see [MSYS2's CMake instructions](https://www.msys2.o
 for this toolchain setup. The example supports MinGW GCC. The bundled Arduino
 API uses GNU attributes and has not been adapted for MSVC.
 
-The Windows example is in the aWOT repository's **4 development branch**. Clone
-that branch and stay in the repository root:
+Clone the aWOT repository and stay in the repository root:
 
 ```bash
-git clone --branch 4 https://github.com/lasselukkari/aWOT.git
+git clone https://github.com/lasselukkari/aWOT.git
 cd aWOT
 ```
 
@@ -195,7 +194,7 @@ hardware-specific operations separate when sharing handlers with a board.
 
 ## How the native server works
 
-The [Windows native source](https://github.com/lasselukkari/aWOT/tree/4/.extras/WindowsNative)
+The [Windows native source](https://github.com/lasselukkari/aWOT/tree/master/.extras/WindowsNative)
 contains these pieces:
 
 | File or directory | Purpose |
@@ -256,13 +255,13 @@ reports `100% tests passed, 0 tests failed out of 3`. Python is only needed for
 the HTTP test; to build the application without tests, add
 `-DBUILD_TESTING=OFF` to the CMake configuration command.
 
-The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/4/.github/workflows/NativeUnitTests.yml)
+The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/master/.github/workflows/NativeUnitTests.yml)
 includes a **Windows native example** job on `windows-latest`. It builds and
 runs these checks on Windows for relevant pushes and pull requests. A Windows
 run exercises Microsoft's Winsock implementation; cross-compiling only
 establishes that the code builds. Wine can provide an additional local check
 from macOS or Linux using the commands in the
-[example README](https://github.com/lasselukkari/aWOT/blob/4/.extras/WindowsNative/README.md#cross-check-from-macos-or-linux).
+[example README](https://github.com/lasselukkari/aWOT/blob/master/.extras/WindowsNative/README.md#cross-check-from-macos-or-linux).
 
 As of 11 October 2026, all three checks pass under Wine; the first native
 Windows CI run is pending. Check the Windows job's result before considering
@@ -270,8 +269,8 @@ the port verified on Windows.
 
 ## Troubleshooting
 
-- **The example directory is missing:** use the `4` development branch of a Git
-  checkout containing `.extras/WindowsNative`; release archives omit `.extras`.
+- **The example directory is missing:** use a Git checkout containing
+  `.extras/WindowsNative`; release archives omit `.extras`.
 - **CMake rejects the toolchain:** open the MSYS2 UCRT64 terminal and install the
   `mingw-w64-ucrt-x86_64-*` packages above. This project requires Windows MinGW.
   If you configured with another compiler, configure again using a new build
