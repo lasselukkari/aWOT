@@ -34,13 +34,20 @@
 #if defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) && defined(STD_FUNCTION_MIDDLEWARE)
 #error "Conflicting aWOT middleware configuration"
 #endif
-#if !defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) &&                               \
-    (defined(STD_FUNCTION_MIDDLEWARE) || defined(ESP8266) || defined(ESP32) || \
-     (defined(__has_include) && __has_include(<functional>)))
+#if !defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE)
 #ifndef STD_FUNCTION_MIDDLEWARE
+#if defined(ESP8266) || defined(ESP32)
+#define STD_FUNCTION_MIDDLEWARE
+#elif defined(__has_include)
+// Keep the operator in its own guard for compilers that do not support it.
+#if __has_include(<functional>)
 #define STD_FUNCTION_MIDDLEWARE
 #endif
+#endif
+#endif
+#ifdef STD_FUNCTION_MIDDLEWARE
 #include <functional>
+#endif
 #endif
 
 #define CRLF "\r\n"
