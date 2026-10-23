@@ -101,8 +101,9 @@ class WsChannel {
 
     Client* c = req.client();
     if (!c) return false;
-    // All handshake headers must fit before the 101 status is committed.
-    if (!res.m_canStartChannel(101, 3)) return false;
+    // The two queued handshake headers must fit before the 101 status is
+    // committed. Sec-WebSocket-Accept is generated and written directly.
+    if (!res.m_canStartChannel(101, 2)) return false;
 
     int slot = findFreeSlot();
     if (slot < 0) {
@@ -115,8 +116,11 @@ class WsChannel {
     res.status(101);
     res.set("Upgrade", "websocket");
     res.set("Connection", "Upgrade");
-    res.set("Sec-WebSocket-Accept", accept);
     res.beginHeaders();
+    P(acceptHeader) = "Sec-WebSocket-Accept: ";
+    res.printP(acceptHeader);
+    res.print(accept);
+    res.m_printCRLF();
     res.endHeaders();
     if (res.getWriteError()) return false;
     res.keepOpen();

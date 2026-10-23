@@ -21,6 +21,7 @@ static int precedingResponseStage;
 static int callbackDepth;
 static int maxCallbackDepth;
 static bool nestedPayloadUnchanged;
+static std::string queuedAccept;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
 struct StatefulConnectCallback {
@@ -66,6 +67,10 @@ static void startResponse(Request& req, Response& res) {
 static void upgradeHandler(Request& req, Response& res) {
   upgradeResult = upgrading->upgrade(req, res);
   if (!upgradeResult) res.sendStatus(400);
+}
+static void inspectResponseHeaders(Request&, Response& res) {
+  const char* accept = res.get("Sec-WebSocket-Accept");
+  queuedAccept = accept ? accept : "";
 }
 static void connectHandler(int id) {
   ++connects;
@@ -114,6 +119,7 @@ static bool handshake(Channel& ws, SharedClient& client,
   upgradeResult = false;
   if (prepare) app.use(prepare);
   app.use(upgradeHandler);
+  app.finally(inspectResponseHeaders);
   client.feed(input);
   char upgrade[40], connection[40], key[64], version[16];
   Request::Header headers[] = {{"Upgrade", upgrade},
@@ -162,6 +168,7 @@ unittest_setup() {
   connects = disconnects = messageCount = 0;
   lastSocket = -1;
   lastData.clear();
+  queuedAccept.clear();
 }
 
 unittest(sha1_known_vectors_cover_empty_short_and_multiple_blocks) {
@@ -195,6 +202,7 @@ unittest(handshake_accept_key_and_standard_client_transport) {
   assertTrue(
       output.find("Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n") !=
       std::string::npos);
+  assertTrue(queuedAccept.empty());
   assertTrue(output.find("Transfer-Encoding") == std::string::npos);
   assertTrue(output.find("\r\n\r\n") == output.size() - 4);
 }
@@ -254,14 +262,14 @@ unittest(handshake_failure_does_not_register_socket) {
   assertFalse(client.connected());
 }
 
-unittest(handshake_requires_capacity_for_every_response_header) {
-  for (precedingHeaders = SERVER_MAX_HEADERS - 3;
+unittest(generated_accept_header_does_not_consume_response_header_capacity) {
+  for (precedingHeaders = SERVER_MAX_HEADERS - 2;
        precedingHeaders <= SERVER_MAX_HEADERS; ++precedingHeaders) {
     Channel ws;
     SharedClient client;
     connects = 0;
     ws.onConnect(connectHandler);
-    bool fits = precedingHeaders == SERVER_MAX_HEADERS - 3;
+    bool fits = precedingHeaders == SERVER_MAX_HEADERS - 2;
     assertEqual(fits, handshake(ws, client, request(), queueHeaders));
     assertEqual(fits, upgradeResult);
     assertEqual(fits ? 1 : 0, ws.count());

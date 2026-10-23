@@ -41,7 +41,8 @@
 
 Output capacity is bounded by both caller storage and the reserved hexadecimal
 chunk header. Large writes are split into representable chunks. Default content
-type and connection/framing headers do not consume caller header slots.
+type and connection/framing headers do not consume caller header slots. The
+generated WebSocket accept header does not consume a slot either.
 
 Positive short transport writes are retried from the accepted offset. A zero
 write stops immediately, sets the inherited Print `getWriteError()`, and closes
