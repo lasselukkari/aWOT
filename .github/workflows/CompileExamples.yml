@@ -45,6 +45,10 @@ jobs:
             if [[ "$FQBN" != esp32:* ]] && grep -qE '#include <(ESP8266WiFi|WiFi|ETH)\.h>' "$sketch"; then
               continue
             fi
+            if [[ "$FQBN" == arduino:avr:leonardo && "$sketch" == examples/SerialBridge/SerialBridge.ino ]]; then
+              echo "Skipping $sketch for $FQBN: Ethernet, WebSockets, and USB serial exceed the board's flash capacity."
+              continue
+            fi
             echo "Compiling $sketch for $FQBN"
             if ! arduino-cli compile --fqbn "$FQBN" --library "$GITHUB_WORKSPACE" "$sketch"; then
               failed=1

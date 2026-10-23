@@ -2,6 +2,8 @@
   Serial to WebSocket bridge for Arduino Uno + W5100/W5500 Ethernet shield.
   Install the Ethernet 2.x library and adjust the static IP for your network.
   One socket and a 64-byte receive limit leave room for HTTP parsing on Uno.
+  Leonardo is not supported by this sketch: Ethernet, WebSockets, and USB serial
+  exceed its 28,672-byte sketch flash limit with AVR core 1.8.8 / Ethernet 2.0.2.
 */
 #include <Ethernet.h>
 #include <aWOT.h>
