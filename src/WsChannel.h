@@ -30,6 +30,8 @@
 #define AWOT_WS_CHANNEL_H_
 
 #include "App.h"
+#include "ChannelRooms.h"
+#include "ChannelWrite.h"
 #include "Request.h"
 #include "Response.h"
 #include "WsCrypto.h"
@@ -68,8 +70,7 @@ class WsChannel {
 #endif
 
   WsChannel()
-      : m_roomCount(0),
-        m_polling(false),
+      : m_polling(false),
 #ifdef STD_FUNCTION_MIDDLEWARE
         m_connectChanged(false),
         m_disconnectRevision(0),
@@ -82,10 +83,8 @@ class WsChannel {
         m_onMessage(nullptr) {
     for (int i = 0; i < N; i++) {
       m_slots[i].active = false;
-      m_rooms[i] = 0;
       resetRxState(i);
     }
-    for (int r = 0; r < MAX_ROOMS; r++) m_roomNames[r] = nullptr;
   }
 
   bool upgrade(Request& req, Response& res) {
@@ -130,7 +129,7 @@ class WsChannel {
 
     m_slots[slot].client = *static_cast<TClient*>(c);
     m_slots[slot].active = true;
-    m_rooms[slot] = 0;
+    m_rooms.clearClient(slot);
     resetRxState(slot);
     uint32_t now = millis();
     m_slots[slot].lastPingSentMs = now;
@@ -152,47 +151,24 @@ class WsChannel {
     }
   }
 
-  int defineRoom(const char* name) {
-    if (!name) return -1;
-    int roomIdx = findRoom(name);
-    if (roomIdx >= 0) return roomIdx;
-    if (m_roomCount >= MAX_ROOMS) return -1;
-    m_roomNames[m_roomCount] = name;
-    return m_roomCount++;
-  }
+  int defineRoom(const char* name) { return m_rooms.defineRoom(name); }
 
-  int findRoom(const char* name) const {
-    if (!name) return -1;
-    for (int r = 0; r < m_roomCount; r++) {
-      if (m_roomNames[r] && strcmp(m_roomNames[r], name) == 0) return r;
-    }
-    return -1;
-  }
+  int findRoom(const char* name) const { return m_rooms.findRoom(name); }
 
-  const char* roomName(int roomIdx) const {
-    if (roomIdx < 0 || roomIdx >= MAX_ROOMS) return nullptr;
-    return m_roomNames[roomIdx];
-  }
+  const char* roomName(int roomIdx) const { return m_rooms.roomName(roomIdx); }
 
-  void join(int socketId, int roomIdx) {
-    if (!validRoom(roomIdx) || !validSocket(socketId)) return;
-    m_rooms[socketId] |= (1UL << roomIdx);
-  }
+  void join(int socketId, int roomIdx) { m_rooms.join(socketId, roomIdx); }
 
   void join(int socketId, const char* name) { join(socketId, findRoom(name)); }
 
-  void leave(int socketId, int roomIdx) {
-    if (!validRoom(roomIdx) || !validSocket(socketId)) return;
-    m_rooms[socketId] &= ~(1UL << roomIdx);
-  }
+  void leave(int socketId, int roomIdx) { m_rooms.leave(socketId, roomIdx); }
 
   void leave(int socketId, const char* name) {
     leave(socketId, findRoom(name));
   }
 
   bool inRoom(int socketId, int roomIdx) const {
-    if (!validRoom(roomIdx) || !validSocket(socketId)) return false;
-    return (m_rooms[socketId] & (1UL << roomIdx)) != 0;
+    return m_rooms.inRoom(socketId, roomIdx);
   }
 
   bool inRoom(int socketId, const char* name) const {
@@ -211,10 +187,9 @@ class WsChannel {
 
   void to(int roomIdx, const char* text) {
     if (!validRoom(roomIdx)) return;
-    uint32_t mask = 1UL << roomIdx;
     size_t len = strlen(text);
     for (int i = 0; i < N; i++) {
-      if (m_slots[i].active && (m_rooms[i] & mask)) {
+      if (m_slots[i].active && m_rooms.inRoom(i, roomIdx)) {
         sendFrame(i, 0x1, (const uint8_t*)text, len);
       }
     }
@@ -224,10 +199,9 @@ class WsChannel {
 
   void to(int roomIdx, const uint8_t* data, size_t n, bool binary = false) {
     if (!validRoom(roomIdx)) return;
-    uint32_t mask = 1UL << roomIdx;
     uint8_t op = binary ? 0x2 : 0x1;
     for (int i = 0; i < N; i++) {
-      if (m_slots[i].active && (m_rooms[i] & mask)) {
+      if (m_slots[i].active && m_rooms.inRoom(i, roomIdx)) {
         sendFrame(i, op, data, n);
       }
     }
@@ -306,9 +280,7 @@ class WsChannel {
   };
 
   Slot m_slots[N];
-  uint32_t m_rooms[N];
-  const char* m_roomNames[MAX_ROOMS];
-  int m_roomCount;
+  detail::ChannelRooms<N, MAX_ROOMS> m_rooms;
   bool m_polling;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
@@ -375,7 +347,7 @@ class WsChannel {
 #endif
   }
 
-  bool validRoom(int r) const { return r >= 0 && r < MAX_ROOMS; }
+  bool validRoom(int r) const { return m_rooms.validRoom(r); }
   bool validSocket(int s) const { return s >= 0 && s < N; }
 
   int findFreeSlot() {
@@ -402,7 +374,7 @@ class WsChannel {
   void deactivate(int i) {
     if (!m_slots[i].active) return;
     m_slots[i].active = false;
-    m_rooms[i] = 0;
+    m_rooms.clearClient(i);
     m_slots[i].client.stop();
     callOnDisconnect(i);
   }
@@ -437,17 +409,7 @@ class WsChannel {
       h[9] = (uint8_t)(len & 0xFF);
       hl = 10;
     }
-    return writeAll(c, h, hl) && writeAll(c, data, len);
-  }
-
-  static bool writeAll(TClient& c, const uint8_t* data, size_t length) {
-    while (length) {
-      size_t written = c.write(data, length);
-      if (!written || written > length) return false;
-      data += written;
-      length -= written;
-    }
-    return true;
+    return detail::writeAll(c, h, hl) && detail::writeAll(c, data, len);
   }
 
   void sendFrame(int i, uint8_t opcode, const uint8_t* data, size_t len) {

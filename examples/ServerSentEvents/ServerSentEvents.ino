@@ -3,33 +3,39 @@
 #else
 #include <WiFi.h>
 #endif
-#include <aWOT.h>
 #include <SseChannel.h>
+#include <aWOT.h>
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
 App app;
-SseChannel<WiFiClient, 4> events;
+SseChannel<WiFiClient, 4, 1> events;
 unsigned long lastPush = 0;
 
 void indexHandler(Request& req, Response& res) {
   P(page) =
-      "<!doctype html><title>SSE</title><p>Uptime: <span id='uptime'></span></p>"
+      "<!doctype html><title>SSE</title><p>Uptime: <span "
+      "id='uptime'></span></p>"
       "<script>new EventSource('/events').onmessage=e=>"
-      "document.getElementById('uptime').textContent=e.data+' seconds';</script>";
+      "document.getElementById('uptime').textContent=e.data+' "
+      "seconds';</script>";
   res.set("Content-Type", "text/html");
   res.printP(page);
 }
 
 void sseHandler(Request& req, Response& res) { events.open(res); }
 
+void onConnect(int clientId) { events.join(clientId, "uptime"); }
+
 void setup() {
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
+  events.defineRoom("uptime");
+  events.onConnect(onConnect);
   app.get("/", indexHandler);
   app.get("/events", sseHandler);
   server.begin();
@@ -51,6 +57,6 @@ void loop() {
     lastPush = now;
     char uptime[16];
     snprintf(uptime, sizeof(uptime), "%lu", now / 1000);
-    events.send(uptime);
+    events.to("uptime", uptime);
   }
 }

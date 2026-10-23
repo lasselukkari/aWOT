@@ -41,6 +41,7 @@ end	KEYWORD2
 endHeaders	KEYWORD2
 ended	KEYWORD2
 finally	KEYWORD2
+findRoom	KEYWORD2
 flush	KEYWORD2
 forEach	KEYWORD2
 form	KEYWORD2

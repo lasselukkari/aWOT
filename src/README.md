@@ -75,17 +75,38 @@ and Upgrade connection header.
 WebSockets keep one outstanding heartbeat ping until a pong or timeout, reject
 control-frame extended lengths, and require an entire `upgrade` Connection token.
 
-To use a WebSocket room by name, register it with `defineRoom(name)`. It returns
+Both WebSocket and SSE channels use `send(clientId, ...)` for one client,
+`to(room, ...)` for room members, and `broadcast(...)` for every active client.
+SSE's former broadcast `send(data)` and `send(event, data)` overloads have been
+replaced by `broadcast(data)` and `broadcast(event, data)`. Named SSE events also
+have directed `send(clientId, event, data)` and `to(room, event, data)` overloads.
+
+To use a room by name, register it with `defineRoom(name)`. It returns
 the existing index for a duplicate name, or `-1` for a null name or when no room
 slots remain. Names are case-sensitive, borrowed strings that must remain valid
 and unchanged for the channel's lifetime. `findRoom(name)` returns the registered
 index, or `-1` for a null or unknown name. `to()`, `join()`, `leave()`, and `inRoom()`
 accept either a room index or a name. Null or unknown names send nothing and leave
 memberships unchanged; `inRoom()` returns false. Name lookups use the existing
-fixed room table without allocating memory.
+fixed room table without allocating memory. Each channel owns its own registry
+and memberships through the same internal helper. Memberships are cleared when
+a client slot is disconnected, closed, or reused. Numeric membership operations
+accept any room index in `0..MAX_ROOMS-1`, including unnamed rooms. Both channel
+templates have a `MAX_ROOMS` parameter, defaulting to 8, limited to `1..32`.
 
 SSE prefixes each payload line with `data:`, normalizing CR, LF, and CRLF without
 allocating a payload copy, including empty and trailing lines.
+`SseChannel::add(client)` returns the assigned client ID or `-1` after stopping a
+client rejected because capacity is full. SSE's `onConnect` callback now receives
+that ID, matching WebSockets; it can send an initial event or join rooms.
+`forEach` retains its `Print&` callback for raw SSE fields and comments. Raw writes
+bypass the channel's short-write handling and failure detection.
+
+Both channels expose `count()`, `connected(clientId)`, and `close(clientId)`.
+Counts and connection queries report active slots until a channel operation
+observes transport disconnection. SSE `close()` stops the transport immediately;
+WebSocket `close()` writes a protocol close frame first. SSE has no `poll()` or
+disconnect callback; sending, `forEach()`, and `add()` detect disconnected clients.
 
 ## Callback configuration and validation
 

@@ -10,7 +10,7 @@ class Response : public Print {
   friend class Router;
   template <typename TClient, int N, int MAX_ROOMS>
   friend class WsChannel;
-  template <typename TClient, int N>
+  template <typename TClient, int N, int MAX_ROOMS>
   friend class SseChannel;
 
  public:

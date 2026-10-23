@@ -184,7 +184,7 @@ the workflow with a browser-controlled LED.
 | --- | --- |
 | [Authentication](examples/AuthMiddleware/AuthMiddleware.ino) | Request headers and middleware |
 | [WebSockets](examples/WebSockets/WebSockets.ino) | A browser chat interface |
-| [Server-sent events](examples/ServerSentEvents/ServerSentEvents.ino) | Streaming updates to the browser |
+| [Server-sent events](examples/ServerSentEvents/ServerSentEvents.ino) | Streaming updates to a named room |
 | [File server](examples/FileServer/FileServer.ino) | Serving files from storage |
 | [Member callbacks](examples/MemberFunction/MemberFunction.ino) | Organizing handlers in classes |
 | [Request context](examples/RequestContext/RequestContext.ino) | Sharing application data with handlers |
