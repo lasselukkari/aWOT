@@ -1,15 +1,21 @@
 ---
 const boards = ['Arduino', 'macOS', 'Windows', 'Linux', 'Uno', 'ESP32', 'Teensy', 'ESP8266', 'Mega', 'Leonardo', 'Due'];
-const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next' : index === boards.length - 1 ? 'previous' : 'hidden';
+const transports = ['Wi-Fi', 'Ethernet', 'Serial', 'Bluetooth', 'LoRa'];
+const position = (index: number, length: number) => index === 0 ? 'active' : index === 1 ? 'next' : index === length - 1 ? 'previous' : 'hidden';
 ---
 
 <awot-board-headline>
   <h1 class="font-bold tracking-tighter font-heading text-heading">
-    <span class="sr-only">Web server for Arduino-compatible boards, macOS, Windows, and Linux.</span>
+    <span class="sr-only">Web server for Arduino-compatible boards, macOS, Windows, and Linux, over Wi-Fi, Ethernet, Serial, Bluetooth, or LoRa.</span>
     <span aria-hidden="true">
       <span class="block">Web server for</span>
       <span class="board-reel">
-        {boards.map((board, index) => <span data-board data-position={position(index)}>{board}</span>)}
+        <span class="board-track">
+          {boards.map((board, index) => <span data-board data-position={position(index, boards.length)}>{board}</span>)}
+        </span>
+        <span class="transport-reel">
+          {transports.map((transport, index) => <span data-transport data-position={position(index, transports.length)}>{transport}</span>)}
+        </span>
       </span>
     </span>
   </h1>
@@ -22,18 +28,31 @@ const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next
   awot-board-headline { display: block; margin-bottom: 1.75rem; }
   h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.1; }
   .board-reel {
+    --reel-direction: 1;
     position: relative;
     display: grid;
-    align-items: center;
+    align-content: center;
+    gap: .25rem;
     max-width: 48rem;
-    min-height: clamp(6rem, 17vw, 10rem);
+    min-height: clamp(9rem, 24vw, 14rem);
     margin: 1.25rem auto 1.1rem;
+    padding: .5rem 0;
     overflow: hidden;
     border-block: 1px solid color-mix(in srgb, var(--aw-color-accent) 16%, transparent);
     background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--aw-color-primary) 4%, transparent), transparent);
     font-size: clamp(3rem, 10vw, 6rem);
     font-weight: 750;
     letter-spacing: -.06em;
+  }
+  .board-track, .transport-reel {
+    display: grid;
+    align-items: center;
+  }
+  .transport-reel {
+    --reel-direction: -1;
+    font-size: clamp(2.25rem, 7vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -.04em;
   }
   .board-reel::before, .board-reel::after {
     content: '';
@@ -46,13 +65,13 @@ const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next
   }
   .board-reel::before { inset-inline-start: 0; border-inline-end: 0; }
   .board-reel::after { inset-inline-end: 0; border-inline-start: 0; }
-  [data-board] {
+  [data-board], [data-transport] {
     grid-area: 1 / 1;
     width: 100%;
-    padding: .1em 0 .15em;
+    padding: .05em 0 .1em;
     color: var(--aw-color-text-muted);
     opacity: 0;
-    transform: translateX(58%) scale(.28);
+    transform: translateX(calc(var(--reel-direction) * 58%)) scale(.28);
   }
   [data-position="active"] {
     z-index: 2;
@@ -62,9 +81,9 @@ const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next
     opacity: 1;
     transform: translateX(0) scale(1);
   }
-  [data-position="previous"] { opacity: .55; transform: translateX(-38%) scale(.28); }
-  [data-position="next"] { opacity: .55; transform: translateX(38%) scale(.28); }
-  [data-position="leaving"] { transform: translateX(-58%) scale(.28); }
+  [data-position="previous"] { opacity: .55; transform: translateX(calc(var(--reel-direction) * -38%)) scale(.28); }
+  [data-position="next"] { opacity: .55; transform: translateX(calc(var(--reel-direction) * 38%)) scale(.28); }
+  [data-position="leaving"] { transform: translateX(calc(var(--reel-direction) * -58%)) scale(.28); }
   .board-markers { display: flex; justify-content: center; gap: .4rem; }
   [data-board-marker] {
     width: 1rem;
@@ -73,7 +92,7 @@ const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next
   }
   [data-board-marker][data-active] { background: var(--aw-color-accent); }
   @media (prefers-reduced-motion: no-preference) {
-    [data-board] { transition: transform 650ms cubic-bezier(.22, 1, .36, 1), opacity 450ms ease, color 450ms ease; }
+    [data-board], [data-transport] { transition: transform 650ms cubic-bezier(.22, 1, .36, 1), opacity 450ms ease, color 450ms ease; }
     [data-board-marker] { transition: background-color 450ms ease; }
   }
   @media (max-width: 560px) {
@@ -88,30 +107,35 @@ const position = (index: number) => index === 0 ? 'active' : index === 1 ? 'next
 <script>
   class BoardHeadline extends HTMLElement {
     connectedCallback() {
-      const boards = Array.from(this.querySelectorAll<HTMLElement>('[data-board]'));
-      const markers = Array.from(this.querySelectorAll<HTMLElement>('[data-board-marker]'));
-      if (boards.length < 2) return;
+      const reels = ['board', 'transport'].map((name) => {
+        const items = Array.from(this.querySelectorAll<HTMLElement>(`[data-${name}]`));
+        const markers = Array.from(this.querySelectorAll<HTMLElement>(`[data-${name}-marker]`));
+        const current = Math.max(0, items.findIndex((item) => item.dataset.position === 'active'));
+        return { items, markers, current };
+      }).filter((reel) => reel.items.length > 1);
+      if (!reels.length) return;
 
       const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
       const events = new AbortController();
-      let current = Math.max(0, boards.findIndex((board) => board.dataset.position === 'active'));
       let timer: number | undefined;
 
-      const show = (index: number) => {
-        current = index;
-        boards.forEach((board, i) => {
-          const offset = (i - current + boards.length) % boards.length;
-          board.dataset.position = offset === 0 ? 'active' : offset === 1 ? 'next' :
-            offset === boards.length - 1 ? 'previous' : offset === boards.length - 2 ? 'leaving' : 'hidden';
-          markers[i]?.toggleAttribute('data-active', offset === 0);
+      const show = (reel: typeof reels[number], index: number) => {
+        reel.current = index;
+        reel.items.forEach((item, i) => {
+          const offset = (i - reel.current + reel.items.length) % reel.items.length;
+          item.dataset.position = offset === 0 ? 'active' : offset === 1 ? 'next' :
+            offset === reel.items.length - 1 ? 'previous' : offset === reel.items.length - 2 ? 'leaving' : 'hidden';
+          reel.markers[i]?.toggleAttribute('data-active', offset === 0);
         });
       };
 
       const sync = () => {
         window.clearInterval(timer);
-        if (motion.matches) show(0);
+        if (motion.matches) reels.forEach((reel) => show(reel, 0));
         if (!motion.matches && !document.hidden) {
-          timer = window.setInterval(() => show((current + 1) % boards.length), 3200);
+          timer = window.setInterval(() => {
+            reels.forEach((reel) => show(reel, (reel.current + 1) % reel.items.length));
+          }, 3200);
         }
       };
 
