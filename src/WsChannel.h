@@ -5,13 +5,14 @@
   Usage:
     // Transport must match what your server accepts (e.g. WiFiClient).
     WsChannel<WiFiClient, 4, 8> sockets;  // 4 max sockets, 8 max rooms
+    // Call sockets.defineRoom("chat") during setup before using the room name.
 
     void onUpgrade(Request& req, Response& res) {
       if (!sockets.upgrade(req, res)) res.sendStatus(400);
     }
 
     // Register /api/ws, call sockets.poll() from loop(), broadcast via
-    // sockets.to(roomIdx, ...), sockets.send(socketId, ...),
+    // sockets.to("chat", ...), sockets.send(socketId, ...),
   sockets.broadcast(...).
 
   Limitations:
@@ -152,9 +153,20 @@ class WsChannel {
   }
 
   int defineRoom(const char* name) {
+    if (!name) return -1;
+    int roomIdx = findRoom(name);
+    if (roomIdx >= 0) return roomIdx;
     if (m_roomCount >= MAX_ROOMS) return -1;
     m_roomNames[m_roomCount] = name;
     return m_roomCount++;
+  }
+
+  int findRoom(const char* name) const {
+    if (!name) return -1;
+    for (int r = 0; r < m_roomCount; r++) {
+      if (m_roomNames[r] && strcmp(m_roomNames[r], name) == 0) return r;
+    }
+    return -1;
   }
 
   const char* roomName(int roomIdx) const {
@@ -167,14 +179,24 @@ class WsChannel {
     m_rooms[socketId] |= (1UL << roomIdx);
   }
 
+  void join(int socketId, const char* name) { join(socketId, findRoom(name)); }
+
   void leave(int socketId, int roomIdx) {
     if (!validRoom(roomIdx) || !validSocket(socketId)) return;
     m_rooms[socketId] &= ~(1UL << roomIdx);
   }
 
+  void leave(int socketId, const char* name) {
+    leave(socketId, findRoom(name));
+  }
+
   bool inRoom(int socketId, int roomIdx) const {
     if (!validRoom(roomIdx) || !validSocket(socketId)) return false;
     return (m_rooms[socketId] & (1UL << roomIdx)) != 0;
+  }
+
+  bool inRoom(int socketId, const char* name) const {
+    return inRoom(socketId, findRoom(name));
   }
 
   void send(int socketId, const char* text) {
@@ -198,6 +220,8 @@ class WsChannel {
     }
   }
 
+  void to(const char* name, const char* text) { to(findRoom(name), text); }
+
   void to(int roomIdx, const uint8_t* data, size_t n, bool binary = false) {
     if (!validRoom(roomIdx)) return;
     uint32_t mask = 1UL << roomIdx;
@@ -207,6 +231,11 @@ class WsChannel {
         sendFrame(i, op, data, n);
       }
     }
+  }
+
+  void to(const char* name, const uint8_t* data, size_t n,
+          bool binary = false) {
+    to(findRoom(name), data, n, binary);
   }
 
   void broadcast(const char* text) {

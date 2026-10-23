@@ -21,7 +21,6 @@ const char* password = "YOUR_PASSWORD";
 WiFiServer server(80);
 App app;
 WsChannel<WiFiClient, 4, 1> sockets;
-int chatRoom;
 
 // HTML page stored in PROGMEM
 P(indexHtml) =
@@ -61,29 +60,33 @@ P(indexHtml) =
     "    button:hover { background: #00d4d4; }\n"
     "    #username-area { padding: 1rem; background: #0f3460; display: flex; "
     "gap: 0.5rem; }\n"
+    "    [hidden] { display: none !important; }\n"
     "  </style>\n"
     "</head>\n"
     "<body>\n"
     "  <header>\n"
     "    <h1>aWOT WebSockets</h1>\n"
-    "    <div id=\"status\" class=\"disconnected\">Connecting...</div>\n"
+    "    <div id=\"status\" class=\"disconnected\">Enter your name to "
+    "join</div>\n"
     "  </header>\n"
-    "  <div id=\"username-area\">\n"
+    "  <form id=\"username-area\" onsubmit=\"event.preventDefault(); "
+    "joinChat()\">\n"
     "    <input type=\"text\" id=\"username\" placeholder=\"Enter your name\" "
-    "value=\"Guest\">\n"
-    "    <button onclick=\"setUsername()\">Set Name</button>\n"
-    "  </div>\n"
-    "  <div id=\"messages\"></div>\n"
-    "  <div id=\"input-area\">\n"
+    "aria-label=\"Your name\" required autofocus>\n"
+    "    <button type=\"submit\">Join</button>\n"
+    "  </form>\n"
+    "  <div id=\"messages\" hidden></div>\n"
+    "  <div id=\"input-area\" hidden>\n"
     "    <input type=\"text\" id=\"msg\" placeholder=\"Type a message...\" "
-    "onkeypress=\"if(event.key==='Enter')sendMsg()\">\n"
-    "    <button onclick=\"sendMsg()\">Send</button>\n"
+    "onkeypress=\"if(event.key==='Enter')sendMsg()\" disabled>\n"
+    "    <button id=\"send\" onclick=\"sendMsg()\" disabled>Send</button>\n"
     "  </div>\n"
     "  <script>\n"
-    "    let ws, username = 'Guest';\n"
+    "    let ws, username;\n"
     "    const status = document.getElementById('status');\n"
     "    const messages = document.getElementById('messages');\n"
     "    const msgInput = document.getElementById('msg');\n"
+    "    const sendButton = document.getElementById('send');\n"
     "\n"
     "    function connect() {\n"
     "      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';\n"
@@ -91,10 +94,13 @@ P(indexHtml) =
     "      ws.onopen = () => {\n"
     "        status.textContent = 'Connected';\n"
     "        status.className = 'connected';\n"
+    "        msgInput.disabled = sendButton.disabled = false;\n"
+    "        msgInput.focus();\n"
     "      };\n"
     "      ws.onclose = () => {\n"
     "        status.textContent = 'Disconnected - Reconnecting...';\n"
     "        status.className = 'disconnected';\n"
+    "        msgInput.disabled = sendButton.disabled = true;\n"
     "        setTimeout(connect, 2000);\n"
     "      };\n"
     "      ws.onerror = () => ws.close();\n"
@@ -125,17 +131,21 @@ P(indexHtml) =
     "\n"
     "    function sendMsg() {\n"
     "      const text = msgInput.value.trim();\n"
-    "      if (!text || ws.readyState !== 1) return;\n"
+    "      if (!text || !ws || ws.readyState !== 1) return;\n"
     "      ws.send(JSON.stringify({ user: username, text: text }));\n"
     "      msgInput.value = '';\n"
     "    }\n"
     "\n"
-    "    function setUsername() {\n"
+    "    function joinChat() {\n"
     "      const input = document.getElementById('username').value.trim();\n"
-    "      if (input) username = input;\n"
+    "      if (!input || username) return;\n"
+    "      username = input;\n"
+    "      document.getElementById('username-area').hidden = true;\n"
+    "      messages.hidden = false;\n"
+    "      document.getElementById('input-area').hidden = false;\n"
+    "      status.textContent = 'Connecting...';\n"
+    "      connect();\n"
     "    }\n"
-    "\n"
-    "    connect();\n"
     "  </script>\n"
     "</body>\n"
     "</html>\n";
@@ -150,14 +160,14 @@ void wsHandler(Request& req, Response& res) {
 }
 
 void onMessage(WsMessage& msg) {
-  sockets.to(chatRoom, msg.data(), msg.length(), msg.isBinary());
+  sockets.to("chat", msg.data(), msg.length(), msg.isBinary());
 }
 
 void onConnect(int clientId) {
   Serial.print("Client connected: ");
   Serial.println(clientId);
 
-  sockets.join(clientId, chatRoom);
+  sockets.join(clientId, "chat");
 
   const char* welcome =
       "{\"user\":\"System\",\"text\":\"Welcome to the chat room!\"}";
@@ -184,7 +194,7 @@ void setup() {
   Serial.print("Connected! IP: ");
   Serial.println(WiFi.localIP());
 
-  chatRoom = sockets.defineRoom("chat");
+  sockets.defineRoom("chat");
 
   sockets.onMessage(onMessage);
   sockets.onConnect(onConnect);

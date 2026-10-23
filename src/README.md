@@ -74,6 +74,16 @@ and Upgrade connection header.
 
 WebSockets keep one outstanding heartbeat ping until a pong or timeout, reject
 control-frame extended lengths, and require an entire `upgrade` Connection token.
+
+To use a WebSocket room by name, register it with `defineRoom(name)`. It returns
+the existing index for a duplicate name, or `-1` for a null name or when no room
+slots remain. Names are case-sensitive, borrowed strings that must remain valid
+and unchanged for the channel's lifetime. `findRoom(name)` returns the registered
+index, or `-1` for a null or unknown name. `to()`, `join()`, `leave()`, and `inRoom()`
+accept either a room index or a name. Null or unknown names send nothing and leave
+memberships unchanged; `inRoom()` returns false. Name lookups use the existing
+fixed room table without allocating memory.
+
 SSE prefixes each payload line with `data:`, normalizing CR, LF, and CRLF without
 allocating a payload copy, including empty and trailing lines.
 

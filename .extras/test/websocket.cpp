@@ -627,6 +627,116 @@ unittest(rooms_target_broadcast_and_reset_when_slot_is_reused) {
   assertEqual((size_t)5, second.state->output.size());
 }
 
+unittest(room_names_resolve_by_content_and_reuse_capacity) {
+  Channel ws;
+  const Channel& rooms = ws;
+  char name[] = "chat";
+  char sameName[] = "chat";
+  assertEqual(-1, rooms.findRoom(nullptr));
+  assertEqual(-1, rooms.findRoom("chat"));
+  assertEqual(-1, ws.defineRoom(nullptr));
+  assertEqual(0, ws.defineRoom(name));
+  assertEqual(0, rooms.findRoom(sameName));
+  assertEqual(0, ws.defineRoom(sameName));
+  assertEqual(1, ws.defineRoom("Chat"));
+  assertEqual(1, rooms.findRoom("Chat"));
+  assertEqual(-1, rooms.findRoom("CHAT"));
+  assertEqual(0, ws.defineRoom(sameName));
+  assertEqual(1, ws.defineRoom("Chat"));
+  assertEqual(-1, ws.defineRoom("full"));
+  assertEqual(-1, ws.defineRoom(nullptr));
+}
+
+unittest(empty_room_names_are_valid_and_reuse_the_same_room) {
+  Channel ws;
+  char empty[] = "";
+  assertEqual(-1, ws.findRoom(empty));
+  assertEqual(0, ws.defineRoom(empty));
+  assertEqual(0, ws.findRoom(""));
+  assertEqual(0, ws.defineRoom(""));
+  assertEqual(1, ws.defineRoom("chat"));
+  assertEqual(0, ws.defineRoom(""));
+}
+
+unittest(named_rooms_target_members_with_text_and_binary_frames) {
+  Channel ws;
+  SharedClient first, second;
+  char chat[] = "chat";
+  assertEqual(0, ws.defineRoom(chat));
+  assertEqual(1, ws.defineRoom("other"));
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  ws.join(0, "chat");
+  ws.join(1, "other");
+  assertTrue(ws.inRoom(0, "chat"));
+  assertTrue(ws.inRoom(1, "other"));
+  assertFalse(ws.inRoom(1, "chat"));
+  first.clearOutput();
+  second.clearOutput();
+
+  ws.to("chat", "hi");
+  std::vector<uint8_t> expected = {0x81, 2, 'h', 'i'};
+  assertTrue(first.state->output == expected);
+  assertTrue(second.state->output.empty());
+
+  first.clearOutput();
+  const uint8_t text[] = {'a', 0, 'b'};
+  ws.to("chat", text, sizeof(text));
+  expected = {0x81, 3, 'a', 0, 'b'};
+  assertTrue(first.state->output == expected);
+  assertTrue(second.state->output.empty());
+
+  first.clearOutput();
+  const uint8_t binary[] = {0, 0xFF, 0x80};
+  ws.to("other", binary, sizeof(binary), true);
+  expected = {0x82, 3, 0, 0xFF, 0x80};
+  assertTrue(first.state->output.empty());
+  assertTrue(second.state->output == expected);
+
+  second.clearOutput();
+  ws.leave(0, "chat");
+  assertFalse(ws.inRoom(0, "chat"));
+  ws.to("chat", "gone");
+  assertTrue(first.state->output.empty());
+  assertTrue(second.state->output.empty());
+
+  ws.join(0, 0);
+  assertTrue(ws.inRoom(0, 0));
+  ws.to(0, "index");
+  expected = {0x81, 5, 'i', 'n', 'd', 'e', 'x'};
+  assertTrue(first.state->output == expected);
+  first.clearOutput();
+  ws.to(0, binary, sizeof(binary), true);
+  expected = {0x82, 3, 0, 0xFF, 0x80};
+  assertTrue(first.state->output == expected);
+  ws.leave(0, 0);
+  assertFalse(ws.inRoom(0, 0));
+}
+
+unittest(unknown_and_null_room_names_do_not_create_rooms_or_change_membership) {
+  Channel ws;
+  SharedClient client;
+  assertEqual(0, ws.defineRoom("chat"));
+  assertTrue(handshake(ws, client));
+  ws.join(0, "chat");
+  client.clearOutput();
+  const char* names[] = {"missing", nullptr};
+  const uint8_t data[] = {1, 0, 2};
+  for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
+    ws.join(0, names[i]);
+    ws.leave(0, names[i]);
+    assertFalse(ws.inRoom(0, names[i]));
+    assertTrue(ws.inRoom(0, "chat"));
+    ws.to(names[i], "ignored");
+    ws.to(names[i], data, sizeof(data));
+    ws.to(names[i], data, sizeof(data), true);
+    assertTrue(client.state->output.empty());
+    assertEqual(-1, ws.findRoom(names[i]));
+  }
+  assertEqual(1, ws.defineRoom("other"));
+  assertEqual(-1, ws.defineRoom("full"));
+}
+
 unittest(heartbeat_tracks_one_outstanding_ping_and_clock_rollover) {
   Channel ws;
   SharedClient client;
