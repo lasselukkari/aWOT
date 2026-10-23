@@ -5,7 +5,7 @@ A portable HTTP server library for Arduino, with an API inspired by Express.js.
 aWOT is built to work across Arduino platforms, from an Uno to an ESP32, and
 on macOS, Windows, and Linux with Arduino-compatible socket adapters. It uses
 the standard Arduino `Client` and `Stream` interfaces, so your route handlers
-work over Wi-Fi, Ethernet, or even a serial port.
+work over Wi-Fi, Ethernet, Bluetooth, or even a serial port.
 
 Requests are Arduino `Stream` objects and responses are `Print` objects. That
 means you can pass a request directly to ArduinoJson or an OTA updater, and
