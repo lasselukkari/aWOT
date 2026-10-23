@@ -18,7 +18,7 @@ class SseChannel {
 
   SseChannel()
 #ifdef STD_FUNCTION_MIDDLEWARE
-      : m_connectRevision(0), m_onConnect(nullptr) {
+      : m_connectChanged(false), m_onConnect(nullptr) {
 #else
       : m_onConnect(nullptr) {
 #endif
@@ -83,7 +83,7 @@ class SseChannel {
 
   void onConnect(Callback callback) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_connectRevision;
+    m_connectChanged = true;
 #endif
     m_onConnect = callback;
   }
@@ -123,19 +123,19 @@ class SseChannel {
   TClient m_clients[N];
   bool m_active[N];
 #ifdef STD_FUNCTION_MIDDLEWARE
-  uint32_t m_connectRevision;
+  bool m_connectChanged;
 #endif
   Callback m_onConnect;
 
   void callOnConnect(Print& output) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    uint32_t revision = m_connectRevision;
+    if (!m_onConnect) return;
+    m_connectChanged = false;
     Callback callback;
     callback.swap(m_onConnect);
-    if (!callback) return;
     callback(output);
     // Restore the invoked callback unless it replaced itself.
-    if (revision == m_connectRevision) callback.swap(m_onConnect);
+    if (!m_connectChanged) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(output);
 #endif

@@ -70,9 +70,9 @@ class WsChannel {
       : m_roomCount(0),
         m_polling(false),
 #ifdef STD_FUNCTION_MIDDLEWARE
-        m_connectRevision(0),
-        m_disconnectRevision(0),
-        m_messageRevision(0),
+        m_connectChanged(false),
+        m_disconnectChanged(false),
+        m_messageChanged(false),
 #endif
         m_onConnect(nullptr),
         m_onDisconnect(nullptr),
@@ -235,19 +235,19 @@ class WsChannel {
 
   void onConnect(ConnectCb cb) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_connectRevision;
+    m_connectChanged = true;
 #endif
     m_onConnect = cb;
   }
   void onDisconnect(DisconnectCb cb) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_disconnectRevision;
+    m_disconnectChanged = true;
 #endif
     m_onDisconnect = cb;
   }
   void onMessage(MessageCb cb) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_messageRevision;
+    m_messageChanged = true;
 #endif
     m_onMessage = cb;
   }
@@ -277,9 +277,9 @@ class WsChannel {
   bool m_polling;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
-  uint32_t m_connectRevision;
-  uint32_t m_disconnectRevision;
-  uint32_t m_messageRevision;
+  bool m_connectChanged;
+  bool m_disconnectChanged;
+  bool m_messageChanged;
 #endif
   ConnectCb m_onConnect;
   DisconnectCb m_onDisconnect;
@@ -287,13 +287,13 @@ class WsChannel {
 
   void callOnConnect(int socketId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    uint32_t revision = m_connectRevision;
+    if (!m_onConnect) return;
+    m_connectChanged = false;
     ConnectCb callback;
     callback.swap(m_onConnect);
-    if (!callback) return;
     callback(socketId);
     // Restore the invoked callback unless it replaced itself.
-    if (revision == m_connectRevision) callback.swap(m_onConnect);
+    if (!m_connectChanged) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(socketId);
 #endif
@@ -301,12 +301,12 @@ class WsChannel {
 
   void callOnDisconnect(int socketId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    uint32_t revision = m_disconnectRevision;
+    if (!m_onDisconnect) return;
+    m_disconnectChanged = false;
     DisconnectCb callback;
     callback.swap(m_onDisconnect);
-    if (!callback) return;
     callback(socketId);
-    if (revision == m_disconnectRevision) callback.swap(m_onDisconnect);
+    if (!m_disconnectChanged) callback.swap(m_onDisconnect);
 #else
     if (m_onDisconnect) m_onDisconnect(socketId);
 #endif
@@ -314,12 +314,12 @@ class WsChannel {
 
   void callOnMessage(WsMessage& message) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    uint32_t revision = m_messageRevision;
+    if (!m_onMessage) return;
+    m_messageChanged = false;
     MessageCb callback;
     callback.swap(m_onMessage);
-    if (!callback) return;
     callback(message);
-    if (revision == m_messageRevision) callback.swap(m_onMessage);
+    if (!m_messageChanged) callback.swap(m_onMessage);
 #else
     if (m_onMessage) m_onMessage(message);
 #endif
