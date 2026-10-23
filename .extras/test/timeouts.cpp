@@ -62,6 +62,25 @@ class InitiallyEmptyStream : public MockStream {
   bool firstRead = true;
 };
 
+class CountingTimeoutStream : public MockStream {
+ public:
+  explicit CountingTimeoutStream(const char* request)
+      : MockStream(request), emptyReads(0) {}
+
+  int read() override {
+    int ch = MockStream::read();
+    if (ch >= 0) return ch;
+
+    ++emptyReads;
+    unsigned long started = millis();
+    while (millis() - started < 2) {
+    }
+    return -1;
+  }
+
+  int emptyReads;
+};
+
 unittest(parser_zero_timeout_accepts_ready_data) {
   App app;
   app.setTimeout(0);
@@ -81,6 +100,19 @@ unittest(parser_retries_empty_reads_only_with_a_timeout) {
     const char* expected = timeout ? "HTTP/1.1 200 OK" : "HTTP/1.1 408 ";
     assertTrue(strstr(stream.response(), expected) == stream.response());
   }
+}
+
+unittest(parser_charges_only_one_timeout_for_truncated_headers) {
+  App app;
+  app.setTimeout(1);
+  CountingTimeoutStream stream("GET / HTTP/1.1" CRLF);
+
+  app.process(&stream);
+
+  assertTrue(strstr(stream.response(), "HTTP/1.1 408 ") == stream.response());
+  // m_timedRead() makes one immediate read and one timed read. Further header
+  // parser alternatives must observe the recorded timeout without reading.
+  assertEqual(2, stream.emptyReads);
 }
 
 unittest_main()

@@ -646,6 +646,10 @@ bool Request::m_skipSpace() {
 bool Request::m_timedout() { return m_readTimedout; }
 
 int Request::m_timedRead() {
+  // A request cannot recover after a parser read exhausts its timeout. Avoid
+  // charging the same request another full timeout in speculative branches.
+  if (m_readTimedout) return -1;
+
   // Avoid consulting the clock while data is already available.
   int ch = read();
   if (ch == -1 && _timeout != 0) ch = timedRead();
