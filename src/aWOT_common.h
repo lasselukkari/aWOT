@@ -73,6 +73,10 @@
 #endif
 #endif
 
+#if SERVER_PUSHBACK_BUFFER_SIZE < 18
+#error "SERVER_PUSHBACK_BUFFER_SIZE must be at least 18"
+#endif
+
 #ifndef SERVER_OUTPUT_BUFFER_SIZE
 #if defined(LOW_MEMORY_MCU)
 #define SERVER_OUTPUT_BUFFER_SIZE 32

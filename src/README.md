@@ -33,6 +33,9 @@
   bounded by `INT_MAX`. Repeated fields must agree. Comma lists, conflicting
   lengths, and every request Transfer-Encoding are rejected with HTTP 400 and
   connection closure. Chunked request decoding remains unsupported.
+- The advanced `SERVER_PUSHBACK_BUFFER_SIZE` override must be at least 18 bytes
+  and must be applied to every library and sketch translation unit. Defaults are
+  32 bytes on low-memory MCUs and 128 bytes elsewhere.
 - Routers and Apps cannot be copied. Mount with `app.use(path, &router)` or
   `router.use(path, &child)`; the formerly ignored `Router(path)` constructor
   has been removed.
