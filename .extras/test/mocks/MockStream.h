@@ -17,7 +17,7 @@ class MockStream : public Stream {
         readBufferLength(bufferLength == -1 ? strlen(readBuffer)
                                             : bufferLength),
         readPosition(0),
-        writePosition(0) {};
+        writePosition(0) {}
 
   ~MockStream() {}
 

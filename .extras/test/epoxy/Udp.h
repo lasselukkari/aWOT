@@ -48,7 +48,7 @@
 class UDP : public Stream {
  public:
 #if defined(EPOXY_CORE_ESP8266)
-  virtual ~UDP() {};
+  virtual ~UDP() {}
 #endif
 
   virtual uint8_t begin(uint16_t) = 0;

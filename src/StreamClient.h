@@ -10,7 +10,7 @@ class StreamClient : public Client {
   Stream* s;
 
  public:
-  StreamClient(Stream* stream) : s(stream) {};
+  StreamClient(Stream* stream) : s(stream) {}
   int connect(IPAddress, uint16_t) { return 1; };
   int connect(const char*, uint16_t) { return 1; };
   size_t write(uint8_t byte) { return s->write(byte); };
