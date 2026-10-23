@@ -361,6 +361,42 @@ unittest(disconnect_callback_can_clear_itself_and_keep_using_captures) {
   assertEqual(0, ws.count());
 }
 
+unittest(disconnect_callback_runs_for_callback_triggered_close) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  std::vector<int> calls;
+  ws.onDisconnect([&ws, &calls](int id) {
+    calls.push_back(id);
+    if (id == 0) ws.close(1);
+  });
+
+  ws.close(0);
+
+  assertTrue(calls == std::vector<int>({0, 1}));
+  assertEqual(0, ws.count());
+}
+
+unittest(disconnect_callback_runs_for_callback_broadcast_failure) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  std::vector<int> calls;
+  ws.onDisconnect([&ws, &calls](int id) {
+    calls.push_back(id);
+    if (id == 0) ws.broadcast("disconnected");
+  });
+  second.state->failAfter = second.state->output.size();
+
+  ws.close(0);
+
+  assertTrue(calls == std::vector<int>({0, 1}));
+  assertEqual(0, ws.count());
+  assertFalse(second.connected());
+}
+
 unittest(message_callback_can_clear_or_replace_itself_and_use_captures) {
   for (int replace = 0; replace < 2; ++replace) {
     Channel ws;

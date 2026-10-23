@@ -71,7 +71,9 @@ class WsChannel {
         m_polling(false),
 #ifdef STD_FUNCTION_MIDDLEWARE
         m_connectChanged(false),
-        m_disconnectChanged(false),
+        m_disconnectRevision(0),
+        m_activeDisconnect(nullptr),
+        m_activeDisconnectRevision(0),
         m_messageChanged(false),
 #endif
         m_onConnect(nullptr),
@@ -245,7 +247,7 @@ class WsChannel {
   }
   void onDisconnect(DisconnectCb cb) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    m_disconnectChanged = true;
+    ++m_disconnectRevision;
 #endif
     m_onDisconnect = cb;
   }
@@ -282,7 +284,9 @@ class WsChannel {
 
 #ifdef STD_FUNCTION_MIDDLEWARE
   bool m_connectChanged;
-  bool m_disconnectChanged;
+  uint32_t m_disconnectRevision;
+  DisconnectCb* m_activeDisconnect;
+  uint32_t m_activeDisconnectRevision;
   bool m_messageChanged;
 #endif
   ConnectCb m_onConnect;
@@ -305,12 +309,25 @@ class WsChannel {
 
   void callOnDisconnect(int socketId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
+    // Reentrant deactivation uses the callback that is already executing,
+    // unless it has replaced or cleared its registration.
+    if (m_activeDisconnect &&
+        m_activeDisconnectRevision == m_disconnectRevision) {
+      (*m_activeDisconnect)(socketId);
+      return;
+    }
     if (!m_onDisconnect) return;
-    m_disconnectChanged = false;
+    uint32_t revision = m_disconnectRevision;
     DisconnectCb callback;
     callback.swap(m_onDisconnect);
+    DisconnectCb* previousActive = m_activeDisconnect;
+    uint32_t previousActiveRevision = m_activeDisconnectRevision;
+    m_activeDisconnect = &callback;
+    m_activeDisconnectRevision = revision;
     callback(socketId);
-    if (!m_disconnectChanged) callback.swap(m_onDisconnect);
+    m_activeDisconnect = previousActive;
+    m_activeDisconnectRevision = previousActiveRevision;
+    if (revision == m_disconnectRevision) callback.swap(m_onDisconnect);
 #else
     if (m_onDisconnect) m_onDisconnect(socketId);
 #endif
