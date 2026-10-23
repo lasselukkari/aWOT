@@ -96,11 +96,13 @@ documented version.
   Those results do not validate the pending Astro changes. The local workflow
   removes the duplicate push trigger so PR updates run once.
 
-The local library baseline is revision `4117ee51`. CI uses the public
-`bb13af5963ad950015312fe73107766056ccd936` revision, whose C++ headers and sources
-match that local baseline. The later local commits reorganize development
-files/examples and packaging. Update the CI pin to the released source revision
-when preparing final publication. Local sketch logs are under
+The current channel API and CI library baseline is the published revision
+`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`, with unified SSE/WebSocket targeting
+and shared room/write helpers. Earlier validation entries used local revision
+`4117ee51` and the matching public revision
+`bb13af5963ad950015312fe73107766056ccd936`; those results are historical.
+Update the CI pin to the released source revision when preparing final
+publication. Earlier local sketch logs are under
 `/private/tmp/awot-docs-uno`, `/private/tmp/awot-docs-esp32`,
 `/private/tmp/awot-docs-esp32-fixed`, and
 `/private/tmp/awot-docs-esp32-final-tutorial`; native/snippet logs
@@ -191,3 +193,21 @@ under `/private/tmp/awot-docs-browser`, with the preview at
 The native Markdown pages and homepage stage the current version as `4.0.0`. Keep
 that switch with this coordinated publication; the local preview is not a live
 release or evidence that Library Manager has indexed the package.
+
+## Unified channel API validation
+
+- [x] Pin native/snippet and sketch CI to the published channel API revision
+  `d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`.
+- [x] Document directed `send()`, room-targeted `to()`, and `broadcast()`;
+  integer and named rooms; SSE client IDs and connection callbacks; room
+  capacity/storage; and migration from the earlier pre-release v4 SSE helper.
+- [x] Compile 45 partial examples and pass all 24 native/behavior CTest checks.
+  Compile 43 partial examples and pass all 23 checks with function pointers
+  and small buffers. Logs are `/private/tmp/awot-unified-docs-native.log` and
+  `/private/tmp/awot-unified-docs-small.log`.
+- [x] Compile the exact complete SSE and WebSocket guide sketches for ESP32.
+  Logs are under `/private/tmp/awot-unified-docs-sketches`. These are compile
+  checks; no hardware runtime test is claimed.
+- [x] Run Astro checks with zero errors, warnings, or hints, build the production
+  site, and validate 45 HTML pages, 3107 local links, 22 aliases, both API
+  versions, and preserved 3.x anchors.

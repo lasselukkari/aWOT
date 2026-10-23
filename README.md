@@ -60,12 +60,13 @@ Markdown is native Astro content, so C++ initializers do not need Liquid escapes
 
 ## Check the documented examples
 
-Keep a separate aWOT library checkout available. Local validation used library
-revision `4117ee51`. CI pins the publicly available revision
-`bb13af5963ad950015312fe73107766056ccd936`; its C++ sources and headers are
-identical to that local baseline. The script supports the native tests in either
-`test/` or `.extras/test/` to accommodate their relocation in the local checkout.
-Update the CI source revision when releasing the final library package.
+Keep a separate aWOT library checkout available. CI pins the published revision
+`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`, which provides the unified SSE and
+WebSocket targeting API, named and integer rooms, and shared channel helpers.
+Use that revision for local example validation too. The script supports native
+tests in either `test/` or `.extras/test/` to accommodate their relocation.
+Update the CI source revision whenever documented APIs or examples require a
+newer library implementation, and again when publishing the final package.
 
 The native [macOS guide](src/content/docs/guide/macos.md),
 [Windows guide](src/content/docs/guide/windows.md), and

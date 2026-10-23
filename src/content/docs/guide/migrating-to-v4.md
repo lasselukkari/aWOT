@@ -220,3 +220,41 @@ registered. Function-pointer builds accept ordinary functions and noncapturing
 lambdas. Apply `AWOT_NO_STD_FUNCTION_MIDDLEWARE` and HTTP layout overrides to
 every library and sketch translation unit, rather than defining them only in
 a sketch. See [configuration](/en/guide/configuration.html).
+
+<h2 id="prerelease-sse">Earlier pre-release v4 SSE sketches</h2>
+
+
+The following changes apply to sketches using the earlier pre-release v4 SSE
+helper. Sending now follows the same recipient selection as WebSockets:
+
+| Earlier v4 SSE call | Updated call |
+| --- | --- |
+| `events.send("data")` | `events.broadcast("data")` |
+| `events.send("sample", "data")` | `events.broadcast("sample", "data")` |
+
+Use `events.send(clientId, data)` or `events.send(clientId, event, data)` to
+send to one active client. `events.to(room, data)` and
+`events.to(room, event, data)` target room members; `room` can be an integer
+index or a registered name. Broadcast calls still send to every active client.
+
+Change connection callbacks from `void callback(Print&)` to
+`void callback(int clientId)`. The callback can join a room or send an initial
+event with `events.join(clientId, "chat")` and
+`events.send(clientId, "ready", "connected")`. Register the room with
+`events.defineRoom("chat")` before accepting clients. `forEach` callbacks
+continue to receive `Print&` for comments or custom fields.
+
+`add(client)` now returns the assigned client slot ID, or `-1` when the channel
+is full and stops the supplied client. `count()` and `connected(clientId)`
+report active slots; `close(clientId)` stops one client. IDs are reused, and
+new clients start with no room memberships. Sending and `forEach()` detect
+disconnected clients and clean up their slots. SSE has no `poll()` or
+`onDisconnect` callback.
+
+`SseChannel<TClient, N, MAX_ROOMS>` defaults to 8 rooms, so existing declarations
+with only a client type and capacity remain valid. Both channels support
+`defineRoom()`, `findRoom()`, `roomName()`, `join()`, `leave()`, and `inRoom()`
+with the same room behavior: case-sensitive names, duplicate registration
+returning the existing index, and at most 32 rooms. Names are borrowed and must
+remain valid and unchanged for the channel's lifetime. See the
+[SSE guide](/en/guide/server-sent-events.html) for the complete connection flow.

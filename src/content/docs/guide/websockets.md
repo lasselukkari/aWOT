@@ -21,7 +21,6 @@ credentials, upload it, and open the IP address printed at 115200 baud.
 WiFiServer server(80);
 App app;
 WsChannel<WiFiClient, 4, 1> sockets;
-int chatRoom = -1;
 
 P(page) =
     "<!doctype html><meta charset='utf-8'><title>aWOT WebSockets</title>"
@@ -56,7 +55,7 @@ void websocketHandler(Request& req, Response& res) {
 }
 
 void onConnect(int socketId) {
-  sockets.join(socketId, chatRoom);
+  sockets.join(socketId, "chat");
   sockets.send(socketId, "Welcome!");
 }
 
@@ -66,7 +65,7 @@ void onDisconnect(int socketId) {
 }
 
 void onMessage(WsMessage& msg) {
-  sockets.to(chatRoom, msg.data(), msg.length(), msg.isBinary());
+  sockets.to("chat", msg.data(), msg.length(), msg.isBinary());
 }
 
 void setup() {
@@ -75,8 +74,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
 
-  chatRoom = sockets.defineRoom("chat");
-  if (chatRoom < 0) {
+  if (sockets.defineRoom("chat") < 0) {
     Serial.println("No room capacity");
     while (true) delay(1000);
   }
@@ -143,12 +141,24 @@ contain zero bytes. The room broadcast therefore uses the explicit length and
 preserves the binary/text flag.
 
 `send(socketId, ...)` targets one active client, `broadcast(...)` targets all
-active clients, and `to(room, ...)` targets room members. `defineRoom()` returns
-an index or `-1` when definitions are exhausted. Room names are borrowed; this
-sketch uses a permanent string literal. `join()` and `leave()` update membership;
-one client can belong to several rooms. A new connection starts with no rooms.
-There can be at most 32 rooms, and the chosen `MAX_ROOMS` template parameter
-sets the actual room capacity.
+active clients, and `to("chat", ...)` targets active members of the named room.
+Define a room before using its name. `defineRoom()` returns its index and
+reuses it for equal, case-sensitive name contents, even when the table is full.
+It returns `-1` for a null name or when a new name exceeds `MAX_ROOMS`; an empty
+name is valid. `findRoom(name)` returns an index or `-1` without defining a room.
+Room names are borrowed and must remain alive and unchanged while the channel
+exists; this sketch uses a permanent string literal.
+
+`join(socketId, room)`, `leave(socketId, room)`, and `inRoom(socketId, room)`
+accept a registered name or a numeric index, as does `to()`. Save the index
+returned by `defineRoom()` or `findRoom()` to avoid repeated name lookups:
+`sockets.to(roomIdx, msg.data(), msg.length(), msg.isBinary())` targets the
+same room. Numeric indices in `0..MAX_ROOMS-1` work even without registered
+names. Null or unknown names make sends and membership changes no-ops and
+make `inRoom()` return false. One client can belong to several rooms, and new
+connections start with no memberships. `MAX_ROOMS` defaults to eight and must
+be in `1..32`; this sketch reserves one room. SSE channels use the same room
+API with independent memberships.
 
 Socket IDs are reusable slot indices. `connected(id)` and `count()` report
 active slots; `poll()` updates them after transport disconnects. Call

@@ -1540,25 +1540,43 @@ calls delay all frame processing and heartbeat checks.
 
 ```cpp
 int defineRoom(const char* name);
+int findRoom(const char* name) const;
 const char* roomName(int roomIdx) const;
 void join(int socketId, int roomIdx);
+void join(int socketId, const char* name);
 void leave(int socketId, int roomIdx);
+void leave(int socketId, const char* name);
 bool inRoom(int socketId, int roomIdx) const;
+bool inRoom(int socketId, const char* name) const;
 ```
 
-`defineRoom()` returns the next index, starting at zero, or `-1` when
-`MAX_ROOMS` definitions have been used. It borrows `name`; use a string literal
-or storage that outlives the channel. It does not deduplicate names.
-`roomName()` returns that pointer, or null for an undefined or out-of-range
-index. Room membership operations accept any room index in `0..MAX_ROOMS-1`,
-even before it is named. Invalid socket or room indices make `join()` and
-`leave()` no-ops and make `inRoom()` return false. These membership methods do
-not check whether a socket is active; new upgrades and disconnections clear
-membership. Room indices and socket slot IDs are local to this channel.
+`defineRoom()` returns the existing index for an equal name, even when the room
+table is full. A new name gets the next index, starting at zero, or `-1` when
+`MAX_ROOMS` distinct names have been registered. Null names return `-1` without
+consuming capacity; an empty name is valid. Name comparisons are case-sensitive.
+The channel borrows each registered name; use a string literal or storage that
+remains alive and unchanged for the channel's lifetime.
+`findRoom()` returns a registered name's index, or `-1` for a null or unknown
+name. It never creates a room.
+`roomName()` returns the registered pointer, or null for an unnamed or
+out-of-range index.
+
+`join()`, `leave()`, and `inRoom()` accept either a registered name or an index.
+Numeric operations accept any room index in `0..MAX_ROOMS-1`, even before it is
+named. Invalid socket or room indices and null or unknown names make `join()`
+and `leave()` no-ops and make `inRoom()` return false. These membership methods
+do not check whether a socket is active; new upgrades and disconnections clear
+membership. Room indices and socket slot IDs are local to this channel. Retain
+the index from `defineRoom()` or `findRoom()` to avoid looking up a name on each
+call.
 
 ```cpp
 int chatRoom = sockets.defineRoom("chat");
-// Check chatRoom >= 0 before using it.
+if (chatRoom >= 0) {
+  sockets.join(0, "chat");
+  sockets.to("chat", "Welcome!");
+  // sockets.join(0, chatRoom) uses the same room without a name lookup.
+}
 ```
 
 <h3 id="ws-send">Sending</h3>
@@ -1569,6 +1587,8 @@ void send(int socketId, const char* text);
 void send(int socketId, const uint8_t* data, size_t n, bool binary = false);
 void to(int roomIdx, const char* text);
 void to(int roomIdx, const uint8_t* data, size_t n, bool binary = false);
+void to(const char* name, const char* text);
+void to(const char* name, const uint8_t* data, size_t n, bool binary = false);
 void broadcast(const char* text);
 void broadcast(const uint8_t* data, size_t n, bool binary = false);
 ```
@@ -1576,8 +1596,9 @@ void broadcast(const uint8_t* data, size_t n, bool binary = false);
 `send()` targets one active socket, `to()` targets active members of a room,
 and `broadcast()` targets every active socket. They return no delivery result;
 failed writes deactivate the affected connection and call `onDisconnect`.
-Invalid indices and inactive `send()` targets are ignored. String overloads
-require a non-null NUL-terminated string and send a text frame. Buffer overloads
+Invalid indices, null or unknown room names, and inactive `send()` targets are
+ignored. `to()` never creates a room. String overloads require a non-null
+NUL-terminated string and send a text frame. Buffer overloads
 send exactly `n` bytes; pass `true` for binary. Supply valid storage until the
 method returns. Outgoing text must be valid UTF-8; these methods do not validate
 it. A received payload can contain NUL bytes, so use its pointer
@@ -1718,19 +1739,21 @@ Include `<SseChannel.h>` explicitly after `<aWOT.h>`. This channel writes
 server-sent events to copied, long-lived connection handles. See the
 [Server Sent Events guide](/en/guide/server-sent-events.html).
 
-<h3 id="sse-constructor">Constructor and capacity</h3>
+<h3 id="sse-constructor">Constructor and capacities</h3>
 
 
 ```cpp
-template <typename TClient, int N>
+template <typename TClient, int N, int MAX_ROOMS = 8>
 class SseChannel;
 SseChannel();
 ```
 
-`N` must be positive and reserves `N` client handles plus active flags.
+`N` must be positive and reserves `N` client handles plus active flags and
+32-bit room-membership bitmaps. `MAX_ROOMS` must be in `1..32` and defaults to
+eight. The channel uses a fixed room table and does not allocate receive buffers.
 `TClient` must support default construction, copying a handle to the same
 connection, and the usual Client write, connected, and stop methods. Match it
-to the concrete accepted client type, such as `SseChannel<WiFiClient, 4>`.
+to the concrete accepted client type, such as `SseChannel<WiFiClient, 4, 1>`.
 The stored copy must keep the connection usable after the original handle is
 destroyed. ESP32 `WiFiClient` supports this shared ownership: `add()` retains
 a copy before the local accepted handle leaves scope.
@@ -1756,38 +1779,87 @@ or the temporary client adapter made by `process(Stream*)`.
 
 
 ```cpp
-void add(TClient client);
+int add(TClient client);
 ```
 
 Copies the client into the first inactive or disconnected slot, stops any
-disconnected handle being replaced, and invokes `onConnect`. When all `N`
-slots are connected, it stops the supplied client. It returns no success
-flag. Stopping any alias of a copied handle can also stop the stored connection;
-do not stop the original handle after adding it.
+disconnected handle being replaced, clears that slot's room membership, and
+invokes `onConnect(clientId)`. Returns the selected slot index, or `-1` after
+stopping the supplied client when all `N` slots are connected. Stopping any
+alias of a copied handle can also stop the stored connection; do not stop the
+original handle after adding it.
 
-<h3 id="sse-send">send</h3>
+<h3 id="sse-rooms">Rooms</h3>
 
 
 ```cpp
-void send(const char* data);
-void send(const char* event, const char* data);
+int defineRoom(const char* name);
+int findRoom(const char* name) const;
+const char* roomName(int roomIdx) const;
+void join(int clientId, int roomIdx);
+void join(int clientId, const char* name);
+void leave(int clientId, int roomIdx);
+void leave(int clientId, const char* name);
+bool inRoom(int clientId, int roomIdx) const;
+bool inRoom(int clientId, const char* name) const;
 ```
 
-The first overload broadcasts an unnamed event; browsers receive it through
-`onmessage`. The second prefixes `event: <event>` for a named event. Use a
-non-null event name without CR or LF, and a non-null NUL-terminated data string.
+Rooms use the same rules as [WebSocket rooms](#ws-rooms). `defineRoom()` returns
+an existing index for equal, case-sensitive name contents, even at capacity;
+otherwise it assigns the next index or returns `-1` when the table is full.
+Null names return `-1` without consuming capacity, and empty names are valid.
+Names are borrowed and must remain alive and unchanged while the channel
+exists. `findRoom()` returns an index or `-1` without defining a room.
+`roomName()` returns the registered pointer or null for an unnamed or invalid
+index.
+
+Membership methods accept either a registered name or a numeric index in
+`0..MAX_ROOMS-1`; numeric indices need not have names. Invalid client or room
+indices and null or unknown names make `join()` and `leave()` no-ops and make
+`inRoom()` return false. Membership methods do not check whether a slot is
+active. Adding a client, closing it, or deactivating its slot clears membership.
+One client can join several rooms. Client IDs and room indices are local to
+each channel; an SSE room and a WebSocket room have independent memberships.
+
+<h3 id="sse-send">Sending</h3>
+
+
+```cpp
+void send(int clientId, const char* data);
+void send(int clientId, const char* event, const char* data);
+void to(int roomIdx, const char* data);
+void to(int roomIdx, const char* event, const char* data);
+void to(const char* name, const char* data);
+void to(const char* name, const char* event, const char* data);
+void broadcast(const char* data);
+void broadcast(const char* event, const char* data);
+```
+
+`send()` targets one active client, `to()` targets active members of a room,
+and `broadcast()` targets all active clients. Invalid client or room indices,
+inactive target slots, and null or unknown room names are ignored. Named
+operations never create rooms; define them first.
+
+Overloads without an event name send an unnamed event received through
+`EventSource.onmessage`. Supplying an event name prefixes `event: <event>`;
+browsers receive it through `addEventListener(event, ...)`. Use an event name
+without CR or LF and a non-null NUL-terminated data string. A null event name
+selects an unnamed event.
 Each payload line is prefixed with `data: `; CR, LF, and CRLF are normalized to
 LF, preserving empty and trailing lines. A final blank line ends the event.
 Strings are read during the call and need not remain alive afterward. Binary
 data and embedded NUL are not supported by these overloads.
 
-Both return void. Positive short writes are retried. Disconnected clients,
+All return void. Positive short writes are retried. Disconnected clients,
 zero writes, or invalid write counts stop and deactivate the affected slot.
 Slow transport writes can delay the loop; there is no outgoing event queue.
 
 ```cpp
-events.send("ready");
-events.send("sample", "first line\nsecond line");
+events.defineRoom("updates");
+events.join(0, "updates");
+events.send(0, "ready");
+events.to("updates", "sample", "first line\nsecond line");
+events.broadcast("all clients");
 ```
 
 <h3 id="sse-foreach">forEach and onConnect</h3>
@@ -1795,33 +1867,52 @@ events.send("sample", "first line\nsecond line");
 
 ```cpp
 void forEach(Callback fn);
-void onConnect(Callback callback);
+void onConnect(ConnectCb callback);
 ```
 
-The public type is `typedef std::function<void(Print&)> Callback` when
-`STD_FUNCTION_MIDDLEWARE` is selected, or `typedef void (*Callback)(Print&)`
-otherwise. `onConnect()` replaces the callback; `nullptr` clears it. The
-callback receives a reference to the stored client's Print interface, runs
-synchronously during `add()`, and can write an initial event or comment.
-Captured objects must outlive their callbacks; do not retain the Print reference.
+With `STD_FUNCTION_MIDDLEWARE`, `ConnectCb` is
+`std::function<void(int clientId)>` and `Callback` is
+`std::function<void(Print&)>`. Otherwise they are function pointers with those
+same arguments. `onConnect()` replaces the callback; `nullptr` clears it. It
+runs synchronously during `add()`, after the slot becomes active, and receives
+that slot's client ID. Use it to join rooms or send an initial event to that
+client. Captured objects must outlive their callbacks.
 
-`forEach()` first removes disconnected clients, then calls the supplied
-non-null function for each active client. It is useful for comments, custom
+`forEach()` removes disconnected clients as it visits their slots and calls
+the supplied non-null `Callback` with each remaining client's Print interface.
+Do not retain that reference. It is useful for comments, custom
 `id:` or `retry:` fields, and periodic cleanup. Writes through this Print
 reference bypass `send()`'s short-write retries and failure detection; inspect
 return counts and design custom writes accordingly.
 
 ```cpp
-void initialEvent(Print& client) {
-  client.print("event: ready\ndata: connected\n\n");
+void initialEvent(int clientId) {
+  events.join(clientId, "updates");
+  events.send(clientId, "ready", "connected");
 }
-// Register during setup(): events.onConnect(initialEvent);
+// During setup(): events.defineRoom("updates"); events.onConnect(initialEvent);
 ```
 
+<h3 id="sse-state">Connection state and closure</h3>
+
+
+```cpp
+int count() const;
+bool connected(int clientId) const;
+void close(int clientId);
+```
+
+`count()` counts active slots and `connected()` reports whether an in-range
+slot is active. Neither probes the transport. Sending methods clean up
+disconnected or failed target slots, `forEach()` checks every active slot, and
+`add()` can reclaim a disconnected slot. IDs are reused and are not durable
+client identities. `close()` immediately stops and deactivates an active
+client and clears its room membership; invalid or inactive IDs are ignored.
+
 There is no `poll()`, disconnect callback, automatic heartbeat, event history,
-or replay logic. `send()` and `forEach()` remove disconnected clients; `add()`
-can reuse them. Browsers may reconnect, but the application must implement
-event IDs and replay if needed.
+or replay logic. Browsers may reconnect, but the application must implement
+event IDs and replay if needed. Periodically call `forEach()` or broadcast an
+application event to discover disconnected clients in otherwise idle channels.
 
 <h2 id="storage">Storage and StreamClient</h2>
 
@@ -2015,7 +2106,8 @@ Define these before including `<WsChannel.h>`. Use positive capacities and
 intervals appropriate for your application. Setting a heartbeat interval to
 zero does not disable heartbeat; it makes a ping due immediately. Channel
 definitions must agree across translation units that instantiate the same
-channel type. `N` and `MAX_ROOMS` are template parameters, not macros;
-SseChannel only has its client type and capacity template parameters and no
-heartbeat configuration. Large WebSocket capacities can exhaust small boards;
-the Uno SerialBridge example uses one slot and 64 receive bytes.
+channel type. Both `WsChannel<TClient, N, MAX_ROOMS>` and
+`SseChannel<TClient, N, MAX_ROOMS>` use template parameters for slot and room
+capacities; these are not macros. SSE has no automatic heartbeat configuration.
+Large WebSocket capacities can exhaust small boards; the Uno SerialBridge
+example uses one slot and 64 receive bytes.

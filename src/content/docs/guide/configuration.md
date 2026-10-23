@@ -154,16 +154,24 @@ buffer, whether or not it is occupied. Four 256-byte slots alone reserve 1024
 payload bytes, before slot metadata and HTTP/transport storage; that choice
 is unsuitable for many small-board applications.
 
-`WsChannel<TClient, N, MAX_ROOMS>` requires `N > 0` and `1 <= MAX_ROOMS <= 32`.
-Its defaults are a 256-byte receive buffer, a 5000 ms ping interval, and a
+`WsChannel<TClient, N, MAX_ROOMS>` and `SseChannel<TClient, N, MAX_ROOMS>` both
+require `N > 0` and `1 <= MAX_ROOMS <= 32`. `MAX_ROOMS` defaults to 8, so
+existing two-argument SSE declarations still compile. Each channel reserves
+one 32-bit membership bitmap per client and a fixed table of `MAX_ROOMS` name
+pointers. Room registration and membership changes allocate no heap memory.
+Names are borrowed: use string literals or unchanged storage that outlives
+the channel. The two channels have separate room tables and client slot IDs.
+
+WebSocket defaults are a 256-byte receive buffer, a 5000 ms ping interval, and a
 10000 ms pong timeout. `WS_PING_INTERVAL_MS` and `WS_PING_TIMEOUT_MS` configure
 heartbeat; zero does not turn it off. Define channel macros before the channel
 header and use the same values across translation units instantiating the
 same channel type.
 
-`SseChannel<TClient, N>` stores `N` client handles and has no automatic
-heartbeat or replay buffer. Both channel types copy concrete client handles;
-the template type must match the accepted transport, and your connection owner
-must hand open responses to the appropriate channel. See the
+SSE stores `N` client handles and has no automatic heartbeat or replay buffer.
+Its `onConnect` callback receives an integer client ID; `forEach` callbacks
+receive `Print&` for direct writes. Both channel types copy concrete client
+handles; the template type must match the accepted transport. Your connection
+owner must hand open responses to the appropriate channel. See the
 [WebSocket guide](/en/guide/websockets.html) and
 [Server Sent Events guide](/en/guide/server-sent-events.html) for complete lifecycles.

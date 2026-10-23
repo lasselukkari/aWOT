@@ -39,8 +39,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          # Public v4 source revision; C++ sources/headers match local 4117ee51.
-          ref: bb13af5963ad950015312fe73107766056ccd936
+          # Published v4 source with the unified SSE/WebSocket channel API.
+          ref: d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b
           path: .docs-build/library
       - run: python3 scripts/check-snippets.py --library .docs-build/library --configuration '${{ matrix.configuration }}' --work-dir .docs-build/native
 
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          ref: bb13af5963ad950015312fe73107766056ccd936
+          ref: d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b
           path: .docs-build/library
       - uses: actions/setup-node@v4
         with:

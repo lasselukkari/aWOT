@@ -24,24 +24,24 @@
   },
   {
     "file": "src/content/docs/4x/api.md",
-    "block": 105,
+    "block": 106,
     "wrapper": "body",
     "preamble": "SseChannel<SharedClient, 4> events;"
   },
   {
     "file": "src/content/docs/4x/api.md",
-    "block": 107,
+    "block": 108,
     "wrapper": "decl",
     "preamble": "SseChannel<SharedClient, 4> events;"
   },
   {
     "file": "src/content/docs/4x/api.md",
-    "block": 109,
+    "block": 111,
     "wrapper": "body"
   },
   {
     "file": "src/content/docs/4x/api.md",
-    "block": 111,
+    "block": 113,
     "wrapper": "body"
   }
 ]
