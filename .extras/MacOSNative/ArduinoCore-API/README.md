@@ -1,5 +1,20 @@
 # ArduinoCore-API
 
+## Bundled copy in aWOT
+
+This directory contains the API sources and license from
+[ArduinoCore-API](https://github.com/arduino/ArduinoCore-API), shared by aWOT's
+macOS, Windows, and Linux native examples. Upstream tests and repository
+configuration are omitted. The development instructions below describe the
+upstream repository; aWOT's native checks are documented in the
+[native example README](../README.md#test).
+
+The String files are named `WString.h` and `WString.cpp` in this copy to avoid
+collisions with the system `string.h` on case-insensitive filesystems. The
+bundled code retains its [GNU LGPL 2.1 license](LICENSE).
+
+## Upstream documentation
+
 [![Unit Tests](https://github.com/arduino/ArduinoCore-API/workflows/Unit%20Tests/badge.svg)](https://github.com/arduino/ArduinoCore-API/actions?workflow=Unit+Tests)
 [![codecov](https://codecov.io/gh/arduino/ArduinoCore-API/branch/master/graph/badge.svg)](https://codecov.io/gh/arduino/ArduinoCore-API)
 [![Spell Check status](https://github.com/arduino/ArduinoCore-API/actions/workflows/spell-check.yml/badge.svg)](https://github.com/arduino/ArduinoCore-API/actions/workflows/spell-check.yml)
@@ -92,4 +107,3 @@ This open source code is maintained by Arduino with the help of the community. W
 ## License and credits
 
 This code is licensed under the terms of the GNU LGPL 2.1. If you have questions about licensing please contact us at [license@arduino.cc](mailto:license@arduino.cc).
-
