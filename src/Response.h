@@ -51,6 +51,7 @@ class Response : public Print {
   size_t m_writeAll(const uint8_t* buffer, size_t length);
   void m_failWrite();
   bool m_canStartChannel(int code, int headerCount);
+  bool m_canKeepAlive() const;
   bool m_bodyAllowed() const;
   bool m_chunked() const;
 
@@ -63,6 +64,8 @@ class Response : public Print {
   bool m_chunkedEncoding;
   bool m_contentTypeSet;
   bool m_keepAlive;
+  bool m_requestKeepAlive;
+  bool m_chunkingAllowed;
   bool m_responseOpen;
   bool m_head;
   int m_statusSent;

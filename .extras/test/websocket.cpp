@@ -608,6 +608,22 @@ unittest(heartbeat_tracks_one_outstanding_ping_and_clock_rollover) {
   assertFalse(ws.connected(0));
 }
 
+unittest(queued_pong_is_processed_before_heartbeat_timeout) {
+  Channel ws;
+  SharedClient client;
+  wsNow = 0;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  wsNow += WS_PING_INTERVAL_MS;
+  ws.poll();
+  assertTrue(ws.connected(0));
+  client.feed(frame(10, {}));
+  wsNow += WS_PING_TIMEOUT_MS;
+  ws.poll();
+  assertTrue(ws.connected(0));
+  assertEqual(0, client.available());
+}
+
 unittest(message_stream_peek_and_exhaustion) {
   uint8_t data[] = {'A', 'B'};
   WsMessage msg(data, sizeof(data), WsMessage::TEXT, 7);

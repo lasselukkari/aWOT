@@ -14,6 +14,8 @@ Request::Request(Client* client, Response* m_response,
       m_response(m_response),
       m_method(UNKNOWN),
       m_minorVersion(-1),
+      m_connectionClose(false),
+      m_connectionKeepAlive(false),
       m_pushback(),
       m_pushbackDepth(0),
       m_readingContent(false),
@@ -74,6 +76,43 @@ int decodedChar(const char*& cursor, const char* end, bool plusAsSpace) {
   if (ch == '%') return -1;
   return ch == '+' && plusAsSpace ? ' ' : ch;
 }
+
+class ConnectionParser {
+ public:
+  ConnectionParser()
+      : close(false), keepAlive(false), m_length(0), m_ended(false) {}
+
+  void read(int ch) {
+    if (ch == ',') {
+      finish();
+      m_length = 0;
+      m_ended = false;
+    } else if (ch == ' ' || ch == '\t') {
+      if (m_length) m_ended = true;
+    } else if (m_ended || m_length >= sizeof(m_token) - 1) {
+      m_length = sizeof(m_token);
+    } else {
+      m_token[m_length++] = (char)ch;
+    }
+  }
+
+  void finish() {
+    if (!m_length || m_length >= sizeof(m_token)) return;
+    m_token[m_length] = '\0';
+    P(closeToken) = "close";
+    P(keepAliveToken) = "keep-alive";
+    close |= App::strcmpiP(m_token, closeToken) == 0;
+    keepAlive |= App::strcmpiP(m_token, keepAliveToken) == 0;
+  }
+
+  bool close;
+  bool keepAlive;
+
+ private:
+  char m_token[11];
+  uint8_t m_length;
+  bool m_ended;
+};
 }  // namespace
 
 bool Request::form(char* name, int nameLength, char* value, int valueLength) {
@@ -285,6 +324,11 @@ bool Request::route(int number, char* buffer, int bufferLength) {
 
 int Request::minorVersion() { return m_minorVersion; }
 
+bool Request::m_allowsKeepAlive() const {
+  if (m_connectionClose) return false;
+  return m_minorVersion == 1 || (m_minorVersion == 0 && m_connectionKeepAlive);
+}
+
 void Request::next() { m_next = true; }
 
 size_t Request::write(uint8_t data) { return m_response->write(data); }
@@ -408,24 +452,10 @@ int Request::m_processHeaders() {
       // Request transfer codings are unsupported, including chunked.
       if (m_expectP(TransferEncoding)) return 400;
       Header* header;
-      if (!m_headerName(header)) return 400;
-      if (header) {
-        if (!m_headerValue(header->buffer.data(), header->buffer.size(),
-                           header->m_present)) {
-          return 431;
-        }
-        header->m_present = true;
-        canEnd = true;
-      }
-    }
-
-    if (!canEnd) {
-      while (!m_expect(CRLF)) {
-        if (m_timedRead() == -1) {
-          return 431;
-        }
-      }
-
+      bool connection;
+      if (!m_headerName(header, connection)) return 400;
+      if (!m_headerValue(header, connection)) return header ? 431 : 400;
+      if (header) header->m_present = true;
       canEnd = true;
     }
   }
@@ -435,11 +465,14 @@ int Request::m_processHeaders() {
   return 0;
 }
 
-bool Request::m_headerName(Header*& header) {
+bool Request::m_headerName(Header*& header, bool& connection) {
   int index = 0;
   header = m_headers.size() > 0 ? &m_headers[0] : nullptr;
   size_t matched = 0;
+  size_t length = 0;
   bool hasName = false;
+  connection = true;
+  P(connectionName) = "Connection";
   int ch;
   while ((ch = m_timedRead()) != -1) {
     if (ch != ':') {
@@ -451,6 +484,10 @@ bool Request::m_headerName(Header*& header) {
     }
 
     int expected = ch == ':' ? 0 : tolower(ch);
+    if (connection &&
+        tolower(pgm_read_byte(connectionName + length)) != expected) {
+      connection = false;
+    }
     if (header && tolower((unsigned char)header->name[matched]) != expected) {
       // The current candidate remembers the prefix already read. Find the
       // next candidate with that prefix and this character without rewinding
@@ -474,32 +511,53 @@ bool Request::m_headerName(Header*& header) {
     }
     if (ch == ':') return hasName;
     if (header) ++matched;
+    ++length;
   }
   return false;
 }
 
-bool Request::m_headerValue(char* buffer, int bufferLength, bool append) {
-  if (!buffer || bufferLength <= 0) return false;
-  if (append) {
+bool Request::m_headerValue(Header* header, bool connection) {
+  char* buffer = NULL;
+  int bufferLength = 0;
+  if (header) {
+    buffer = header->buffer.data();
+    bufferLength = header->buffer.size();
+  }
+  if (header && header->m_present) {
     int length = strlen(buffer);
     if (length + 1 >= bufferLength) return false;
     buffer[length] = ',';
     buffer += length + 1;
     bufferLength -= length + 1;
   }
-  *buffer = '\0';
+  if (header) *buffer = '\0';
   if (!m_skipSpace()) return false;
+
   bool valid = true;
+  ConnectionParser connectionValue;
   while (!m_expect(CRLF)) {
     int ch = m_timedRead();
     if (ch < 0) return false;
-    if (ch == 0 || ch == '\r' || ch == '\n') valid = false;
-    if (bufferLength <= 1) valid = false;
-    if (valid) {
+    if (ch == '\r' || ch == '\n' || ch == 0 || ch == 0x7f ||
+        (ch < 0x20 && ch != '\t')) {
+      return false;
+    }
+
+    if (connection) connectionValue.read(ch);
+
+    if (header && bufferLength > 1 && valid) {
       *buffer++ = (char)ch;
       *buffer = '\0';
       --bufferLength;
+    } else if (header) {
+      valid = false;
     }
+  }
+
+  if (connection) {
+    connectionValue.finish();
+    m_connectionClose |= connectionValue.close;
+    m_connectionKeepAlive |= connectionValue.keepAlive;
   }
   return valid;
 }

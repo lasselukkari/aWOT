@@ -19,6 +19,11 @@ static void explicitChunked(Request&, Response& res) {
   res.print("hello");
 }
 
+static void explicitChunkedOnly(Request&, Response& res) {
+  res.set("Transfer-Encoding", "chunked");
+  res.print("hello");
+}
+
 static void body(Request&, Response& res) {
   res.print("hidden");
   res.write('!');
@@ -83,6 +88,31 @@ unittest(explicit_chunking_works_with_connection_close) {
   assertEqual("HTTP/1.1 200 OK" CRLF "Transfer-Encoding: chunked" CRLF
               "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF
               "5" CRLF "hello" CRLF "0" CRLF CRLF,
+              stream.response());
+  assertFalse(result.keepAlive);
+}
+
+unittest(request_connection_close_overrides_response_keep_alive) {
+  MockStream stream("GET / HTTP/1.1" CRLF
+                    "Connection: keep-alive, close" CRLF CRLF);
+  App app;
+  app.use(keepAlive);
+  app.get("/", earlyDefaults);
+  App::ProcessResult result = app.process(&stream);
+  assertEqual("HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+              "Connection: close" CRLF CRLF "hello",
+              stream.response());
+  assertFalse(result.keepAlive);
+}
+
+unittest(http_1_0_never_uses_chunked_transfer_encoding) {
+  MockStream stream("GET / HTTP/1.0" CRLF "Connection: keep-alive" CRLF CRLF);
+  App app;
+  app.use(keepAlive);
+  app.get("/", explicitChunkedOnly);
+  App::ProcessResult result = app.process(&stream);
+  assertEqual("HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+              "Connection: close" CRLF CRLF "hello",
               stream.response());
   assertFalse(result.keepAlive);
 }

@@ -75,8 +75,9 @@ class Request : public Stream {
   bool m_readVersion();
   bool m_processURL();
   int m_processHeaders();
-  bool m_headerName(Header*& header);
-  bool m_headerValue(char* buffer, int bufferLength, bool append);
+  bool m_headerName(Header*& header, bool& connection);
+  bool m_headerValue(Header* header, bool connection);
+  bool m_allowsKeepAlive() const;
   bool m_readInt(int& number);
   void m_setRoute(const char* route, const char* pattern);
   bool m_expect(const char* expected);
@@ -89,6 +90,8 @@ class Request : public Stream {
   Response* m_response;
   MethodType m_method;
   int m_minorVersion;
+  bool m_connectionClose;
+  bool m_connectionKeepAlive;
   unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
   int m_pushbackDepth;
   bool m_readingContent;

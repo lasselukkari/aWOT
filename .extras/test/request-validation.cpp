@@ -162,6 +162,11 @@ unittest(malformed_header_names_and_framing_never_dispatch) {
       "Content-Length: 1" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "Transfer-Encoding: identity" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "X-Ignored: value\nContent-Length: 4" CRLF CRLF
+      "body",
+      "POST / HTTP/1.1" CRLF "X-Ignored: value\rContent-Length: 4" CRLF CRLF
+      "body",
+      "POST / HTTP/1.1" CRLF "X-Ignored: value\x01" CRLF CRLF,
   };
   for (const char* request : requests) {
     App app;
@@ -174,6 +179,21 @@ unittest(malformed_header_names_and_framing_never_dispatch) {
     assertFalse(observation.called);
     assertTrue(strstr(stream.response(), "HTTP/1.1 400 ") == stream.response());
   }
+}
+
+unittest(uncaptured_header_nul_never_dispatches) {
+  static const char request[] =
+      "POST / HTTP/1.1" CRLF "X-Ignored: value\0Content-Length: 4" CRLF CRLF
+      "body";
+  App app;
+  app.post("/", observe);
+  Observation observation = {false, -1, false};
+  App::ProcessOptions options;
+  options.context = &observation;
+  MockStream stream(request, sizeof(request) - 1);
+  app.process(&stream, options);
+  assertFalse(observation.called);
+  assertTrue(strstr(stream.response(), "HTTP/1.1 400 ") == stream.response());
 }
 
 void observeBody(Request& req, Response& res) {

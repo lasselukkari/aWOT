@@ -413,21 +413,6 @@ class WsChannel {
       return;
     }
 
-    uint32_t now = millis();
-    if (s.awaitingPong && (now - s.lastPingSentMs) >= WS_PING_TIMEOUT_MS) {
-      deactivate(i);
-      return;
-    }
-    if (!s.awaitingPong && (now - s.lastPingSentMs) >= WS_PING_INTERVAL_MS) {
-      bool ok = writeFrame(s.client, 0x9, nullptr, 0);
-      if (!ok) {
-        deactivate(i);
-        return;
-      }
-      s.lastPingSentMs = now;
-      s.awaitingPong = true;
-    }
-
     bool progress = true;
     while (progress) {
       progress = false;
@@ -557,6 +542,21 @@ class WsChannel {
       resetRxState(i);
       progress = true;
     }
+
+    uint32_t now = millis();
+    if (s.awaitingPong && (now - s.lastPingSentMs) >= WS_PING_TIMEOUT_MS) {
+      deactivate(i);
+      return;
+    }
+    if (!s.awaitingPong && (now - s.lastPingSentMs) >= WS_PING_INTERVAL_MS) {
+      bool ok = writeFrame(s.client, 0x9, nullptr, 0);
+      if (!ok) {
+        deactivate(i);
+        return;
+      }
+      s.lastPingSentMs = now;
+      s.awaitingPong = true;
+    }
   }
 
   void dispatchFrame(int i) {
@@ -598,7 +598,10 @@ class WsChannel {
         sendFrame(i, 0xA, s.rxPayload, s.rxExpected);
         break;
       case 0xA:  // pong
-        s.awaitingPong = false;
+        if (s.awaitingPong) {
+          s.awaitingPong = false;
+          s.lastPingSentMs = millis();
+        }
         break;
       default:
         closeSlot(i, 1003);

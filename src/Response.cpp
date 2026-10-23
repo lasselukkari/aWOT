@@ -13,6 +13,8 @@ Response::Response(Client* client, uint8_t* writeBuffer, int writeBufferLength)
       m_chunkedEncoding(false),
       m_contentTypeSet(false),
       m_keepAlive(false),
+      m_requestKeepAlive(false),
+      m_chunkingAllowed(false),
       m_responseOpen(false),
       m_head(false),
       m_statusSent(0),
@@ -56,26 +58,35 @@ void Response::beginHeaders() {
   if (streaming) {
     m_keepAlive = false;
     m_chunkedEncoding = false;
+  } else if (m_statusSent >= 200) {
+    m_keepAlive = m_canKeepAlive();
+    if (!m_chunkingAllowed) m_chunkedEncoding = false;
   }
   P(connectionName) = "Connection";
   P(lengthName) = "Content-Length";
   P(encodingName) = "Transfer-Encoding";
   P(headerSeparator) = ": ";
+  bool connectionWritten = false;
   for (int i = 0; i < m_headersCount; i++) {
     const char* name = m_headers[i].name;
     bool length = App::strcmpiP(name, lengthName) == 0;
     bool encoding = App::strcmpiP(name, encodingName) == 0;
-    if (streaming &&
-        (length || encoding || App::strcmpiP(name, connectionName) == 0))
-      continue;
+    bool connection = App::strcmpiP(name, connectionName) == 0;
+    if (streaming && (length || encoding || connection)) continue;
+    if (encoding && !m_chunkingAllowed) continue;
     if ((m_statusSent < 200 || m_statusSent == 204) && (length || encoding))
       continue;
     if (m_statusSent == 205 && (length || encoding)) continue;
     if (length && m_chunkedEncoding) continue;
+    if (m_statusSent >= 200 && connection && !m_keepAlive) {
+      P(closeConnection) = "close";
+      if (App::strcmpiP(m_headers[i].value, closeConnection) != 0) continue;
+    }
     this->print(m_headers[i].name);
     printP(headerSeparator);
     this->print(m_headers[i].value);
     m_printCRLF();
+    if (connection) connectionWritten = true;
   }
   // Defaults do not occupy caller header slots. Protocol switches and interim
   // responses have only their explicitly supplied headers.
@@ -93,7 +104,7 @@ void Response::beginHeaders() {
       P(emptyContent) = "Content-Length: 0\r\n";
       printP(emptyContent);
     }
-    if (streaming || (!m_keepAlive && !get("Connection"))) {
+    if (streaming || (!m_keepAlive && !connectionWritten)) {
       P(close) = "Connection: close\r\n";
       printP(close);
     }
@@ -205,13 +216,18 @@ bool Response::m_canStartChannel(int code, int headerCount) {
          headerCount <= SERVER_MAX_HEADERS - m_headersCount;
 }
 
+bool Response::m_canKeepAlive() const {
+  if (!m_keepAlive || !m_requestKeepAlive || m_responseOpen) return false;
+  return !m_bodyAllowed() || m_contentLengthSet || m_chunkingAllowed;
+}
+
 bool Response::m_bodyAllowed() const {
   return !m_head && m_statusSent >= 200 && m_statusSent != 204 &&
          m_statusSent != 205 && m_statusSent != 304;
 }
 
 bool Response::m_chunked() const {
-  return m_bodyAllowed() &&
+  return m_chunkingAllowed && m_bodyAllowed() &&
          (m_chunkedEncoding || (m_keepAlive && !m_contentLengthSet));
 }
 

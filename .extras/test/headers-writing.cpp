@@ -82,7 +82,7 @@ unittest(content_type) {
 }
 
 unittest(connection_keep_alive) {
-  const char* request = "GET / HTTP/1.0" CRLF CRLF "GET / HTTP/1.0" CRLF CRLF;
+  const char* request = "GET / HTTP/1.1" CRLF CRLF "GET / HTTP/1.1" CRLF CRLF;
 
   const char* expected =
       "HTTP/1.1 200 OK" CRLF "Connection: keep-alive" CRLF
@@ -102,7 +102,8 @@ unittest(connection_keep_alive) {
 }
 
 unittest(connection_keep_alive_content_length) {
-  const char* request = "GET / HTTP/1.0" CRLF CRLF;
+  const char* request =
+      "GET / HTTP/1.0" CRLF "Connection: keep-alive" CRLF CRLF;
 
   const char* expected =
       "HTTP/1.1 200 OK" CRLF "Connection: keep-alive" CRLF
@@ -112,9 +113,10 @@ unittest(connection_keep_alive_content_length) {
   App app;
 
   app.get("/", &keepAliveContentLengthHandler);
-  app.process(&stream);
+  App::ProcessResult result = app.process(&stream);
 
   assertEqual(expected, stream.response());
+  assertTrue(result.keepAlive);
 }
 
 unittest_main()

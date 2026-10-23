@@ -99,7 +99,7 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
       parsed && !response.getWriteError() && response.m_responseOpen;
   result.keepAlive = parsed && request.left() == 0 &&
                      !response.getWriteError() && !response.m_responseOpen &&
-                     response.m_keepAlive;
+                     response.m_keepAlive && request.m_allowsKeepAlive();
   if (!parsed) client->stop();
 
   for (int i = 0; i < headers.size(); ++i) {
@@ -251,6 +251,8 @@ void App::m_process(Request& request, Response& response) {
     return;
   }
 
+  response.m_chunkingAllowed = request.minorVersion() == 1;
+
   int headerError = request.m_processHeaders();
   if (headerError) {
     if (request.m_timedout()) {
@@ -263,6 +265,8 @@ void App::m_process(Request& request, Response& response) {
     if (!response.ended()) return response.sendStatus(headerError);
     return;
   }
+
+  response.m_requestKeepAlive = request.m_allowsKeepAlive();
 
   m_defaultRouter.m_dispatchMiddleware(request, response);
 
