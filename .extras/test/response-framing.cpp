@@ -56,6 +56,11 @@ static void streaming(Request&, Response& res) {
   res.print("hello");
 }
 
+static void headStreaming(Request&, Response& res) {
+  res.keepOpen();
+  res.print("hidden");
+}
+
 static void switching(Request&, Response& res) {
   res.status(101);
   res.set("Connection", "Upgrade");
@@ -132,6 +137,20 @@ unittest(head_suppresses_payload_and_terminal_chunk) {
                 stream.response());
     assertTrue(result.keepAlive);
   }
+}
+
+unittest(head_cannot_open_streaming_response) {
+  MockStream stream("HEAD /stream HTTP/1.1" CRLF CRLF);
+  App app;
+  app.head("/stream", headStreaming);
+
+  App::ProcessResult result = app.process(&stream);
+
+  assertEqual("HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+              "Connection: close" CRLF CRLF,
+              stream.response());
+  assertFalse(result.responseOpen);
+  assertFalse(result.keepAlive);
 }
 
 unittest(head_not_found_has_no_body) {

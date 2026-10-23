@@ -145,7 +145,7 @@ const char* Response::get(const char* name) {
 bool Response::headersSent() { return m_headersSent; }
 
 void Response::keepOpen() {
-  if (!getWriteError()) m_responseOpen = true;
+  if (!getWriteError() && !m_head) m_responseOpen = true;
 }
 
 void Response::printP(const unsigned char* string) {

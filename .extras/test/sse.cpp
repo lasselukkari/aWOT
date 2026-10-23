@@ -55,6 +55,29 @@ unittest(sse_open_after_keepalive_sends_close_delimited_events) {
   assertEqual(expected, client.outputString());
 }
 
+unittest(sse_head_response_is_not_opened_or_retained) {
+  Events events;
+  SharedClient client;
+  App app;
+  opening = &events;
+  app.head("/events", openEvents);
+  client.feed("HEAD /events HTTP/1.1\r\nHost: local\r\n\r\n");
+
+  App::ProcessResult result = app.process(&client);
+
+  const std::string expected =
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/event-stream\r\nCache-Control: no-cache\r\n"
+      "Connection: close\r\n\r\n";
+  assertEqual(expected, client.outputString());
+  assertFalse(result.responseOpen);
+  assertFalse(result.keepAlive);
+
+  client.clearOutput();
+  events.send("hidden");
+  assertTrue(client.outputString().empty());
+}
+
 unittest(sse_open_requires_capacity_for_every_response_header) {
   for (int count = SERVER_MAX_HEADERS - 2; count <= SERVER_MAX_HEADERS;
        ++count) {

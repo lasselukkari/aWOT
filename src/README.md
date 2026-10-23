@@ -57,9 +57,11 @@ interim response and are cleared afterward. Status 101 retains its upgrade state
 and never emits a terminal HTTP chunk.
 
 HEAD responses and statuses that forbid a body emit neither payload bytes nor
-chunk terminators. Calling `setDefaults()` before a status still chooses framing
-for the eventual response. An explicit `Transfer-Encoding: chunked` response header uses the
-same chunk framing as an automatically selected encoding.
+chunk terminators. Calling `keepOpen()` for a HEAD request is ignored, and
+`ProcessResult.responseOpen` remains false. Calling `setDefaults()` before a
+status still chooses framing for the eventual response. An explicit
+`Transfer-Encoding: chunked` response header uses the same chunk framing as an
+automatically selected encoding.
 
 `keepOpen()` streams use close-delimited HTTP bodies: Connection is set to close,
 and Content-Length/Transfer-Encoding are removed before headers are emitted.
