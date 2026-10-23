@@ -27,6 +27,7 @@ Request::Request(Client* client, Response* m_response,
       m_pattern(NULL),
       m_route(NULL),
       m_next(true) {
+  *m_path = '\0';
   _timeout = timeout;
 }
 
@@ -200,7 +201,7 @@ int Request::read() {
     m_left--;
   }
 
-  m_bytesRead++;
+  if (m_bytesRead < INT_MAX) ++m_bytesRead;
   return ch;
 }
 
@@ -224,7 +225,7 @@ int Request::read(uint8_t* buf, size_t size) {
   }
 
   ret += read;
-  m_bytesRead += read;
+  m_bytesRead += min(read, INT_MAX - m_bytesRead);
   m_left -= read;
 
   return ret;

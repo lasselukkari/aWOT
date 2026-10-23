@@ -16,9 +16,21 @@ class SseChannel {
   typedef void (*Callback)(Print&);
 #endif
 
-  SseChannel() : m_onConnect(nullptr) { memset(m_active, 0, sizeof(m_active)); }
+  SseChannel()
+#ifdef STD_FUNCTION_MIDDLEWARE
+      : m_connectRevision(0), m_onConnect(nullptr) {
+#else
+      : m_onConnect(nullptr) {
+#endif
+    memset(m_active, 0, sizeof(m_active));
+  }
 
   void open(Response& res) {
+    // A stream without its required headers must not be retained by the caller.
+    if (!res.m_canStartChannel(200, 2)) {
+      res.m_failWrite();
+      return;
+    }
     res.status(200);
     res.set("Content-Type", "text/event-stream");
     res.set("Cache-Control", "no-cache");
@@ -31,7 +43,7 @@ class SseChannel {
         if (m_active[i]) m_clients[i].stop();
         m_clients[i] = client;
         m_active[i] = true;
-        if (m_onConnect) m_onConnect(m_clients[i]);
+        callOnConnect(m_clients[i]);
         return;
       }
     }
@@ -69,7 +81,12 @@ class SseChannel {
     }
   }
 
-  void onConnect(Callback callback) { m_onConnect = callback; }
+  void onConnect(Callback callback) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    ++m_connectRevision;
+#endif
+    m_onConnect = callback;
+  }
 
  private:
   void deactivate(int i) {
@@ -105,7 +122,24 @@ class SseChannel {
 
   TClient m_clients[N];
   bool m_active[N];
+#ifdef STD_FUNCTION_MIDDLEWARE
+  uint32_t m_connectRevision;
+#endif
   Callback m_onConnect;
+
+  void callOnConnect(Print& output) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    uint32_t revision = m_connectRevision;
+    Callback callback;
+    callback.swap(m_onConnect);
+    if (!callback) return;
+    callback(output);
+    // Restore the invoked callback unless it replaced itself.
+    if (revision == m_connectRevision) callback.swap(m_onConnect);
+#else
+    if (m_onConnect) m_onConnect(output);
+#endif
+  }
 };
 
 }  // namespace awot

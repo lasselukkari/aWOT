@@ -68,6 +68,12 @@ class WsChannel {
 
   WsChannel()
       : m_roomCount(0),
+        m_polling(false),
+#ifdef STD_FUNCTION_MIDDLEWARE
+        m_connectRevision(0),
+        m_disconnectRevision(0),
+        m_messageRevision(0),
+#endif
         m_onConnect(nullptr),
         m_onDisconnect(nullptr),
         m_onMessage(nullptr) {
@@ -95,6 +101,8 @@ class WsChannel {
 
     Client* c = req.client();
     if (!c) return false;
+    // All handshake headers must fit before the 101 status is committed.
+    if (!res.m_canStartChannel(101, 3)) return false;
 
     int slot = findFreeSlot();
     if (slot < 0) {
@@ -121,11 +129,17 @@ class WsChannel {
     m_slots[slot].lastPingSentMs = now;
     m_slots[slot].awaitingPong = false;
 
-    if (m_onConnect) m_onConnect(slot);
+    callOnConnect(slot);
     return true;
   }
 
   void poll() {
+    if (m_polling) return;
+    struct PollGuard {
+      bool& polling;
+      ~PollGuard() { polling = false; }
+    } guard = {m_polling};
+    m_polling = true;
     for (int i = 0; i < N; i++) {
       if (m_slots[i].active) pollSlot(i);
     }
@@ -219,9 +233,24 @@ class WsChannel {
     closeSlot(socketId, validCloseCode(code) ? code : 1002);
   }
 
-  void onConnect(ConnectCb cb) { m_onConnect = cb; }
-  void onDisconnect(DisconnectCb cb) { m_onDisconnect = cb; }
-  void onMessage(MessageCb cb) { m_onMessage = cb; }
+  void onConnect(ConnectCb cb) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    ++m_connectRevision;
+#endif
+    m_onConnect = cb;
+  }
+  void onDisconnect(DisconnectCb cb) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    ++m_disconnectRevision;
+#endif
+    m_onDisconnect = cb;
+  }
+  void onMessage(MessageCb cb) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    ++m_messageRevision;
+#endif
+    m_onMessage = cb;
+  }
 
  private:
   struct Slot {
@@ -245,10 +274,56 @@ class WsChannel {
   uint32_t m_rooms[N];
   const char* m_roomNames[MAX_ROOMS];
   int m_roomCount;
+  bool m_polling;
 
+#ifdef STD_FUNCTION_MIDDLEWARE
+  uint32_t m_connectRevision;
+  uint32_t m_disconnectRevision;
+  uint32_t m_messageRevision;
+#endif
   ConnectCb m_onConnect;
   DisconnectCb m_onDisconnect;
   MessageCb m_onMessage;
+
+  void callOnConnect(int socketId) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    uint32_t revision = m_connectRevision;
+    ConnectCb callback;
+    callback.swap(m_onConnect);
+    if (!callback) return;
+    callback(socketId);
+    // Restore the invoked callback unless it replaced itself.
+    if (revision == m_connectRevision) callback.swap(m_onConnect);
+#else
+    if (m_onConnect) m_onConnect(socketId);
+#endif
+  }
+
+  void callOnDisconnect(int socketId) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    uint32_t revision = m_disconnectRevision;
+    DisconnectCb callback;
+    callback.swap(m_onDisconnect);
+    if (!callback) return;
+    callback(socketId);
+    if (revision == m_disconnectRevision) callback.swap(m_onDisconnect);
+#else
+    if (m_onDisconnect) m_onDisconnect(socketId);
+#endif
+  }
+
+  void callOnMessage(WsMessage& message) {
+#ifdef STD_FUNCTION_MIDDLEWARE
+    uint32_t revision = m_messageRevision;
+    MessageCb callback;
+    callback.swap(m_onMessage);
+    if (!callback) return;
+    callback(message);
+    if (revision == m_messageRevision) callback.swap(m_onMessage);
+#else
+    if (m_onMessage) m_onMessage(message);
+#endif
+  }
 
   bool validRoom(int r) const { return r >= 0 && r < MAX_ROOMS; }
   bool validSocket(int s) const { return s >= 0 && s < N; }
@@ -279,7 +354,7 @@ class WsChannel {
     m_slots[i].active = false;
     m_rooms[i] = 0;
     m_slots[i].client.stop();
-    if (m_onDisconnect) m_onDisconnect(i);
+    callOnDisconnect(i);
   }
 
   void closeSlot(int i, uint16_t code) {
@@ -495,7 +570,7 @@ class WsChannel {
         }
         if (m_onMessage) {
           WsMessage msg(s.rxPayload, s.rxExpected, s.rxOpcode, i);
-          m_onMessage(msg);
+          callOnMessage(msg);
         }
         break;
       }

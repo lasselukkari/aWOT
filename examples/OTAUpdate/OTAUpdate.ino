@@ -45,6 +45,15 @@ void indexHandler(Request &req, Response &res) {
   res.println("</html>");
 }
 
+void abortUpdate() {
+#if defined(ESP8266)
+  // ESP8266 clears an incomplete or failed update through end().
+  Update.end();
+#else
+  Update.abort();
+#endif
+}
+
 void update(Request &req, Response &res) {
   int contentLength = req.left();
 
@@ -62,17 +71,22 @@ void update(Request &req, Response &res) {
   while (!req.available() && millis() - start <= 5000) {}
 
   if (!req.available()) {
+    abortUpdate();
     return res.sendStatus(408);
   }
 
   if (Update.writeStream(req) != contentLength) {
     res.status(400);
-    return Update.printError(res);
+    Update.printError(res);
+    abortUpdate();
+    return;
   }
 
   if (!Update.end(true)) {
     res.status(500);
-    return Update.printError(res);
+    Update.printError(res);
+    abortUpdate();
+    return;
   }
 
   shouldRestart = true;

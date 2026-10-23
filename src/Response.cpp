@@ -199,6 +199,12 @@ void Response::setDefaults() {
   // derived in beginHeaders(), once the status and connection mode are known.
 }
 
+bool Response::m_canStartChannel(int code, int headerCount) {
+  return !getWriteError() && !m_ended && !m_headersSent && !m_sendingHeaders &&
+         (!m_statusSent || m_statusSent == code) &&
+         headerCount <= SERVER_MAX_HEADERS - m_headersCount;
+}
+
 bool Response::m_bodyAllowed() const {
   return !m_head && m_statusSent >= 200 && m_statusSent != 204 &&
          m_statusSent != 205 && m_statusSent != 304;

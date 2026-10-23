@@ -16,6 +16,52 @@ static bool upgradeResult;
 static int connects, disconnects, messageCount, lastSocket;
 static bool lastBinary;
 static std::vector<uint8_t> lastData;
+static int precedingHeaders;
+static int precedingResponseStage;
+static int callbackDepth;
+static int maxCallbackDepth;
+static bool nestedPayloadUnchanged;
+
+#ifdef STD_FUNCTION_MIDDLEWARE
+struct StatefulConnectCallback {
+  explicit StatefulConnectCallback(std::vector<int>* calls)
+      : calls(calls), count(0) {}
+  void operator()(int) { calls->push_back(++count); }
+  std::vector<int>* calls;
+  int count;
+};
+
+struct StatefulDisconnectCallback {
+  explicit StatefulDisconnectCallback(std::vector<int>* calls)
+      : calls(calls), count(0) {}
+  void operator()(int) { calls->push_back(++count); }
+  std::vector<int>* calls;
+  int count;
+};
+
+struct StatefulMessageCallback {
+  explicit StatefulMessageCallback(std::vector<int>* calls)
+      : calls(calls), count(0) {}
+  void operator()(WsMessage&) { calls->push_back(++count); }
+  std::vector<int>* calls;
+  int count;
+};
+#endif
+
+static void queueHeaders(Request& req, Response& res) {
+  for (int i = 0; i < precedingHeaders; ++i) res.set("X-App", "value");
+  req.next();
+}
+
+static void startResponse(Request& req, Response& res) {
+  res.status(200);
+  if (precedingResponseStage >= 1) res.beginHeaders();
+  if (precedingResponseStage >= 2) {
+    res.endHeaders();
+    res.print("already started");
+  }
+  req.next();
+}
 
 static void upgradeHandler(Request& req, Response& res) {
   upgradeResult = upgrading->upgrade(req, res);
@@ -36,6 +82,17 @@ static void messageHandler(WsMessage& msg) {
   lastData.clear();
   while (msg.available()) lastData.push_back((uint8_t)msg.read());
 }
+static void nestedPollHandler(WsMessage& msg) {
+  ++messageCount;
+  ++callbackDepth;
+  if (callbackDepth > maxCallbackDepth) maxCallbackDepth = callbackDepth;
+  const std::vector<uint8_t> before(msg.data(), msg.data() + msg.length());
+  if (callbackDepth == 1) upgrading->poll();
+  const std::vector<uint8_t> after(msg.data(), msg.data() + msg.length());
+  nestedPayloadUnchanged = nestedPayloadUnchanged && before == after;
+  lastData.insert(lastData.end(), after.begin(), after.end());
+  --callbackDepth;
+}
 
 static std::string request(const std::string& key = "dGhlIHNhbXBsZSBub25jZQ==",
                            const char* method = "GET",
@@ -50,10 +107,12 @@ static std::string request(const std::string& key = "dGhlIHNhbXBsZSBub25jZQ==",
 }
 
 static bool handshake(Channel& ws, SharedClient& client,
-                      const std::string& input = request()) {
+                      const std::string& input = request(),
+                      void (*prepare)(Request&, Response&) = nullptr) {
   App app;
   upgrading = &ws;
   upgradeResult = false;
+  if (prepare) app.use(prepare);
   app.use(upgradeHandler);
   client.feed(input);
   char upgrade[40], connection[40], key[64], version[16];
@@ -194,6 +253,152 @@ unittest(handshake_failure_does_not_register_socket) {
   assertEqual(0, connects);
   assertFalse(client.connected());
 }
+
+unittest(handshake_requires_capacity_for_every_response_header) {
+  for (precedingHeaders = SERVER_MAX_HEADERS - 3;
+       precedingHeaders <= SERVER_MAX_HEADERS; ++precedingHeaders) {
+    Channel ws;
+    SharedClient client;
+    connects = 0;
+    ws.onConnect(connectHandler);
+    bool fits = precedingHeaders == SERVER_MAX_HEADERS - 3;
+    assertEqual(fits, handshake(ws, client, request(), queueHeaders));
+    assertEqual(fits, upgradeResult);
+    assertEqual(fits ? 1 : 0, ws.count());
+    assertEqual(fits ? 1 : 0, connects);
+    const std::string output = client.outputString();
+    if (fits) {
+      assertTrue(output.find("HTTP/1.1 101 Switching Protocols\r\n") == 0);
+      assertTrue(output.find("Upgrade: websocket\r\n") != std::string::npos);
+      assertTrue(output.find("Connection: Upgrade\r\n") != std::string::npos);
+      assertTrue(output.find("Sec-WebSocket-Accept: ") != std::string::npos);
+    } else {
+      assertTrue(output.find("HTTP/1.1 400 Bad Request\r\n") == 0);
+      assertTrue(output.find("Upgrade:") == std::string::npos);
+      assertTrue(output.find("Sec-WebSocket-Accept:") == std::string::npos);
+    }
+  }
+}
+
+unittest(handshake_does_not_take_over_an_existing_http_response) {
+  for (precedingResponseStage = 0; precedingResponseStage < 3;
+       ++precedingResponseStage) {
+    Channel ws;
+    SharedClient client;
+    connects = 0;
+    ws.onConnect(connectHandler);
+    assertFalse(handshake(ws, client, request(), startResponse));
+    assertFalse(upgradeResult);
+    assertEqual(0, ws.count());
+    assertEqual(0, connects);
+    assertTrue(client.outputString().find("HTTP/1.1 200 OK\r\n") == 0);
+    assertTrue(client.outputString().find("Upgrade:") == std::string::npos);
+  }
+}
+
+unittest(nested_poll_preserves_messages_and_defers_other_sockets) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  callbackDepth = maxCallbackDepth = 0;
+  nestedPayloadUnchanged = true;
+  ws.onMessage(nestedPollHandler);
+  first.feed(frame(2, {'A'}));
+  second.feed(frame(2, {'B'}));
+  ws.poll();
+  assertEqual(2, messageCount);
+  assertEqual(1, maxCallbackDepth);
+  assertTrue(nestedPayloadUnchanged);
+  assertTrue(lastData == std::vector<uint8_t>({'A', 'B'}));
+  first.feed(frame(2, {'C'}));
+  ws.poll();
+  assertEqual(3, messageCount);
+  assertTrue(lastData == std::vector<uint8_t>({'A', 'B', 'C'}));
+}
+
+#ifdef STD_FUNCTION_MIDDLEWARE
+unittest(connect_callback_can_clear_itself_and_keep_using_captures) {
+  Channel ws;
+  SharedClient first, second;
+  const std::string captured(256, 'c');
+  std::string observed;
+  ws.onConnect([&ws, &observed, captured](int) {
+    ++connects;
+    ws.onConnect(nullptr);
+    observed = captured;
+  });
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  assertEqual(1, connects);
+  assertEqual(captured, observed);
+}
+
+unittest(disconnect_callback_can_clear_itself_and_keep_using_captures) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  const std::string captured(256, 'd');
+  std::string observed;
+  ws.onDisconnect([&ws, &observed, captured](int) {
+    ++disconnects;
+    ws.onDisconnect(nullptr);
+    observed = captured;
+  });
+  ws.close(0);
+  ws.close(1);
+  assertEqual(1, disconnects);
+  assertEqual(captured, observed);
+  assertEqual(0, ws.count());
+}
+
+unittest(message_callback_can_clear_or_replace_itself_and_use_captures) {
+  for (int replace = 0; replace < 2; ++replace) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    const std::string captured(256, 'm');
+    std::string observed;
+    messageCount = 0;
+    ws.onMessage([&ws, &observed, captured, replace](WsMessage&) {
+      ++messageCount;
+      if (replace)
+        ws.onMessage(messageHandler);
+      else
+        ws.onMessage(nullptr);
+      observed = captured;
+    });
+    client.feed(frame(2, {'A'}));
+    ws.poll();
+    assertEqual(1, messageCount);
+    assertEqual(captured, observed);
+    client.feed(frame(2, {'B'}));
+    ws.poll();
+    assertEqual(replace ? 2 : 1, messageCount);
+    if (replace) assertTrue(lastData == std::vector<uint8_t>({'B'}));
+  }
+}
+
+unittest(callbacks_preserve_mutable_functor_state) {
+  Channel ws;
+  SharedClient first, second;
+  std::vector<int> connectCalls, disconnectCalls, messageCalls;
+  ws.onConnect(StatefulConnectCallback(&connectCalls));
+  ws.onDisconnect(StatefulDisconnectCallback(&disconnectCalls));
+  ws.onMessage(StatefulMessageCallback(&messageCalls));
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  first.feed(frame(2, {'A'}));
+  second.feed(frame(2, {'B'}));
+  ws.poll();
+  ws.close(0);
+  ws.close(1);
+  assertTrue(connectCalls == std::vector<int>({1, 2}));
+  assertTrue(messageCalls == std::vector<int>({1, 2}));
+  assertTrue(disconnectCalls == std::vector<int>({1, 2}));
+}
+#endif
 
 unittest(masked_frames_can_arrive_one_byte_at_a_time) {
   Channel ws;

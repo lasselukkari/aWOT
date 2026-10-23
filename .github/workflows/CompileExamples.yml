@@ -26,12 +26,14 @@ jobs:
             platform: arduino:sam
           - fqbn: esp32:esp32:nodemcu-32s
             platform: esp32:esp32
+          - fqbn: esp8266:esp8266:nodemcuv2
+            platform: esp8266:esp8266
     steps:
       - uses: actions/checkout@v4
       - uses: arduino/setup-arduino-cli@v2
       - name: Install platform and libraries
         run: |
-          arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json,https://arduino.esp8266.com/stable/package_esp8266com_index.json
           arduino-cli core update-index
           arduino-cli core install '${{ matrix.platform }}'
           arduino-cli lib install Ethernet LoRa SD
@@ -42,7 +44,11 @@ jobs:
         run: |
           failed=0
           while IFS= read -r sketch; do
-            if [[ "$FQBN" != esp32:* ]] && grep -qE '#include <(ESP8266WiFi|WiFi|ETH)\.h>' "$sketch"; then
+            if [[ "$FQBN" == esp8266:* ]]; then
+              if ! grep -q '#include <ESP8266WiFi\.h>' "$sketch"; then
+                continue
+              fi
+            elif [[ "$FQBN" != esp32:* ]] && grep -qE '#include <(ESP8266WiFi|WiFi|ETH)\.h>' "$sketch"; then
               continue
             fi
             if [[ "$FQBN" == arduino:avr:leonardo && "$sketch" == examples/SerialBridge/SerialBridge.ino ]]; then

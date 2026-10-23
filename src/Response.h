@@ -8,6 +8,10 @@ namespace awot {
 class Response : public Print {
   friend class App;
   friend class Router;
+  template <typename TClient, int N, int MAX_ROOMS>
+  friend class WsChannel;
+  template <typename TClient, int N>
+  friend class SseChannel;
 
  public:
   int availableForWrite();
@@ -46,6 +50,7 @@ class Response : public Print {
   int m_capacity() const;
   size_t m_writeAll(const uint8_t* buffer, size_t length);
   void m_failWrite();
+  bool m_canStartChannel(int code, int headerCount);
   bool m_bodyAllowed() const;
   bool m_chunked() const;
 

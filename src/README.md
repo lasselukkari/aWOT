@@ -79,6 +79,7 @@ Advanced builds can select function pointers with
 translation unit. Do not define this only inside a sketch. Defining both it and
 `STD_FUNCTION_MIDDLEWARE` is an error.
 
-For build commands, supported configurations, and migration examples, see the
-[project README](../README.md). Native tests live in `.extras/test/`; Arduino examples
-are compiled separately for the boards listed in the examples workflow.
+Native tests live in `.extras/test/`; their build commands and configurations
+are listed in the [unit-test workflow](../.github/workflows/NativeUnitTests.yml).
+Arduino examples are compiled separately for the boards listed in the
+[examples workflow](../.github/workflows/CompileExamples.yml).

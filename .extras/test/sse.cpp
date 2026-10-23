@@ -9,11 +9,26 @@ typedef SseChannel<SharedClient, 2> Events;
 static Events* opening;
 static int connectedClients;
 
+#ifdef STD_FUNCTION_MIDDLEWARE
+struct StatefulSseConnectCallback {
+  explicit StatefulSseConnectCallback(std::vector<int>* calls)
+      : calls(calls), count(0) {}
+  void operator()(Print&) { calls->push_back(++count); }
+  std::vector<int>* calls;
+  int count;
+};
+#endif
+
 static void keepAlive(Request& req, Response& res) {
   res.set("Connection", "keep-alive");
   req.next();
 }
 static void openEvents(Request&, Response& res) { opening->open(res); }
+static void queueHeaders(Request& req, Response& res) {
+  int count = *static_cast<int*>(req.context);
+  for (int i = 0; i < count; ++i) res.set("X-App", "value");
+  req.next();
+}
 static void countConnection(Print& out) {
   ++connectedClients;
   out.print(": ready\n\n");
@@ -39,6 +54,68 @@ unittest(sse_open_after_keepalive_sends_close_delimited_events) {
       "Connection: close\r\n\r\ndata: hello\n\n";
   assertEqual(expected, client.outputString());
 }
+
+unittest(sse_open_requires_capacity_for_every_response_header) {
+  for (int count = SERVER_MAX_HEADERS - 2; count <= SERVER_MAX_HEADERS;
+       ++count) {
+    Events events;
+    SharedClient client;
+    App app;
+    opening = &events;
+    app.use(queueHeaders);
+    app.get("/events", openEvents);
+    client.feed("GET /events HTTP/1.1\r\nHost: local\r\n\r\n");
+    App::ProcessOptions options;
+    options.context = &count;
+    App::ProcessResult result = app.process(&client, options);
+    bool fits = count == SERVER_MAX_HEADERS - 2;
+    assertEqual(fits, result.responseOpen);
+    assertFalse(result.keepAlive);
+    assertEqual(fits, client.connected() != 0);
+    if (fits) {
+      const std::string output = client.outputString();
+      assertTrue(output.find("HTTP/1.1 200 OK\r\n") == 0);
+      assertTrue(output.find("Content-Type: text/event-stream\r\n") !=
+                 std::string::npos);
+      assertTrue(output.find("Cache-Control: no-cache\r\n") !=
+                 std::string::npos);
+    } else {
+      assertTrue(client.outputString().empty());
+    }
+  }
+}
+
+#ifdef STD_FUNCTION_MIDDLEWARE
+unittest(sse_connect_callback_can_clear_itself_and_use_captures) {
+  Events events;
+  SharedClient first, second;
+  const std::string captured(256, 's');
+  std::string observed;
+  connectedClients = 0;
+  events.onConnect([&events, &observed, captured](Print& out) {
+    ++connectedClients;
+    events.onConnect(nullptr);
+    observed = captured;
+    out.print(": ready\n\n");
+  });
+  events.add(first);
+  events.add(second);
+  assertEqual(1, connectedClients);
+  assertEqual(captured, observed);
+  assertEqual(std::string(": ready\n\n"), first.outputString());
+  assertTrue(second.outputString().empty());
+}
+
+unittest(sse_connect_callback_preserves_mutable_functor_state) {
+  Events events;
+  SharedClient first, second;
+  std::vector<int> calls;
+  events.onConnect(StatefulSseConnectCallback(&calls));
+  events.add(first);
+  events.add(second);
+  assertTrue(calls == std::vector<int>({1, 2}));
+}
+#endif
 
 unittest(sse_normalizes_multiline_payloads_and_empty_lines) {
   Events events;
