@@ -88,6 +88,13 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
 
   m_process(request, response);
 
+  // Error and not-found callbacks can end a response without writing a body.
+  // Complete any selected final response before the final callback, matching
+  // the normal dispatch path.
+  if (response.statusSent() && !response.headersSent()) {
+    response.m_printHeaders();
+  }
+
   if (m_final != NULL) {
     m_final(request, response);
   }

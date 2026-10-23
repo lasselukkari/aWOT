@@ -13,6 +13,13 @@ void customErrorHandler(Request& req, Response& res, int code) {
   res.end();
 }
 
+void emptyErrorHandler(Request&, Response& res, int code) {
+  capturedErrorCode = code;
+  res.status(code);
+  res.set("Content-Length", "0");
+  res.end();
+}
+
 unittest(error_handler_not_found) {
   capturedErrorCode = 0;
 
@@ -43,6 +50,22 @@ unittest(error_handler_custom_response) {
   app.onError(&customErrorHandler);
   app.process(&stream);
 
+  assertEqual(expected, stream.response());
+}
+
+unittest(bodyless_custom_parser_error_completes_headers) {
+  capturedErrorCode = 0;
+  const char* request = "BOGUS / HTTP/1.1" CRLF CRLF;
+  const char* expected =
+      "HTTP/1.1 400 Bad Request" CRLF "Content-Length: 0" CRLF
+      "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF;
+
+  MockStream stream(request);
+  App app;
+  app.onError(emptyErrorHandler);
+  app.process(&stream);
+
+  assertEqual(400, capturedErrorCode);
   assertEqual(expected, stream.response());
 }
 

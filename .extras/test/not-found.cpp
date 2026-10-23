@@ -12,6 +12,17 @@ void notFound(Request& req, Response& res) {
   res.print("Custom not found page");
 }
 
+static bool finalSawCompleteHeaders;
+
+void emptyNotFound(Request&, Response& res) {
+  res.set("Content-Length", "0");
+  res.end();
+}
+
+void observeCompleteHeaders(Request&, Response& res) {
+  finalSawCompleteHeaders = res.headersSent();
+}
+
 unittest(root_path) {
   const char* request = "GET /notfound HTTP/1.0" CRLF CRLF;
 
@@ -43,6 +54,23 @@ unittest(custom_not_found) {
   app.process(&stream);
 
   assertEqual(expected, stream.response());
+}
+
+unittest(bodyless_custom_not_found_completes_headers_before_finally) {
+  const char* request = "HEAD /notfound HTTP/1.1" CRLF CRLF;
+  const char* expected =
+      "HTTP/1.1 404 Not Found" CRLF "Content-Length: 0" CRLF
+      "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF;
+
+  MockStream stream(request);
+  App app;
+  finalSawCompleteHeaders = false;
+  app.notFound(emptyNotFound);
+  app.finally(observeCompleteHeaders);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+  assertTrue(finalSawCompleteHeaders);
 }
 
 unittest_main()
