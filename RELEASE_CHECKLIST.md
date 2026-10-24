@@ -97,11 +97,11 @@ documented version.
   removes the duplicate push trigger so PR updates run once.
 
 The published API and current CI library baseline is revision
-`d6098a8d79a01d547ff96ea43bfb20d70743286f`, with unified SSE/WebSocket targeting,
+`f7e4941cb655782954c96e60d65e7e02def845d2`, with unified SSE/WebSocket targeting,
 shared room/write helpers, WebSocket message fragmentation, and chunked request
-parsing. Use it for current local validation too. The earlier unified channel
-API validation used
-`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`. Older entries used local revision
+parsing. The native examples share `.extras/ArduinoCore-API` at this revision.
+Use it for current local validation too. The earlier unified channel API
+validation used `d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`. Older entries used local revision
 `4117ee51` and the matching public revision
 `bb13af5963ad950015312fe73107766056ccd936`; those results are historical.
 Update the CI pin to the released source revision when preparing final
@@ -172,7 +172,7 @@ under `/private/tmp/awot-docs-browser`, with the preview at
   does not contain aWOT 4.0.0. The library checkout's uncommitted README work is separate from this
   documentation change.
 - [ ] Ensure the published library source includes `.extras/MacOSNative`,
-  `.extras/WindowsNative`, `.extras/LinuxNative`, and the bundled ArduinoCore-API
+  `.extras/WindowsNative`, `.extras/LinuxNative`, and `.extras/ArduinoCore-API`
   before publishing the native guides. All three guides use a Git checkout of
   the repository because release archives omit `.extras`; the earlier
   public source baseline has the macOS example under `examples/MacOSNative` and

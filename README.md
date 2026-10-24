@@ -61,8 +61,9 @@ Markdown is native Astro content, so C++ initializers do not need Liquid escapes
 ## Check the documented examples
 
 Keep a separate aWOT library checkout available. Use revision
-`d6098a8d79a01d547ff96ea43bfb20d70743286f` for local validation of the current
-documentation, including chunked request parsing. The script supports
+`f7e4941cb655782954c96e60d65e7e02def845d2` for local validation of the current
+documentation, including chunked request parsing and the shared native
+ArduinoCore-API directory. The script supports
 native tests in either `test/` or `.extras/test/` to accommodate their relocation.
 
 Both CI source pins in `.github/workflows/docs-check.yml` use this published

@@ -39,8 +39,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          # Published v4 source with chunked request parsing.
-          ref: d6098a8d79a01d547ff96ea43bfb20d70743286f
+          # v4 source with chunked request parsing and the shared native API.
+          ref: f7e4941cb655782954c96e60d65e7e02def845d2
           path: .docs-build/library
       - run: python3 scripts/check-snippets.py --library .docs-build/library --configuration '${{ matrix.configuration }}' --work-dir .docs-build/native
 
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          ref: d6098a8d79a01d547ff96ea43bfb20d70743286f
+          ref: f7e4941cb655782954c96e60d65e7e02def845d2
           path: .docs-build/library
       - uses: actions/setup-node@v4
         with:

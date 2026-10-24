@@ -46,9 +46,8 @@ directory instead. Use a Git checkout for this example: `.extras` is omitted
 from library release archives and Arduino Library Manager packages.
 
 Keep the example inside the checkout. CMake compiles aWOT from `src/` and reuses
-the ArduinoCore-API sources bundled in `.extras/MacOSNative/ArduinoCore-API`.
-That directory is needed on Windows too; no separate Arduino installation or
-download is required.
+the ArduinoCore-API sources bundled in `.extras/ArduinoCore-API`, shared by the
+native examples. No separate Arduino installation or download is required.
 
 ## Hello world example
 
@@ -159,14 +158,14 @@ hardware-specific operations separate when sharing handlers with a board.
 ## How the native server works
 
 The [Windows native source](https://github.com/lasselukkari/aWOT/tree/master/.extras/WindowsNative)
-contains these pieces:
+uses these pieces:
 
 | File or directory | Purpose |
 | --- | --- |
 | `HelloWorld.cpp` | Registers routes, starts the listener on port 8080, and moves each connection into a worker thread. |
 | `WindowsSocket.h` and `WindowsSocket.cpp` | Implement `WindowsServer` and `WindowsClient` with Winsock. |
 | `Arduino.h` and `Arduino.cpp` | Supply the compatibility layer for timing, formatting, and terminal output. |
-| `../MacOSNative/ArduinoCore-API/` | Supplies Arduino types such as `Client`, `Stream`, `Print`, and `String`. |
+| `../ArduinoCore-API/` | Supplies Arduino types such as `Client`, `Stream`, `Print`, and `String`, shared by the native examples. |
 | `CMakeLists.txt` | Builds the adapter, example, aWOT sources, and tests, and links Winsock. |
 | `tests/` | Tests the socket adapter and the running HTTP server. |
 

@@ -39,10 +39,11 @@ If you already have a checkout containing `.extras/LinuxNative`, use its root
 directory instead. Use a Git checkout: `.extras` is omitted from library release
 archives and Arduino Library Manager packages.
 
-Keep `.extras/MacOSNative` and `.extras/WindowsNative` in the checkout too. The
-Linux build reuses the POSIX adapter and ArduinoCore-API bundled in the macOS
-directory, and its HTTP test uses the shared Python script in the Windows
-directory. No separate Arduino download or installation is required.
+Keep `.extras/MacOSNative`, `.extras/WindowsNative`, and `.extras/ArduinoCore-API`
+in the checkout too. The Linux build reuses the POSIX adapter from the macOS
+directory and the shared ArduinoCore-API sources, and its HTTP test uses the
+shared Python script in the Windows directory. No separate Arduino download or
+installation is required.
 
 ## Hello world example
 

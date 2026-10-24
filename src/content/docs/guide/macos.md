@@ -39,11 +39,11 @@ If you already have an aWOT checkout, open its
 `.extras` is omitted from library release archives and Arduino Library Manager
 packages.
 
-The ArduinoCore-API sources are bundled in the example. Its String files are
-named `WString.h` and `WString.cpp` to avoid a collision with the macOS system
-header `string.h`; no separate download or renaming is needed. Keep the example
-inside the checkout, since the Makefile also compiles the library from
-`../../src`.
+The ArduinoCore-API sources are bundled in `.extras/ArduinoCore-API`, shared by
+the native examples. Its String files are named `WString.h` and `WString.cpp` to
+avoid a collision with the macOS system header `string.h`; no separate download
+or renaming is needed. Keep the example inside the checkout, since the Makefile
+also compiles the library from `../../src`.
 
 ## Hello world example
 
@@ -164,14 +164,14 @@ when sharing code with a board.
 ## How the native server works
 
 The [native example source](https://github.com/lasselukkari/aWOT/tree/master/.extras/MacOSNative)
-contains these pieces:
+uses these pieces:
 
 | File or directory | Purpose |
 | --- | --- |
 | `HelloWorld.cpp` | Registers routes, starts the listener, and handles each accepted connection in a worker thread. |
 | `MacOSSocket.h` and `MacOSSocket.cpp` | Implement `MacOSServer` and `MacOSClient` with native BSD sockets. |
 | `Arduino.h` | Supplies the compatibility layer for timing, formatting, and terminal output through `Serial`. |
-| `ArduinoCore-API/` | Provides Arduino types such as `Client`, `Stream`, `Print`, and `String`. |
+| `../ArduinoCore-API/` | Provides Arduino types such as `Client`, `Stream`, `Print`, and `String`, shared by the native examples. |
 | `Makefile` | Builds the example, adapter, Arduino API, and aWOT sources together as C++11. |
 
 The main loop waits for connections with `server.available(-1)`. Each accepted
