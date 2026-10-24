@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
-#include "../../src/aWOT.h"
-#include "./mocks/MockStream.h"
+#include "mocks/MockStream.h"
 
 void checkHeaderHandler(Request& req, Response& res) {
   char* value = req.get("X-Test");
@@ -14,6 +14,8 @@ void checkHeaderHandler(Request& req, Response& res) {
 
 unittest(custom_headers_stack_allocation) {
   const char* request = "GET / HTTP/1.1" CRLF "X-Test: CustomValue" CRLF CRLF;
+  const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+                         "Connection: close" CRLF CRLF "CustomValue";
   MockStream stream(request);
   App app;
 
@@ -28,8 +30,7 @@ unittest(custom_headers_stack_allocation) {
   options.headers = headers;
   app.process(&stream, options);
 
-  String response = stream.response();
-  assertTrue(response.endsWith("CustomValue"));
+  assertEqual(expected, stream.response());
 }
 
 unittest_main()

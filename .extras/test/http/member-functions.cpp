@@ -1,9 +1,9 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
 #include <functional>
 
-#include "../../src/aWOT.h"
-#include "./mocks/MockStream.h"
+#include "mocks/MockStream.h"
 
 class MyController {
  public:

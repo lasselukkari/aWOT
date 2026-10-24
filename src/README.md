@@ -140,7 +140,10 @@ Advanced builds can select function pointers with
 translation unit. Do not define this only inside a sketch. Defining both it and
 `STD_FUNCTION_MIDDLEWARE` is an error.
 
-Native tests live in `.extras/test/`; their build commands and configurations
-are listed in the [unit-test workflow](../.github/workflows/NativeUnitTests.yml).
+Native tests live in `.extras/test/`: `http/` contains full request/response
+examples, and `regression/` contains focused API and protocol checks. See the
+[test README](../.extras/test/README.md) for examples, build configurations, and
+commands to run each group. CI runs both groups in the
+[test workflow](../.github/workflows/NativeUnitTests.yml).
 Arduino examples are compiled separately for the boards listed in the
 [examples workflow](../.github/workflows/CompileExamples.yml).

@@ -1,9 +1,9 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
 #include <string>
 #include <vector>
 
-#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 struct WriteOptions {

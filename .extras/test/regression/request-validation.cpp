@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
-#include "../../src/aWOT.h"
-#include "./mocks/MockStream.h"
+#include "mocks/MockStream.h"
 
 struct Observation {
   bool called;

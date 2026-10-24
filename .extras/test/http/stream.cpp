@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
-#include "../../src/aWOT.h"
-#include "./mocks/MockStream.h"
+#include "mocks/MockStream.h"
 
 void availableHandler(Request& req, Response& res) {
   req.setTimeout(10);
@@ -13,9 +13,9 @@ void readStringHandler(Request& req, Response& res) {
 }
 
 void readBytesHandler(Request& req, Response& res) {
-  char type[5] = {};
-  req.readBytes(type, 5);
-  res.print(type);
+  uint8_t buffer[5];
+  size_t count = req.readBytes(buffer, sizeof(buffer));
+  res.write(buffer, count);
 }
 
 void reqPrintHandler(Request& req, Response& res) { req.print("TEST"); }
@@ -98,6 +98,20 @@ unittest(req_read_bytes_timeout) {
   App app;
 
   app.post("/", &readBytesHandler);
+  app.process(&stream);
+
+  assertEqual(expected, stream.response());
+}
+
+unittest(req_read_bytes_fills_buffer_without_string_terminator) {
+  const char* request =
+      "POST / HTTP/1.0" CRLF "Content-Length: 5" CRLF CRLF "hello";
+  const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
+                         "Connection: close" CRLF CRLF "hello";
+
+  MockStream stream(request);
+  App app;
+  app.post("/", readBytesHandler);
   app.process(&stream);
 
   assertEqual(expected, stream.response());

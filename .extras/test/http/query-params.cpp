@@ -1,16 +1,17 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
-#include "../../src/aWOT.h"
-#include "./mocks/MockStream.h"
+#include "mocks/MockStream.h"
 
 void handler(Request& req, Response& res) {
-  char test1[10];
-  char test2[10];
-  if (!req.route(1, test1, 10)) {
+  char test1[6];
+  char test2[6];
+
+  if (!req.query("test1", test1, 6)) {
     return res.sendStatus(400);
   }
 
-  if (!req.route("test2", test2, 10)) {
+  if (!req.query("test2", test2, 6)) {
     return res.sendStatus(400);
   }
 
@@ -20,8 +21,8 @@ void handler(Request& req, Response& res) {
   res.print(test2);
 }
 
-unittest(route_params_ok) {
-  const char* request = "GET /route/test1/params/test2 HTTP/1.0" CRLF CRLF;
+unittest(query_params_ok) {
+  const char* request = "GET /query?test1=test1&test2=test2 HTTP/1.0" CRLF CRLF;
 
   const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
                          "Connection: close" CRLF CRLF "test1 test2";
@@ -29,33 +30,32 @@ unittest(route_params_ok) {
   MockStream stream(request);
   App app;
 
-  app.get("/route/:test1/params/:test2", &handler);
+  app.get("/query", &handler);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
 }
 
-unittest(route_params_value_too_long) {
+unittest(query_params_value_too_long) {
   const char* request =
-      "GET /route/morethantenchars/params/test2 HTTP/1.0" CRLF CRLF;
+      "GET /query?test1=123456&test2=test2 HTTP/1.0" CRLF CRLF;
 
   const char* expected =
       "HTTP/1.1 400 Bad Request" CRLF "Content-Type: text/plain" CRLF
       "Connection: close" CRLF CRLF "Bad Request";
-  ;
 
   MockStream stream(request);
   App app;
 
-  app.get("/route/:test1/params/:test2", &handler);
+  app.get("/query", &handler);
   app.process(&stream);
 
   assertEqual(expected, stream.response());
 }
 
-unittest(router_route_params) {
+unittest(router_query_params) {
   const char* request =
-      "GET /router/route/test1/params/test2 HTTP/1.0" CRLF CRLF;
+      "GET /router/query?test1=test1&test2=test2 HTTP/1.0" CRLF CRLF;
 
   const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
                          "Connection: close" CRLF CRLF "test1 test2";
@@ -64,7 +64,7 @@ unittest(router_route_params) {
   Router router;
   App app;
 
-  router.get("/route/:test1/params/:test2", &handler);
+  router.get("/query", &handler);
   app.use("/router", &router);
 
   app.process(&stream);

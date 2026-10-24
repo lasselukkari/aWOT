@@ -1,12 +1,12 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 
-#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 static unsigned long wsNow;
 static unsigned long wsMillis() { return wsNow; }
 #define millis wsMillis
-#include "../../src/WsChannel.h"
+#include <WsChannel.h>
 #undef millis
 
 using namespace awot;

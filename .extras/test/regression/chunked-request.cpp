@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
+#include <aWOT.h>
 #include <limits.h>
 
-#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 static std::string request(

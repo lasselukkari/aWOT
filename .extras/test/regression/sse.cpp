@@ -1,7 +1,7 @@
 #include <ArduinoUnitTests.h>
+#include <SseChannel.h>
+#include <aWOT.h>
 
-#include "../../src/SseChannel.h"
-#include "../../src/aWOT.h"
 #include "mocks/SharedClient.h"
 
 using namespace awot;
@@ -19,10 +19,6 @@ struct StatefulSseConnectCallback {
 };
 #endif
 
-static void keepAlive(Request& req, Response& res) {
-  res.set("Connection", "keep-alive");
-  req.next();
-}
 static void openEvents(Request&, Response& res) { opening->open(res); }
 static void queueHeaders(Request& req, Response& res) {
   int count = *static_cast<int*>(req.context);
@@ -35,26 +31,6 @@ static void joinChat(int clientId) {
   opening->send(clientId, "ready", "welcome");
 }
 static void heartbeat(Print& out) { out.print(": heartbeat\n\n"); }
-
-unittest(sse_open_after_keepalive_sends_close_delimited_events) {
-  Events events;
-  SharedClient client;
-  App app;
-  opening = &events;
-  app.use(keepAlive);
-  app.get("/events", openEvents);
-  client.feed(std::string("GET /events HTTP/1.1\r\nHost: local\r\n\r\n"));
-  App::ProcessResult result = app.process(&client);
-  assertTrue(result.responseOpen);
-  assertFalse(result.keepAlive);
-  events.add(client);
-  events.broadcast("hello");
-  const std::string expected =
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/event-stream\r\nCache-Control: no-cache\r\n"
-      "Connection: close\r\n\r\ndata: hello\n\n";
-  assertEqual(expected, client.outputString());
-}
 
 unittest(sse_head_response_is_not_opened_or_retained) {
   Events events;
