@@ -109,7 +109,8 @@ void Router::m_dispatchMiddleware(Request& request, Response& response,
                                   int urlShift) {
   MiddlewareNode* middleware = m_head;
 
-  while (middleware != NULL && !response.ended() && request.m_next) {
+  while (middleware != NULL && !response.ended() && request.m_next &&
+         !request.m_bodyError()) {
     if (middleware->router != NULL) {
       int prefixLength = middleware->path ? strlen(middleware->path) : 0;
       while (prefixLength > 0 && middleware->path[prefixLength - 1] == '/') {

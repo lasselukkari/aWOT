@@ -47,6 +47,7 @@ class Request : public Stream {
   bool form(char* name, int nameLength, char* value, int valueLength);
   // Null for absent or uncaptured headers; present empty values return "".
   char* get(const char* name);
+  // Chunked bodies return -1 until their final chunk and trailers are read.
   int left();
   MethodType method();
   char* path();
@@ -67,6 +68,25 @@ class Request : public Stream {
   size_t write(const uint8_t* buffer, size_t bufferLength);
 
  private:
+  enum BodyState : uint8_t {
+    CONTENT_LENGTH,
+    CHUNK_START,
+    CHUNK_SIZE,
+    CHUNK_EXTENSION_START,
+    CHUNK_EXTENSION,
+    CHUNK_SIZE_LF,
+    CHUNK_DATA,
+    CHUNK_DATA_CR,
+    CHUNK_DATA_LF,
+    TRAILER_START,
+    TRAILER_NAME,
+    TRAILER_VALUE,
+    TRAILER_LF,
+    BODY_END_LF,
+    BODY_DONE,
+    BODY_ERROR
+  };
+
   Request(Client* client, Response* m_response, ArrayView<Header> headers,
           char* urlBuffer, int urlBufferLength, unsigned long timeout,
           void* context);
@@ -83,6 +103,9 @@ class Request : public Stream {
   bool m_expect(const char* expected);
   bool m_expectP(const unsigned char* expected);
   bool m_skipSpace();
+  int m_readRaw();
+  bool m_bodyAvailable();
+  int m_bodyError() const;
   int m_timedRead();
   bool m_timedout();
 
@@ -95,7 +118,8 @@ class Request : public Stream {
   unsigned char m_pushback[SERVER_PUSHBACK_BUFFER_SIZE];
   int m_pushbackDepth;
   bool m_readingContent;
-  int m_left;
+  BodyState m_bodyState;
+  uint32_t m_left;
   int m_bytesRead;
   ArrayView<Header> m_headers;
   char* m_query;

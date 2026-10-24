@@ -99,14 +99,17 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
     m_final(request, response);
   }
 
+  int remaining = request.left();
+  bool parsed = request.m_readingContent && !request.m_bodyError();
+  bool bodyComplete = remaining == 0;
   response.m_finalize();
 
-  bool parsed = request.m_readingContent;
   result.responseOpen =
-      parsed && !response.getWriteError() && response.m_responseOpen;
-  result.keepAlive = parsed && request.left() == 0 &&
-                     !response.getWriteError() && !response.m_responseOpen &&
-                     response.m_keepAlive && request.m_allowsKeepAlive();
+      parsed && !response.getWriteError() && response.m_responseOpen &&
+      (request.m_bodyState == Request::CONTENT_LENGTH || bodyComplete);
+  result.keepAlive = parsed && bodyComplete && !response.getWriteError() &&
+                     !response.m_responseOpen && response.m_keepAlive &&
+                     request.m_allowsKeepAlive();
   if (!parsed) client->stop();
 
   for (int i = 0; i < headers.size(); ++i) {
@@ -276,6 +279,18 @@ void App::m_process(Request& request, Response& response) {
   response.m_requestKeepAlive = request.m_allowsKeepAlive();
 
   m_defaultRouter.m_dispatchMiddleware(request, response);
+
+  // A body decoder can discover malformed framing while middleware reads it.
+  request.left();
+  int bodyError = request.m_bodyError();
+  if (bodyError) {
+    response.m_requestKeepAlive = false;
+    if (!response.statusSent()) {
+      if (m_errorHandler) m_errorHandler(request, response, bodyError);
+      if (!response.ended()) response.sendStatus(bodyError);
+    }
+    return;
+  }
 
   if (!response.statusSent() && !response.ended()) {
     if (m_notFound != NULL) {

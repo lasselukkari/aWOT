@@ -31,8 +31,24 @@
   raw `&` delimiter or end of body so a subsequent call can read the next field.
 - Content-Length accepts decimal digits with optional surrounding spaces/tabs,
   bounded by `INT_MAX`. Repeated fields must agree. Comma lists, conflicting
-  lengths, and every request Transfer-Encoding are rejected with HTTP 400 and
-  connection closure. Chunked request decoding remains unsupported.
+  lengths, and requests combining Content-Length with Transfer-Encoding are
+  rejected with HTTP 400 and connection closure.
+- HTTP/1.1 requests support a single `Transfer-Encoding: chunked` field.
+  Repeated fields, other transfer codings, and transfer coding on HTTP/1.0
+  requests are rejected with HTTP 400. Body reads decode chunks directly into
+  the caller's buffer without allocating storage. The existing remaining-byte
+  counter is widened to 32 bits for chunk sizes, including on Uno; the complete
+  body can span multiple chunks. Chunk extensions are ignored, and trailer
+  fields are consumed and discarded without changing captured headers.
+- For chunked bodies, `left()` returns `-1` until the zero chunk and final empty
+  trailer line have been consumed, then the number of pushed-back bytes or
+  zero. `left()` and `available()` can advance already-available framing without
+  waiting for more input. `available()` reports ready payload bytes from the
+  current chunk plus pushback; `bytesRead()` counts transport bytes, including
+  headers and chunk framing, once. Incomplete chunked bodies cannot keep the
+  connection alive or hand it off as an open response. Malformed chunk framing
+  closes the connection; if detected before a response starts, it invokes the
+  error handler with HTTP 400 and uses the usual fallback response.
 - The advanced `SERVER_PUSHBACK_BUFFER_SIZE` override must be at least 18 bytes
   and must be applied to every library and sketch translation unit. Defaults are
   32 bytes on low-memory MCUs and 128 bytes elsewhere.

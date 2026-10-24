@@ -160,7 +160,8 @@ unittest(malformed_header_names_and_framing_never_dispatch) {
       "POST / HTTP/1.1" CRLF "Content-Length: 0, 0" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "Content-Length: 0" CRLF
       "Content-Length: 1" CRLF CRLF,
-      "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked" CRLF
+      "Content-Length: 0" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "Transfer-Encoding: identity" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "X-Ignored: value\nContent-Length: 4" CRLF CRLF
       "body",

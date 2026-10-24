@@ -19,6 +19,7 @@ Request::Request(Client* client, Response* m_response,
       m_pushback(),
       m_pushbackDepth(0),
       m_readingContent(false),
+      m_bodyState(CONTENT_LENGTH),
       m_left(0),
       m_bytesRead(0),
       m_headers(headers),
@@ -36,7 +37,9 @@ Request::Request(Client* client, Response* m_response,
 int Request::availableForWrite() { return m_response->availableForWrite(); }
 
 int Request::available() {
-  return min(m_stream->available(), m_left) + m_pushbackDepth;
+  if (m_readingContent && !m_bodyAvailable()) return m_pushbackDepth;
+  int count = (int)min((uint32_t)m_stream->available(), m_left);
+  return count + min(m_pushbackDepth, INT_MAX - count);
 }
 
 int Request::bytesRead() { return m_bytesRead; }
@@ -62,6 +65,15 @@ int hexDigit(int ch) {
   if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
   if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
   return -1;
+}
+
+bool headerToken(int ch) {
+  return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') ||
+         (ch >= 'a' && ch <= 'z') || (ch > 0 && strchr("!#$%&'*+-.^_`|~", ch));
+}
+
+bool headerValueChar(int ch) {
+  return ch == '\t' || (ch >= 0x20 && ch != 0x7f);
 }
 
 // The caller identifies component boundaries before decoding.
@@ -159,7 +171,13 @@ bool Request::form(char* name, int nameLength, char* value, int valueLength) {
   return foundSomething && valid && (ch == '&' || left() == 0);
 }
 
-int Request::left() { return m_left + m_pushbackDepth; }
+int Request::left() {
+  if (m_readingContent && m_bodyState != CONTENT_LENGTH) {
+    m_bodyAvailable();
+    if (m_bodyState != BODY_DONE) return -1;
+  }
+  return (int)m_left + m_pushbackDepth;
+}
 
 Request::MethodType Request::method() { return m_method; }
 
@@ -226,12 +244,9 @@ int Request::read() {
     return m_pushback[--m_pushbackDepth];
   }
 
-  if (m_readingContent && !m_left) {
-    _timeout = 0;
-    return -1;
-  }
+  if (m_readingContent && !m_bodyAvailable()) return -1;
 
-  int ch = m_stream->read();
+  int ch = m_readRaw();
   if (ch == -1) {
     return -1;
   }
@@ -240,7 +255,6 @@ int Request::read() {
     m_left--;
   }
 
-  if (m_bytesRead < INT_MAX) ++m_bytesRead;
   return ch;
 }
 
@@ -253,21 +267,139 @@ int Request::read(uint8_t* buf, size_t size) {
     ret++;
   }
 
-  if (size == 0 || m_left == 0) return ret;
-  int read = m_stream->read(buf, (size < (unsigned)m_left ? size : m_left));
-  if (read == -1) {
-    if (ret > 0) {
-      return ret;
-    }
+  while (size > 0 && m_bodyAvailable()) {
+    size_t count = min(size, (size_t)min(m_left, (uint32_t)(INT_MAX - ret)));
+    if (!count) break;
+    int read = m_stream->read(buf, count);
+    if (read < 0) return ret ? ret : -1;
+    if (!read) break;
+    ret += read;
+    buf += read;
+    size -= read;
+    m_bytesRead += min(read, INT_MAX - m_bytesRead);
+    m_left -= read;
+    if (m_bodyState == CONTENT_LENGTH) break;
+  }
+  return ret;
+}
 
-    return -1;
+int Request::m_readRaw() {
+  int ch = m_stream->read();
+  if (ch >= 0 && m_bytesRead < INT_MAX) ++m_bytesRead;
+  return ch;
+}
+
+bool Request::m_bodyAvailable() {
+  if (m_bodyState == CONTENT_LENGTH) {
+    if (!m_left) _timeout = 0;
+    return m_left > 0;
   }
 
-  ret += read;
-  m_bytesRead += min(read, INT_MAX - m_bytesRead);
-  m_left -= read;
+  // Only framing is consumed here. Payload stays in the transport until read().
+  // m_left holds the current chunk size, then its remaining payload bytes.
+  for (;;) {
+    if (m_bodyState == CHUNK_DATA) {
+      if (m_left) return true;
+      m_bodyState = CHUNK_DATA_CR;
+    }
+    if (m_bodyState == BODY_DONE || m_bodyState == BODY_ERROR) {
+      _timeout = 0;
+      return false;
+    }
+    int ch = m_readRaw();
+    if (ch < 0) return false;
 
-  return ret;
+    switch (m_bodyState) {
+      case CHUNK_START: {
+        int digit = hexDigit(ch);
+        if (digit < 0) break;
+        m_left = digit;
+        m_bodyState = CHUNK_SIZE;
+        continue;
+      }
+      case CHUNK_SIZE: {
+        int digit = hexDigit(ch);
+        if (digit >= 0) {
+          if (m_left > UINT32_MAX / 16) break;
+          m_left = m_left * 16 + digit;
+        } else if (ch == ';') {
+          m_bodyState = CHUNK_EXTENSION;
+        } else if (ch == ' ' || ch == '\t') {
+          m_bodyState = CHUNK_EXTENSION_START;
+        } else if (ch == '\r') {
+          m_bodyState = CHUNK_SIZE_LF;
+        } else {
+          break;
+        }
+        continue;
+      }
+      case CHUNK_EXTENSION_START:
+        if (ch == ' ' || ch == '\t') continue;
+        if (ch != ';') break;
+        m_bodyState = CHUNK_EXTENSION;
+        continue;
+      case CHUNK_EXTENSION:
+        if (ch == '\r') {
+          m_bodyState = CHUNK_SIZE_LF;
+        } else if (!headerValueChar(ch)) {
+          break;
+        }
+        continue;
+      case CHUNK_SIZE_LF:
+        if (ch != '\n') break;
+        m_bodyState = m_left ? CHUNK_DATA : TRAILER_START;
+        continue;
+      case CHUNK_DATA_CR:
+        if (ch != '\r') break;
+        m_bodyState = CHUNK_DATA_LF;
+        continue;
+      case CHUNK_DATA_LF:
+        if (ch != '\n') break;
+        m_bodyState = CHUNK_START;
+        continue;
+      case TRAILER_START:
+        if (ch == '\r') {
+          m_bodyState = BODY_END_LF;
+        } else if (headerToken(ch)) {
+          m_bodyState = TRAILER_NAME;
+        } else {
+          break;
+        }
+        continue;
+      case TRAILER_NAME:
+        if (ch == ':') {
+          m_bodyState = TRAILER_VALUE;
+        } else if (!headerToken(ch)) {
+          break;
+        }
+        continue;
+      case TRAILER_VALUE:
+        if (ch == '\r') {
+          m_bodyState = TRAILER_LF;
+        } else if (!headerValueChar(ch)) {
+          break;
+        }
+        continue;
+      case TRAILER_LF:
+        if (ch != '\n') break;
+        m_bodyState = TRAILER_START;
+        continue;
+      case BODY_END_LF:
+        if (ch != '\n') break;
+        m_bodyState = BODY_DONE;
+        continue;
+      default:
+        break;
+    }
+    m_bodyState = BODY_ERROR;
+    m_left = 0;
+  }
+}
+
+int Request::m_bodyError() const {
+  if (m_bodyState == BODY_ERROR) return 400;
+  if (m_bodyState != CONTENT_LENGTH && m_readTimedout) return 408;
+  return 0;
 }
 
 bool Request::route(const char* name, char* buffer, int bufferLength) {
@@ -440,8 +572,9 @@ int Request::m_processHeaders() {
     P(ContentLength) = "Content-Length:";
     if (m_expectP(ContentLength)) {
       int length;
-      if (!m_readInt(length) || !m_skipSpace() || !m_expect(CRLF) ||
-          (lengthSeen && length != m_left)) {
+      if (m_bodyState != CONTENT_LENGTH || !m_readInt(length) ||
+          !m_skipSpace() || !m_expect(CRLF) ||
+          (lengthSeen && (uint32_t)length != m_left)) {
         return 400;
       }
       m_left = length;
@@ -449,8 +582,17 @@ int Request::m_processHeaders() {
       canEnd = true;
     } else {
       P(TransferEncoding) = "Transfer-Encoding:";
-      // Request transfer codings are unsupported, including chunked.
-      if (m_expectP(TransferEncoding)) return 400;
+      if (m_expectP(TransferEncoding)) {
+        P(chunked) = "chunked";
+        if (lengthSeen || m_bodyState != CONTENT_LENGTH ||
+            m_minorVersion != 1 || !m_skipSpace() || !m_expectP(chunked) ||
+            !m_skipSpace() || !m_expect(CRLF)) {
+          return 400;
+        }
+        m_bodyState = CHUNK_START;
+        canEnd = true;
+        continue;
+      }
       Header* header;
       bool connection;
       if (!m_headerName(header, connection)) return 400;
@@ -476,10 +618,7 @@ bool Request::m_headerName(Header*& header, bool& connection) {
   int ch;
   while ((ch = m_timedRead()) != -1) {
     if (ch != ':') {
-      bool token = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') ||
-                   (ch >= 'a' && ch <= 'z') ||
-                   (ch > 0 && strchr("!#$%&'*+-.^_`|~", ch));
-      if (!token) return false;
+      if (!headerToken(ch)) return false;
       hasName = true;
     }
 
@@ -538,10 +677,7 @@ bool Request::m_headerValue(Header* header, bool connection) {
   while (!m_expect(CRLF)) {
     int ch = m_timedRead();
     if (ch < 0) return false;
-    if (ch == '\r' || ch == '\n' || ch == 0 || ch == 0x7f ||
-        (ch < 0x20 && ch != '\t')) {
-      return false;
-    }
+    if (!headerValueChar(ch)) return false;
 
     if (connection) connectionValue.read(ch);
 
@@ -654,6 +790,11 @@ int Request::m_timedRead() {
   int ch = read();
   if (ch == -1 && _timeout != 0) ch = timedRead();
   if (ch == -1) {
+    if (m_readingContent &&
+        (m_bodyState == BODY_DONE || m_bodyState == BODY_ERROR ||
+         (m_bodyState == CONTENT_LENGTH && !m_left))) {
+      return -1;
+    }
     m_readTimedout = true;
   }
 
