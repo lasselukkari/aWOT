@@ -1,20 +1,15 @@
 .DS_Store
 
-/.bundle/
-/.yardoc
-Gemfile.lock
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
-vendor
-*.gem
-
-# rspec failure tracking
-.rspec_status
-
-# C++ stuff
 *.bin
 *.bin.dSYM
 
+.extras/test/build/
+
+# Native build artifacts
+*.o
+*.d
+/.extras/MacOSNative/HelloWorld
+/.extras/MacOSNative/SocketTests
+/.extras/MacOSNative/ShimTests
+/.extras/WindowsNative/build*/
+/.extras/LinuxNative/build*/

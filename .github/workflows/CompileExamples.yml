@@ -1,88 +1,63 @@
 name: Compile examples
 on:
   push:
-    paths:
-      - "src/**"
-      - "examples/**"
-      - ".github/workflows/CompileExamples.yml"
+    paths: ["src/**", "examples/**", "library.properties", ".github/workflows/CompileExamples.yml"]
   pull_request:
-    paths:
-      - "src/**"
-      - "examples/**"
-      - ".github/workflows/CompileExamples.yml"
+    paths: ["src/**", "examples/**", "library.properties", ".github/workflows/CompileExamples.yml"]
   schedule:
     - cron: "0 0 1 * *"
-
   workflow_dispatch:
   repository_dispatch:
 jobs:
   boards:
-    name: "Compile for ${{ matrix.config.board }}"
+    name: ${{ matrix.fqbn }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - board: "Arduino Uno"
-            fqbn: "arduino:avr:uno"
-            platform: "arduino:avr"
-          - board: "Arduino Leonardo"
-            fqbn: "arduino:avr:leonardo"
-            platform: "arduino:avr"
-          - board: "Arduino Mega2560"
-            fqbn: "arduino:avr:mega"
-            platform: "arduino:avr"
-          - board: "Arduino Due"
-            fqbn: "arduino:sam:arduino_due_x"
-            platform: "arduino:sam"
-          - board: "ESP32 NodeMCU-32S"
-            fqbn: "esp32:esp32:nodemcu-32s"
-            platform: "esp32:esp32"
-            additional-url: "--additional-urls https://dl.espressif.com/dl/package_esp32_index.json"
+        include:
+          - fqbn: arduino:avr:uno
+            platform: arduino:avr
+          - fqbn: arduino:avr:leonardo
+            platform: arduino:avr
+          - fqbn: arduino:avr:mega
+            platform: arduino:avr
+          - fqbn: arduino:sam:arduino_due_x
+            platform: arduino:sam
+          - fqbn: esp32:esp32:nodemcu-32s
+            platform: esp32:esp32
+          - fqbn: esp8266:esp8266:nodemcuv2
+            platform: esp8266:esp8266
     steps:
-      - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
-      - name: Install platform ${{ matrix.config.platform }}
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install platform and libraries
         run: |
-          arduino-cli config init -v ${{ matrix.config.additional-url }}
-          arduino-cli core update-index -v 
-          arduino-cli core install -v ${{ matrix.config.platform }} --run-post-install
-      - name: Install Arduino libraries
-        run: |
-          arduino-cli lib update-index
-          arduino-cli lib install Ethernet
-          arduino-cli lib install LoRa
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Compile examples for ${{ matrix.config.board }}
-        id: compile
+          arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json,https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+          arduino-cli core install '${{ matrix.platform }}'
+          arduino-cli lib install Ethernet LoRa SD
+      - name: Compile examples
         env:
-          fqbn: ${{ matrix.config.fqbn }}
+          FQBN: ${{ matrix.fqbn }}
+        shell: bash
         run: |
-          # Compile example sketches:
-          export errors=()
-          for sketch in $( find ./examples -name "*.ino"|sed "s/\ /__SPACE__/g" )
-          do
-            sketch_path=$( echo $sketch |sed "s/__SPACE__/\ /g" )
-            grep -qE 'WiFi|ETH' $sketch_path && grep -qiv '^esp' <<< $fqbn && echo -e "\033[33;1;4mSkip example sketch: $sketch_path for $fqbn board\033[0m" || \
-            {
-              echo -e "\033[34;1;4mCompile example sketch: $sketch_path\033[0m"
-              arduino-cli compile --fqbn ${{ matrix.config.fqbn }} --warnings none `grep -q 'STD_FUNCTION_MIDDLEWARE' $sketch_path && echo "--build-property build.extra_flags=-DSTD_FUNCTION_MIDDLEWARE"`  \
-                --library ../aWOT \
-                "$sketch_path" \
-              || { errors+=($sketch) ; echo -e "\033[31;1;4mERROR COMPILING SKETCH: $sketch_path\033[0m\r\n" ;} \
-            ;}
-          done
-          echo "errors=${errors[@]}" >> $GITHUB_OUTPUT
-      - name: Show errors
-        if: ${{ steps.compile.outputs.errors }}
-        env:
-          errors: ${{ steps.compile.outputs.errors }}
-        run: |
-          #  Show errors
-          for sketch in $errors 
-          do
-            sketch_path=$( echo $sketch |sed "s/__SPACE__/\ /g" )
-            echo -e "\033[31;1;4mERROR COMPILING SKETCH: $sketch_path\033[0m"
-          done
-          exit 1
+          failed=0
+          while IFS= read -r sketch; do
+            if [[ "$FQBN" == esp8266:* ]]; then
+              if ! grep -q '#include <ESP8266WiFi\.h>' "$sketch"; then
+                continue
+              fi
+            elif [[ "$FQBN" != esp32:* ]] && grep -qE '#include <(ESP8266WiFi|WiFi|ETH)\.h>' "$sketch"; then
+              continue
+            fi
+            if [[ "$FQBN" == arduino:avr:leonardo && "$sketch" == examples/SerialBridge/SerialBridge.ino ]]; then
+              echo "Skipping $sketch for $FQBN: Ethernet, WebSockets, and USB serial exceed the board's flash capacity."
+              continue
+            fi
+            echo "Compiling $sketch for $FQBN"
+            if ! arduino-cli compile --fqbn "$FQBN" --library "$GITHUB_WORKSPACE" "$sketch"; then
+              failed=1
+            fi
+          done < <(find examples -name '*.ino' | sort)
+          exit "$failed"

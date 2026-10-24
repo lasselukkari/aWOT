@@ -1,45 +1,77 @@
 name: Unit Tests
 on:
   push:
-    paths:
-      - "src/**"
-      - "test/**"
-      - ".github/workflows/NativeUnitTests.yml"
+    paths: ["src/**", ".extras/**", ".github/workflows/NativeUnitTests.yml"]
   pull_request:
-    paths:
-      - "src/**"
-      - "test/**"
-      - ".github/workflows/NativeUnitTests.yml"
+    paths: ["src/**", ".extras/**", ".github/workflows/NativeUnitTests.yml"]
   schedule:
     - cron: "0 0 1 * *"
   workflow_dispatch:
   repository_dispatch:
 jobs:
-  build:
-    name: "Build for ${{ matrix.config.name }}"
-    runs-on: ${{ matrix.config.os }}
-    env:
-      BUILD_DIR: ${{ github.workspace }}/test/build
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - name: "Linux x86_64"
-            os: "ubuntu-latest"
-          - name: "macOS Universal"
-            os: "macos-latest"
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            flags: ""
+          - name: macOS
+            os: macos-latest
+            flags: ""
+          - name: Linux sanitizers
+            os: ubuntu-latest
+            flags: "-DAWOT_ENABLE_SANITIZERS=ON"
+          - name: Linux Uno buffers and function pointers
+            os: ubuntu-latest
+            flags: "-DAWOT_ENABLE_SANITIZERS=ON -DAWOT_NO_STD_FUNCTION_MIDDLEWARE=ON -DAWOT_SMALL_BUFFERS=ON"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Create Build Environment
-        run: cmake -E make_directory ${{ env.BUILD_DIR }}
-      - name: Running CMake
-        working-directory: ${{ env.BUILD_DIR }}
-        run: cmake ..
-      - name: Build Unit Tests
-        working-directory: ${{ env.BUILD_DIR }}
-        run: cmake --build .
-      - name: Run Unit Tests
-        if: ${{ success() }}
-        working-directory: ${{ env.BUILD_DIR }}
-        run: ctest
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S .extras/test -B .extras/test/build ${{ matrix.flags }}
+      - name: Build
+        run: cmake --build .extras/test/build --parallel 4
+      - name: Test
+        run: ctest --test-dir .extras/test/build --output-on-failure --parallel 4
+      - name: Native macOS example
+        if: runner.os == 'macOS'
+        run: make -C .extras/MacOSNative test
+  linux-native:
+    name: Linux native example
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S .extras/LinuxNative -B .extras/LinuxNative/build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build .extras/LinuxNative/build --parallel 4
+      - name: Test on Linux
+        run: ctest --test-dir .extras/LinuxNative/build --output-on-failure
+  windows-native:
+    name: Windows native example
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-python
+      - name: Configure
+        run: cmake -S .extras/WindowsNative -B .extras/WindowsNative/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build .extras/WindowsNative/build --parallel 4
+      - name: Test on Windows
+        run: ctest --test-dir .extras/WindowsNative/build --output-on-failure

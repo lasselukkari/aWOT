@@ -1,0 +1,22 @@
+name: Check Formatting
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: sudo apt-get install -y clang-format-18
+
+    - name: Check Formatting
+      run: |
+        clang-format-18 --version
+        find src .extras/test -name "*.cpp" -o -name "*.h" | grep -v ".extras/test/build" | xargs clang-format-18 -n -Werror --verbose

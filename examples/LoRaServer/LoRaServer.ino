@@ -13,13 +13,15 @@
 #define FREQUENCY 433E6
 
 WiFiServer server(80);
-Application app;
+App app;
 char body[16];
 int counter;
 
 void updateCounter(Request &req, Response &res) {
-  req.readBytes(body, 13);
+  size_t length = req.readBytes(body, sizeof(body) - 1);
+  body[length] = '\0';
   counter = atoi(body);
+  res.sendStatus(204);
 }
 
 void getCounter(Request &req, Response &res) { 

@@ -1,0 +1,6 @@
+# Use clang-format 18, matching .github/workflows/LintCheck.yml.
+BasedOnStyle: Google
+IndentWidth: 2
+DerivePointerAlignment: false
+PointerAlignment: Left
+Language: Cpp

@@ -9,9 +9,9 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-Application app;
+App app;
 
-void index(Request &req, Response &res) {
+void indexHandler(Request &req, Response &res) {
   res.print("Hello World!");
 }
 
@@ -30,7 +30,7 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/", &index);
+  app.get("/", &indexHandler);
   app.notFound(&notFound);
 
   server.begin();

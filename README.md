@@ -1,214 +1,200 @@
-aWOT
-==========
+# aWOT
 
-Arduino web server library.
+A portable HTTP server library for Arduino, with an API inspired by Express.js.
 
-## Documentation
-#### 1. Getting started
- * [Hello World](https://awot.net/en/starter/hello-world.html)
- * [Basic routing](https://awot.net/en/starter/basic-routing.html)
- * [Application generator](https://awot.net/en/starter/generator.html)
- * [Serving static files](https://awot.net/en/starter/static-files.html)
-#### 2. Guide
- * [Routing](https://awot.net/en/guide/routing.html)
- * [Middleware](https://awot.net/en/guide/middleware.html)
- * [Working with JSON data](https://awot.net/en/guide/json.html)
- * [Tutorial: Deploying a React app on the ESP32](https://awot.net/en/guide/tutorial.html)
-#### 3. API Reference
- * [Application](https://awot.net/en/3x/api.html#app)
- * [Request](https://awot.net/en/3x/api.html#req)
- * [Response](https://awot.net/en/3x/api.html#res)
- * [Router](https://awot.net/en/3x/api.html#router)
+aWOT is built to work across Arduino platforms, from an Uno to an ESP32, and
+on macOS, Windows, and Linux with Arduino-compatible socket adapters. It uses
+the standard Arduino `Client` and `Stream` interfaces, so your route handlers
+work over Wi-Fi, Ethernet, Bluetooth, or even a serial port.
 
-## Compatibility
+Requests are Arduino `Stream` objects and responses are `Print` objects. That
+means you can pass a request directly to ArduinoJson or an OTA updater, and
+write a response with the same methods you already use elsewhere in Arduino.
 
-The aWOT web server library has been designed to work with all Arduino compatible development boards and networking options. This also means that switching the board or changing from WiFi to Ethernet will require minimal changes. The examples directory shows you how to use the library with the most popular Ethernet and WiFi libraries 
+Build an HTTP API, serve a browser interface, or combine both into a complete
+web application. The companion asset tooling turns your frontend build into
+gzipped files that mount on the server with one line.
 
-However there are few subtle differences that need to be taken into account. Also unfortunately some of the WiFi and Ethernet libraries have bugs that prevent the library from working properly.
+## Get started
 
-Previously the library has been tested with:
-- Adafruit Feather M0 WiFi
-- Arduino UNO + WIZnet W5100
-- Arduino Mega + WIZnet W5100
-- Arduino Due + WIZnet W5100
-- Arduino MKR WiFi 1010 (see notes)
-- Teensy 3.0 + WIZnet W5200
-- Teensy 4.1 Ethernet (see notes)
-- ESP32 + Wiznet W5500 Ethernet (see notes)
-- ESP32 + LAN8270 Ethernet
-- ESP32 WiFi
-- ESP8266 WiFi
+Install **aWOT** through your environment's library manager:
 
-#### ESP32 and ESP8266 WiFi
+- **Arduino IDE:** Open [Library Manager](https://docs.arduino.cc/software/ide-v2/tutorials/ide-v2-installing-a-library/), search for `aWOT`, and choose **Install**.
+- **PlatformIO:** Open [Library Manager](https://docs.platformio.org/en/latest/librarymanager/index.html), search for `aWOT`, and add it to your project.
 
-In both of the ESP Arduino cores the WiFiClient closes the connection automatically in the class destructor. This means that the client.stop(), does not need to be explicitly called but you will need to take extra steps if you want to keep the connection alive.
+This complete example uses an ESP32 with its Arduino board package installed:
 
-#### ESP32 + Wiznet W5500
-The current version of the ESP32 Arduino core uses a non standard version of the Server class. Until the ESP32 core is fixed you need to manually modify the begin function in the Server.h if you want to use the Ethernet library that is shipped with the core.
-
-Bug report: https://github.com/espressif/arduino-esp32/issues/2704
-
-#### Teensy 4.1 + Ethernet
-The Teensy 4.1 Ethernet library currently has a bug that causes the connection to stall and reset when connections to the server are opened in fast phase. The bug has been verified but not fixed yet.
-
-Bug report: https://github.com/vjmuzik/NativeEthernet/issues/7
-
-#### Arduino UNO
-Because of the limited RAM and ROM Arduino UNO is on the edge of being usable for anything more complicated. If you want to use this library together with the SD card or any JSON parsing library, pay attention that you do not run out of memory.
-
-## Examples
-### Hello World
 ```cpp
 #include <WiFi.h>
 #include <aWOT.h>
 
 WiFiServer server(80);
-Application app;
+App app;
 
-void index(Request &req, Response &res) {
+void hello(Request& req, Response& res) {
   res.print("Hello World!");
 }
 
 void setup() {
   Serial.begin(115200);
-
-  WiFi.begin("ssid", "password");
+  WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/", &index);
+  app.get("/", hello);
   server.begin();
 }
 
-void loop() {  
+void loop() {
   WiFiClient client = server.available();
-
   if (client.connected()) {
     app.process(&client);
-    client.stop();
   }
 }
 ```
 
-### Query parameters
+Set your Wi-Fi credentials, upload the sketch, and open the address printed in
+the Serial Monitor at 115200 baud. The browser displays `Hello World!`.
+
+## Your transport, the same application
+
+aWOT handles HTTP using the transport you provide. Any implementation of
+Arduino's `Client` or `Stream` interfaces can be passed to `app.process()`.
+
+| Transport | Processing a request |
+| --- | --- |
+| Wi-Fi or Ethernet | `app.process(&client)` |
+| Serial, with a peer sending HTTP | `app.process(&Serial)` |
+| Native macOS sockets | `app.process(&client)` using the supplied adapter |
+| Native Windows sockets | `app.process(&client)` using the Winsock adapter |
+| Native Linux sockets | `app.process(&client)` using the POSIX adapter |
+
+See the [Uno Ethernet example](examples/Ethernet/Ethernet.ino),
+[ESP32/ESP8266 Wi-Fi example](examples/WiFi/WiFi.ino),
+[native macOS example](.extras/MacOSNative/README.md),
+[native Windows example](.extras/WindowsNative/README.md), and
+[native Linux example](.extras/LinuxNative/README.md). The native adapters
+are available in a Git checkout under `.extras/`.
+
+## Routes and middleware
+
+Register handlers for HTTP methods and URL patterns. Middleware can inspect a
+request and call `req.next()` to continue to the next matching handler.
+
 ```cpp
-// HTTP GET /cats?type=lolcat
-void queryParams(Request &req, Response &res) {
-  char type[64];
-  req.query("type", type, 64);
-
-  res.print(type); // "lolcat"
+void logRequest(Request& req, Response& res) {
+  Serial.println(req.path());
+  req.next();
 }
 
-void setup() {
-  // other setup ...
-  app.get("/cats", &queryParams);
-}
-```
-
-### Route paramaters
-```cpp
-// HTTP GET /cats/lolcat
-void routeParams(Request &req, Response &res) {
-  char catId[64];
-  req.route("catId", catId, 64);
-
-  res.print(catId);
-}
-
-void setup() {
-  // other setup
-  app.get("/cats/:catId", &routeParams);
-}
-```
-
-### Post parameters
-```cpp
-void postParams(Request &req, Response &res) {
-  char name[10];
-  char value[64];
-
-  while (req.left()) {
-    req.form(name, 10, value, 64);
-    res.print(name);
-    res.print(": ");
-    res.println(value);
+void greet(Request& req, Response& res) {
+  char name[32];
+  if (!req.route("name", name, sizeof(name))) {
+    return res.sendStatus(400);
   }
-}
-
-void setup() {
-  // other setup
-
-  app.post("/form", &postParams);
+  res.print("Hello, ");
+  res.print(name);
 }
 ```
 
-### Reading and writing headers
+Add these registrations to `setup()`, before `server.begin()`:
+
 ```cpp
-char userAgentBuffer[200];
-
-// HTTP GET /headers
-void headers(Request &req, Response &res) {
-  char * userAgent = req.get("User-Agent"); // "Mozilla/5.0 (Macintosh; Inte ...."
-
-  res.set("Cookie", "lolcat"); // will set Cookie header value to "lolcat"
-  res.print(userAgent);
-}
-
-void setup() {
-  // other setup
-
-  // header names are handled case insensitive
-  app.header("User-Agent", userAgentBuffer, 200); 
-  app.get("/useragent", &headers);
-}
+app.use(logRequest);
+app.get("/hello/:name", greet);
 ```
 
-### Routers
+Visiting `/hello/Arduino` returns `Hello, Arduino`. Handlers run in registration
+order; returning without `req.next()` finishes dispatch.
+
+Use `get`, `head`, `post`, `put`, `patch`, `del`, and `options` for method-specific
+routes. Group routes with `Router`, mount them with `app.use()`, and customize
+missing routes with `app.notFound()`.
+
+## Works with existing Arduino libraries
+
+`Request` inherits from `Stream`, and `Response` inherits from `Print`. Libraries
+that use these interfaces can read the request body and write the response
+directly.
+
+For example, install [ArduinoJson](https://arduinojson.org/) and include
+`<ArduinoJson.h>` in your sketch. Inside a handler, read JSON from the request
+and write it to the response:
+
 ```cpp
-Application app;
-Router cats;
-
-void looooong(Request &req, Response &res) {
-  res.print("looooong cat is long!");
+JsonDocument doc;
+if (deserializeJson(doc, req)) {
+  return res.sendStatus(400);
 }
 
-void ceiling(Request &req, Response &res) {
-  res.print("ceiling cat is watching you debug!");
-}
-
-void nyannyan(Request &req, Response &res) {
-  for (int i = 0; i < 100; i++) {
-      res.print("nyan ");
-  }
-}
-
-void setup() {
-  // other setup
-
-  cats.get("/long", &looooong);
-  cats.get("/ceiling", &ceiling);
-  cats.get("/nyan", &nyannyan);
-
-  app.use("/cats", &cats);
-}
+res.set("Content-Type", "application/json");
+serializeJson(doc, res);
 ```
 
-### Reducing memory usage
-If you need to reduce the memory consumption add `#define LOW_MEMORY_MCU` before you import the library. This will reduce the size of a few internal buffers. Normally this is only used for the smallest AVR boards but it can be enabled for others if needed.
+The body goes straight to the parser without an intermediate string. This
+snippet uses ArduinoJson 7, whose
+[parser accepts `Stream`](https://arduinojson.org/v7/api/json/deserializejson/)
+and [serializer accepts `Print`](https://arduinojson.org/v7/api/json/serializejson/).
 
-Also use the `P` macro to place any strings in to the program memory instead of wasting the precious RAM.
+The same interface makes firmware uploads straightforward on supported boards.
+Once the updater is initialized, stream uploaded firmware from the request:
 
+```cpp
+Update.writeStream(req);
 ```
-P(longString) = "Lots of text here...";
-res.printP(longString);
+
+The [OTA example](examples/OTAUpdate/OTAUpdate.ino) shows the complete update
+flow, including setup, error handling, and restarting the device.
+
+## Build the frontend and firmware together
+
+Develop your browser interface with the frontend tools you prefer. During local
+development, configure your frontend development server to proxy API requests
+to the Arduino. Relative requests such as `fetch('/led')` then work during
+development and when the interface is served by the device.
+
+The companion [awot-static tool](https://github.com/lasselukkari/awot-scripts#awot-static)
+compresses your frontend build with gzip and generates `StaticFiles.h`. The
+generated routes include the content type, content length, and encoding headers
+for each asset.
+
+Include the generated header:
+
+```cpp
+#include "StaticFiles.h"
 ```
 
-## Acknowledgements
-Based on Webduino, Copyright 2009-2014 Ben Combee, Ran Talbott, Christopher Lee, Martin Lormes, Francisco M Cuenca-Acuna
+Then mount the files in `setup()` after registering your API routes:
 
-## Licence
-MIT
+```cpp
+app.use(staticFiles());
+```
+
+Build the frontend, generate the assets, and upload the sketch. Your device now
+serves both the browser interface and its HTTP API.
+
+The [full-stack tutorial](https://awot.net/en/guide/tutorial.html) walks through
+the workflow with a browser-controlled LED.
+
+## Explore further
+
+| Example | What it demonstrates |
+| --- | --- |
+| [Authentication](examples/AuthMiddleware/AuthMiddleware.ino) | Request headers and middleware |
+| [WebSockets](examples/WebSockets/WebSockets.ino) | A browser chat interface |
+| [Server-sent events](examples/ServerSentEvents/ServerSentEvents.ino) | Streaming updates to a named room |
+| [File server](examples/FileServer/FileServer.ino) | Serving files from storage |
+| [Member callbacks](examples/MemberFunction/MemberFunction.ino) | Organizing handlers in classes |
+| [Request context](examples/RequestContext/RequestContext.ino) | Sharing application data with handlers |
+| [Keep-alive](examples/KeepAlive/KeepAlive.ino) | Reusing HTTP connections |
+
+See the [documentation website](https://awot.net/) for guides, the API reference,
+and migration instructions. The [source contracts](src/README.md) cover buffer
+boundaries, parsing behavior, and transport handling.
+
+## License
+
+Licensed under [MIT](LICENSE). Based on Webduino, Copyright 2009–2014 Ben
+Combee, Ran Talbott, Christopher Lee, Martin Lormes, Francisco M Cuenca-Acuna.
