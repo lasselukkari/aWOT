@@ -1,0 +1,131 @@
+[
+  {
+    "file": "src/content/docs/starter/basic-routing.md",
+    "block": 1,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/starter/basic-routing.md",
+    "block": 2,
+    "wrapper": "body",
+    "preamble_blocks": [
+      1
+    ]
+  },
+  {
+    "file": "src/content/docs/starter/basic-routing.md",
+    "block": 3,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/starter/basic-routing.md",
+    "block": 4,
+    "wrapper": "body",
+    "preamble_blocks": [
+      3
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 1,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 2,
+    "wrapper": "body",
+    "preamble_blocks": [
+      1
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 3,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 4,
+    "wrapper": "body",
+    "preamble_blocks": [
+      3
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 5,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 6,
+    "wrapper": "body",
+    "preamble_blocks": [
+      5
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 7,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/routing.md",
+    "block": 8,
+    "wrapper": "body",
+    "std_function": true,
+    "preamble_blocks": [
+      7
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/connections.md",
+    "block": 1,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/guide/connections.md",
+    "block": 4,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/connections.md",
+    "block": 5,
+    "wrapper": "body",
+    "preamble_blocks": [
+      4
+    ]
+  },
+  {
+    "file": "src/content/docs/guide/request-data.md",
+    "block": 2,
+    "wrapper": "body",
+    "preamble": "char labelStorage[32];\nchar* labelPointer = labelStorage;\nint labelCapacity = sizeof(labelStorage);\nchar urlStorage[64];\nchar* urlPointer = urlStorage;\nint urlCapacity = sizeof(urlStorage);\nuint8_t outputStorage[32];\nuint8_t* outputPointer = outputStorage;\nint outputCapacity = sizeof(outputStorage);\nvoid* contextPointer = nullptr;"
+  },
+  {
+    "file": "src/content/docs/guide/migrating-to-v4.md",
+    "block": 4,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/guide/migrating-to-v4.md",
+    "block": 6,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/guide/migrating-to-v4.md",
+    "block": 8,
+    "wrapper": "body",
+    "preamble": "struct ContextState { unsigned long started; };\nContextState state = {};"
+  },
+  {
+    "file": "src/content/docs/guide/migrating-to-v4.md",
+    "block": 10,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/guide/migrating-to-v4.md",
+    "block": 11,
+    "wrapper": "body"
+  }
+]

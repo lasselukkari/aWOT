@@ -1,0 +1,29 @@
+site:
+  name: aWOT
+  site: 'https://awot.net'
+  base: '/'
+  trailingSlash: false
+  googleSiteVerificationId: false
+metadata:
+  title:
+    default: aWOT — Arduino web server library
+    template: '%s — aWOT'
+  description: A portable HTTP server library for Arduino. Build web interfaces, HTTP APIs, WebSockets, and server-sent events with aWOT 4.
+  robots:
+    index: true
+    follow: true
+  openGraph:
+    site_name: aWOT
+    type: website
+i18n:
+  language: en
+  textDirection: ltr
+apps:
+  blog:
+    isEnabled: false
+analytics:
+  vendors:
+    googleAnalytics:
+      id: null
+ui:
+  theme: system
