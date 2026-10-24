@@ -149,10 +149,15 @@ name lookup in the including source, not the library's namespace or ABI.
 Include channels explicitly. For example, the Uno
 [SerialBridge example](https://github.com/lasselukkari/aWOT/blob/master/examples/SerialBridge/SerialBridge.ino)
 sets `WS_RX_BUFFER_SIZE` to 64 before `<WsChannel.h>` and uses one Ethernet
-client slot and one room. Each WebSocket slot reserves the entire receive
-buffer, whether or not it is occupied. Four 256-byte slots alone reserve 1024
-payload bytes, before slot metadata and HTTP/transport storage; that choice
-is unsuitable for many small-board applications.
+client slot and one room. Each WebSocket slot reserves the entire message
+buffer plus a separate 125-byte control buffer, whether or not it is occupied.
+Four slots with 256-byte message buffers reserve 1524 payload bytes, before
+slot metadata and HTTP/transport storage; that choice is unsuitable for many
+small-board applications.
+
+`WS_RX_BUFFER_SIZE` limits the complete incoming message, including all
+fragments. The control buffer lets the channel handle ping, pong, and close
+frames while a fragmented message is incomplete.
 
 `WsChannel<TClient, N, MAX_ROOMS>` and `SseChannel<TClient, N, MAX_ROOMS>` both
 require `N > 0` and `1 <= MAX_ROOMS <= 32`. `MAX_ROOMS` defaults to 8, so
@@ -162,11 +167,11 @@ pointers. Room registration and membership changes allocate no heap memory.
 Names are borrowed: use string literals or unchanged storage that outlives
 the channel. The two channels have separate room tables and client slot IDs.
 
-WebSocket defaults are a 256-byte receive buffer, a 5000 ms ping interval, and a
-10000 ms pong timeout. `WS_PING_INTERVAL_MS` and `WS_PING_TIMEOUT_MS` configure
-heartbeat; zero does not turn it off. Define channel macros before the channel
-header and use the same values across translation units instantiating the
-same channel type.
+WebSocket defaults are a 256-byte message buffer, a 125-byte control buffer,
+a 5000 ms ping interval, and a 10000 ms pong timeout. `WS_PING_INTERVAL_MS` and
+`WS_PING_TIMEOUT_MS` configure heartbeat; zero does not turn it off. Define
+channel macros before the channel header and use the same values across
+translation units instantiating the same channel type.
 
 SSE stores `N` client handles and has no automatic heartbeat or replay buffer.
 Its `onConnect` callback receives an integer client ID; `forEach` callbacks

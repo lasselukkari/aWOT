@@ -96,9 +96,11 @@ documented version.
   Those results do not validate the pending Astro changes. The local workflow
   removes the duplicate push trigger so PR updates run once.
 
-The current channel API and CI library baseline is the published revision
+The published channel API and current CI library baseline is revision
 `d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`, with unified SSE/WebSocket targeting
-and shared room/write helpers. Earlier validation entries used local revision
+and shared room/write helpers. It predates the fragmentation support documented
+below; use `ae16ee28cb341b2aef66e78162e966543a194f73` for current local validation.
+Earlier validation entries used local revision
 `4117ee51` and the matching public revision
 `bb13af5963ad950015312fe73107766056ccd936`; those results are historical.
 Update the CI pin to the released source revision when preparing final
@@ -211,3 +213,24 @@ release or evidence that Library Manager has indexed the package.
 - [x] Run Astro checks with zero errors, warnings, or hints, build the production
   site, and validate 45 HTML pages, 3107 local links, 22 aliases, both API
   versions, and preserved 3.x anchors.
+
+## WebSocket fragmentation validation
+
+- [x] Update the v4 reference, WebSocket guide, and configuration guide for
+  complete-message reassembly, one callback after the final fragment,
+  interleaved controls, UTF-8 validation, close codes, and per-slot buffer costs.
+- [x] At library revision `ae16ee28cb341b2aef66e78162e966543a194f73`, pass all
+  23 default and 22 small-buffer/function-pointer native suites with address
+  and undefined-behavior sanitizers. The small configuration uses a 64-byte
+  WebSocket message buffer, including tests for interleaved 125-byte pings.
+- [x] Compile SerialBridge for Uno with AVR 1.8.8 and Ethernet 2.0.2: 29,242
+  flash bytes and 1,078 global RAM bytes, an increase of 236 flash and 128 RAM
+  bytes. The single-client channel grows from 131 to 259 bytes. These are
+  compile and size checks; no hardware runtime test is claimed.
+- [x] Run Astro checks with zero errors, warnings, or hints, build the site,
+  and validate 45 HTML pages, 3107 local links, 22 aliases, both API versions,
+  and preserved 3.x anchors. The documentation update changes no code examples.
+- [ ] Once the library commit is published, advance both CI source pins to
+  `ae16ee28cb341b2aef66e78162e966543a194f73` or a newer published revision and
+  review the hosted documentation checks before publication. The current
+  published CI baseline does not validate fragmentation.

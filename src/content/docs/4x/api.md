@@ -1477,8 +1477,9 @@ discarding it. A channel is intended for single-threaded use.
 
 `N` must be positive. `MAX_ROOMS` must be in `1..32`; each socket has a 32-bit
 room-membership bitmap. Each of the `N` slots allocates a
-`WS_RX_BUFFER_SIZE`-byte receive buffer, even when idle. The default receive
-capacity is 256 bytes per slot. See [configuration](#configuration-channels).
+`WS_RX_BUFFER_SIZE`-byte message buffer and a separate 125-byte control buffer,
+even when idle. The default message capacity is 256 bytes per slot, including
+all fragments. See [configuration](#configuration-channels).
 
 <h3 id="ws-upgrade">upgrade</h3>
 
@@ -1521,14 +1522,24 @@ ping and close frames, and checks disconnections and heartbeat timeouts.
 Positive short writes are retried; a zero or invalid write deactivates the slot,
 stops its client, and calls `onDisconnect`.
 
-Incoming frames must be masked and unfragmented (`FIN = 1`); continuation frames
-are unsupported. Protocol errors close with 1002; fragmented data closes with
-1003; payloads larger than `WS_RX_BUFFER_SIZE` close with 1009. Text and close
-reasons must be valid UTF-8 or the channel closes with 1007. Control payloads
-must fit both the 125-byte protocol limit and the receive capacity. Compression
-extensions and TLS are not supplied by the channel; the example uses plain
-WebSockets. Outgoing payloads are unmasked and are not limited by the receive
-buffer size. Keep outgoing lengths within the 32-bit frame-length implementation.
+Incoming frames must be masked. Text and binary messages can span several
+frames: the first carries the message type, later frames use the continuation
+opcode, and the final frame sets `FIN = 1`. The channel assembles the complete
+message in its receive buffer and calls `onMessage` once. Ping, pong, and close
+frames can arrive between fragments without overwriting the message.
+
+Protocol errors, including an unexpected continuation or a new data message
+before the previous one finishes, close with 1002. Messages larger than
+`WS_RX_BUFFER_SIZE` across all fragments close with 1009. Text is checked for
+valid UTF-8 after the final fragment; a character may span fragments. Invalid
+text or close reasons close with 1007. Control frames must be unfragmented and
+contain at most 125 payload bytes, independently of `WS_RX_BUFFER_SIZE`.
+Disconnecting or reusing a slot clears any incomplete message.
+
+Compression extensions and TLS are not supplied by the channel; the example
+uses plain WebSockets. Outgoing messages use a single unmasked frame and are
+not limited by the receive buffer size. Keep outgoing lengths within the
+32-bit frame-length implementation.
 
 The default heartbeat sends an empty ping after 5000 ms and waits for a pong
 for up to 10000 ms. There is at most one outstanding heartbeat ping. Timeout
@@ -1657,14 +1668,15 @@ typedef void (*MessageCb)(WsMessage& msg);
 Each setter replaces the previous callback; `nullptr` clears it. `onConnect`
 runs during a successful upgrade, after the slot becomes active.
 `onDisconnect` runs after deactivation and transport closure.
-`onMessage` runs synchronously inside `poll()` for completed text and binary
-messages. The [WsMessage](#wsmessage) object and its data must not be retained
-after that callback. Captured objects in callbacks must outlive their use.
+`onMessage` runs synchronously inside `poll()` once per completed text or binary
+message, after its final fragment. The [WsMessage](#wsmessage) object and its
+data must not be retained after that callback. Captured objects in callbacks
+must outlive their use.
 
 <h2 id="wsmessage">WsMessage</h2>
 
 
-`WsMessage` is a read-only Arduino `Stream` over a completed WebSocket payload.
+`WsMessage` is a read-only Arduino `Stream` over a completed WebSocket message.
 `<WsChannel.h>` includes it, or include `<WsMessage.h>` explicitly. A channel
 creates a temporary message for `onMessage`; copy bytes during the callback if
 you need them later. The payload is not NUL-terminated.
@@ -1680,7 +1692,7 @@ WsMessage(uint8_t* buffer, size_t length, uint8_t opcode, int socketId);
 The constructor borrows `buffer`, starts the read position at zero, and records
 the supplied metadata. It does not validate the pointer or opcode. The buffer
 must contain at least `length` readable bytes and outlive this message. Channel
-callbacks receive only validated text or binary frames.
+callbacks receive only complete, validated text or binary messages.
 
 <h3 id="wsmessage-read">Reading and Stream methods</h3>
 
@@ -2098,7 +2110,7 @@ address space.
 
 | Macro | Default | Meaning |
 | --- | --- | --- |
-| `WS_RX_BUFFER_SIZE` | 256 | Receive payload capacity in bytes, allocated in every WebSocket slot. |
+| `WS_RX_BUFFER_SIZE` | 256 | Complete incoming message capacity in bytes, including all fragments; allocated in every WebSocket slot. |
 | `WS_PING_INTERVAL_MS` | `5000UL` | Time from the previous heartbeat ping to sending the next when no pong is pending. |
 | `WS_PING_TIMEOUT_MS` | `10000UL` | Time to wait for the outstanding heartbeat pong before stopping the connection. |
 
@@ -2109,5 +2121,6 @@ definitions must agree across translation units that instantiate the same
 channel type. Both `WsChannel<TClient, N, MAX_ROOMS>` and
 `SseChannel<TClient, N, MAX_ROOMS>` use template parameters for slot and room
 capacities; these are not macros. SSE has no automatic heartbeat configuration.
-Large WebSocket capacities can exhaust small boards; the Uno SerialBridge
-example uses one slot and 64 receive bytes.
+Each WebSocket slot also reserves a separate 125-byte control buffer. Large
+capacities can exhaust small boards; the Uno SerialBridge example uses one
+slot with a 64-byte message buffer plus the control buffer.

@@ -133,6 +133,11 @@ collects partial frame bytes, calls message callbacks, replies to control
 frames, detects disconnects, and handles heartbeat pings. Blocking handlers or
 long delays postpone all of those tasks.
 
+Text and binary messages can arrive in several fragments. The channel assembles
+them in its receive buffer and calls `onMessage` once after the final fragment.
+Ping, pong, and close frames are handled between fragments. Text is checked for
+valid UTF-8 as a complete message, so a character can span fragments.
+
 `WsMessage` is a Stream, so you can read it byte by byte or pass it to a parser.
 Its `data()` pointer and `length()` describe the complete received payload,
 even after reads. They are valid only during the callback; copy the bytes if
@@ -169,12 +174,15 @@ stop a client if a write fails.
 
 ## Capacity, masking, and heartbeat
 
-Each slot reserves 256 receive bytes by default. Incoming payloads larger than
-that close with code 1009. The browser page limits UTF-8 byte length, which can
-be greater than the number of displayed characters. Incoming data frames must
-be unfragmented and masked. Browser WebSocket clients handle masking; custom
-clients must supply it. Fragmented data and continuation frames close with
-1003, protocol errors with 1002, and invalid UTF-8 with 1007. Compression
+Each slot reserves a 256-byte message buffer by default, plus a separate
+125-byte control buffer. `WS_RX_BUFFER_SIZE` limits the complete incoming
+message, including all fragments; messages larger than that close with code
+1009. The browser page limits UTF-8 byte length, which can be greater than the
+number of displayed characters. Incoming frames must be masked. Browser
+WebSocket clients handle masking; custom clients must supply it. Protocol
+errors, including an unexpected continuation or a new data message before the
+previous one finishes, close with 1002; invalid UTF-8 closes with 1007. Control
+frames must be unfragmented and contain at most 125 payload bytes. Compression
 extensions are unsupported. This sketch serves plain `ws://`; it does not add
 TLS for `wss://`.
 
@@ -190,8 +198,9 @@ and are not constrained by the receive capacity.
 
 An Uno has much less RAM than an ESP32. For Uno with Ethernet, start with the
 library's [SerialBridge example](https://github.com/lasselukkari/aWOT/blob/master/examples/SerialBridge/SerialBridge.ino):
-it uses `WsChannel<EthernetClient, 1, 1>` and a 64-byte receive limit. With the
-Ethernet 2.x library, `server.accept()` transfers accepted clients out of the
+it uses `WsChannel<EthernetClient, 1, 1>` and a 64-byte message limit, plus the
+125-byte control buffer. With the Ethernet 2.x library, `server.accept()`
+transfers accepted clients out of the
 server's pending list, so later HTTP acceptance does not reuse an upgraded
 socket. See the [Ethernet implementation](https://github.com/arduino-libraries/Ethernet/blob/master/src/EthernetServer.cpp)
 for the difference between `accept()` and `available()`.
