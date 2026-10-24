@@ -60,6 +60,8 @@ This complete ESP32 sketch demonstrates three routes. `GET /inspect?name=Ada`
 reads a query and captured header; `POST /form` reads form fields; `PUT /echo`
 reads and returns a bounded body. Its per-request context measures processing
 time, and custom buffers replace the default URL and output storage.
+The form and echo routes require a known, nonzero Content-Length of at most
+128 bytes; they reject chunked requests because the total length is unknown.
 
 ```cpp
 #include <WiFi.h>
@@ -181,23 +183,43 @@ curl --request PUT --data-binary 'hello' http://192.168.1.140/echo
 <h2 id="body">Body lengths and reads</h2>
 
 
-`req.left()` reports unread body bytes, including pushed-back bytes. Ordinary
-`read()` is nonblocking and returns `-1` when no byte is available; inherited
-`readBytes()` waits up to the request's Stream timeout and returns the number
-actually read. Check both the returned count and the expected body length.
-`available()` describes bytes ready now, so it does not prove a complete body
-has arrived. `bytesRead()` also counts the request line and headers; it is not
-the body length.
+For Content-Length bodies, `req.left()` reports unread body bytes, including
+pushed-back bytes. For chunked bodies, it returns `-1` until the zero chunk and
+final empty trailer line have been consumed, even if pushback contains bytes.
+It then returns the pushback count or zero. Use `req.left() != 0` when a loop
+must also handle chunked bodies, and handle failed reads so incomplete input
+does not leave the loop spinning.
+
+Ordinary `read()` is nonblocking and returns `-1` when no byte is available;
+the buffer overload can read across chunks. Inherited `readBytes()` waits up
+to the request's Stream timeout and returns the number actually read. Both
+decode chunked payload without allocating a body buffer. Check returned counts
+and body completion. `available()` reports ready payload from the current
+chunk or remaining Content-Length, plus pushback, capped at `INT_MAX`; it does
+not prove a complete body has arrived. Both `left()` and `available()` can
+consume ready chunk framing without waiting for input. `bytesRead()` counts
+transport bytes, including the request line, headers, chunk framing, and
+trailers, once; it is not the decoded body length.
 
 Content-Length is decimal, bounded by `INT_MAX`, and allows surrounding spaces
-or tabs. Repeated lengths must agree. Comma lists, conflicting lengths, and
-every incoming Transfer-Encoding are rejected with `400` and closure. Incoming
-chunked bodies are unsupported. Without Content-Length, the body length is
-zero. A short or timed-out body needs an application error response; reading
-the body after routing does not automatically run `onError`.
+or tabs. Repeated lengths must agree. HTTP/1.1 accepts a single
+`Transfer-Encoding: chunked` field. Each chunk can declare up to `UINT32_MAX`
+bytes, and the complete body can span multiple chunks. Extensions are ignored;
+trailers are consumed and discarded without changing captured headers. Comma
+lists or conflicting Content-Length values, Content-Length combined with
+Transfer-Encoding, repeated or unsupported transfer codings, and transfer
+coding on HTTP/1.0 are rejected with `400` and closure. Without either framing
+header, the body length is zero.
 
-Read or discard the complete body before retaining an HTTP connection. On
-rejected requests, this example closes the connection. See
+Malformed chunk framing closes the connection. If no response status has been
+sent when routing finishes, aWOT invokes `onError` with `400` and supplies its
+usual fallback response; it does not replace an already-started response.
+Check short or timed-out reads yourself: inherited Stream helpers do not
+guarantee an `onError` call for incomplete input.
+
+Read or discard the complete body before retaining an HTTP connection. An
+incomplete chunked body prevents both keep-alive reuse and an open-response
+handoff. On rejected requests, this example closes the connection. See
 [connections](/en/guide/connections.html) and
 [JSON](/en/guide/json.html) for structured body parsing.
 

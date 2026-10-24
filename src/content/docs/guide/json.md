@@ -22,9 +22,10 @@ describes version selection. Its official API documents
 
 
 This complete ESP32 sketch returns a user name at `GET /user` and updates it at
-`PUT /user`. It limits the request body to 256 bytes, checks the parser result,
-requires a string name of at most 32 bytes, and rejects non-whitespace bytes
-after the JSON object. Set the Wi-Fi credentials before uploading.
+`PUT /user`. It requires a known, nonzero Content-Length of at most 256 bytes,
+checks the parser result, requires a string name of at most 32 bytes, and
+rejects non-whitespace bytes after the JSON object. Set the Wi-Fi credentials
+before uploading.
 
 ```cpp
 #include <WiFi.h>
@@ -156,6 +157,8 @@ curl --silent --request PUT http://192.168.1.140/user \
 
 A body such as `{"name":42}` receives `400 Bad Request`; omitting the
 Content-Type header receives `415 Unsupported Media Type`. Send a body with
-Content-Length: aWOT rejects incoming Transfer-Encoding, including chunked
-bodies. This sketch closes each connection after the response, so unread bytes
-on a rejected request cannot become a subsequent request.
+Content-Length: this sketch rejects chunked bodies because their total length
+is unknown, although aWOT supports chunked HTTP/1.1 requests. See
+[request body reads](/en/guide/request-data.html#body) for the decoding contract.
+This sketch closes each connection after the response, so unread bytes on a
+rejected request cannot become a subsequent request.

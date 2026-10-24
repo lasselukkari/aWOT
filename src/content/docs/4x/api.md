@@ -246,6 +246,9 @@ header read failures, and 505 for an unsupported HTTP version.
 To supply a custom response, call `res.end()` after writing it. Otherwise aWOT
 continues with its built-in `sendStatus(statusCode)` response. Parser errors
 close the client after finalization and never allow connection reuse.
+Malformed chunk framing discovered during body reads also closes the client.
+If no response status has been sent when routing finishes, aWOT invokes
+`onError` with 400; an already-started response is not replaced.
 
 ```cpp
 void errorResponse(Request& req, Response& res, int code) {
@@ -327,7 +330,8 @@ struct ProcessResult {
 
 `responseOpen` means the parsed request successfully opened a response with
 [`res.keepOpen()`](#res-keepOpen), and its initial writes succeeded. Retain the
-underlying client for the stream or protocol upgrade.
+underlying client for the stream or protocol upgrade. A chunked request body
+must also be complete, including its final chunk and trailers.
 
 `keepAlive` means parsing succeeded, the request body was completely consumed,
 writes succeeded, the response remains ordinary HTTP, and the response selected
@@ -689,8 +693,10 @@ requests.
 Header names match without case sensitivity. Repeated captured fields append
 their values with a comma and need capacity for that comma. Leading spaces and
 tabs in each value are skipped. Captured-value overflow fails parsing with 431.
-The parser handles `Content-Length` internally rather than populating a capture
-for it; use `req.left()` to inspect the remaining body length.
+The parser handles `Content-Length` and `Transfer-Encoding` internally rather
+than populating captures for them. Use `req.left()` to inspect the remaining
+body length or completion state. Trailer fields are discarded and do not
+populate or change captured headers.
 
 <span id="req-variables"></span>
 <h3 id="req-context">Request::context</h3>
@@ -724,9 +730,9 @@ Client* client();
 ```
 
 Return the borrowed underlying Arduino Client. Reading it directly bypasses
-the Request's body bounds, pushback, and counters. Use `req` for an ordinary
-body; direct Client I/O is useful after a protocol upgrade or when continuing a
-response opened with `res.keepOpen()`.
+the Request's body bounds, chunk decoding, pushback, and counters. Use `req`
+for an ordinary body; direct Client I/O is useful after a protocol upgrade or
+when continuing a response opened with `res.keepOpen()`.
 
 For `process(Stream*)`, the pointer identifies a temporary `StreamClient`
 adapter that expires when `process()` returns. Do not retain it. Channels
@@ -907,7 +913,7 @@ to distinguish end of body from unread input after a failure.
 void saveForm(Request& req, Response& res) {
   char name[16];
   char value[32];
-  while (req.left() > 0) {
+  while (req.left() != 0) {
     if (!req.form(name, sizeof(name), value, sizeof(value))) {
       res.sendStatus(400);
       return;
@@ -925,15 +931,26 @@ void saveForm(Request& req, Response& res) {
 int left();
 ```
 
-Return the number of unread body bytes declared by Content-Length plus pushed
-back bytes. With no Content-Length, the ordinary body length is zero. aWOT
-accepts nonnegative decimal Content-Length up to `INT_MAX`, with surrounding
-spaces/tabs. Repeated values must agree. Comma lists, conflicting values, and
-every incoming Transfer-Encoding produce 400 and close the connection;
-chunked request bodies are unsupported.
+For Content-Length bodies, return the unread declared bytes plus pushed-back
+bytes. For chunked bodies, return `-1` until the zero chunk and final empty
+trailer line have been consumed, even when pushback contains bytes. After that,
+return the pushback count or zero. This call can consume already-available
+chunk framing without waiting for input; it does not consume payload. A
+malformed or incomplete chunked body continues to return `-1`.
 
-Reading less than the declared length prevents keep-alive reuse. aWOT does not
-automatically drain an unread or truncated body.
+aWOT accepts nonnegative decimal Content-Length up to `INT_MAX`, with
+surrounding spaces/tabs. Repeated values must agree. HTTP/1.1 also accepts a
+single `Transfer-Encoding: chunked` field, with each chunk size bounded by
+`UINT32_MAX`; the complete body can span multiple chunks. Chunk extensions are
+ignored and trailer fields are consumed and discarded. Comma lists or
+conflicting Content-Length values, Content-Length combined with
+Transfer-Encoding, repeated or unsupported Transfer-Encoding values, and
+transfer coding on HTTP/1.0 produce 400 and close the connection. Without
+either framing header, the body length is zero.
+
+An unread or truncated body prevents keep-alive reuse. An incomplete chunked
+body also prevents an open-response handoff. aWOT does not automatically drain
+unread payload.
 
 <h3 id="req-available">Request::available</h3>
 
@@ -942,9 +959,12 @@ automatically drain an unread or truncated body.
 int available();
 ```
 
-Return immediately available body bytes, capped at the remaining Content-Length,
-plus pushback bytes. Zero can mean the body is complete or that its next bytes
-have not arrived; use `left()` to distinguish them.
+Return immediately available payload bytes, capped at the remaining
+Content-Length or the current chunk's remaining payload, plus pushback bytes.
+The result saturates at `INT_MAX`. This call can consume already-available
+chunk framing without waiting for input; it does not count framing as payload
+or look ahead through later chunks. Zero can mean the body is complete or that
+its next bytes have not arrived; use `left()` to distinguish them.
 
 <h3 id="req-read">Request::read</h3>
 
@@ -959,10 +979,14 @@ byte or -1 when no byte is available or the body is exhausted. It does not wait
 for more input. Reaching the body's end through this overload sets the inherited
 Stream timeout to zero.
 
-The buffer overload returns the number read, zero at body end, or the underlying
-Client's -1 when no buffered byte could be returned. It can read fewer bytes than
-requested. Both overloads stop at the body boundary and leave a following HTTP
-request in the transport. Supply valid storage for the requested buffer size.
+The buffer overload returns the number read, which can be zero at body end or
+while chunk framing awaits input. An underlying Client read can return -1 when
+no byte could be returned. It can read fewer bytes than requested; use `left()`
+to distinguish completion from incomplete input.
+Both overloads decode chunked bodies without allocating a body
+buffer, and the buffer overload can cross chunk boundaries. They stop at the
+body boundary and leave a following HTTP request in the transport. Supply valid
+storage for the requested buffer size.
 For a timed bounded read, use [`readBytes()`](#req-readBytes) and check its count.
 
 <h3 id="req-peek">Request::peek</h3>
@@ -974,7 +998,9 @@ int peek();
 
 Read one byte and push it back, returning that byte or -1. The next Request read
 returns it again. A first peek can increase `bytesRead()` because it initially
-reads the underlying Client, while `left()` remains unchanged.
+reads the underlying Client. It preserves the unread payload count for a
+Content-Length body. For chunked bodies, it can advance framing; `left()` keeps
+its `-1` result until the final chunk and trailers have been consumed.
 
 <h3 id="req-push">Request::push</h3>
 
@@ -984,9 +1010,11 @@ void push(uint8_t ch);
 ```
 
 Push a byte onto the Request's LIFO pushback stack. Reading it again does not
-increase `bytesRead()`. `left()` and `available()` include pushed bytes. The
-capacity is `SERVER_PUSHBACK_BUFFER_SIZE`; when full, a push replaces the
-previous top byte with the new one and has no failure return.
+increase `bytesRead()`. `available()` includes pushed bytes; `left()` includes
+them once it can report a known remaining length, retaining `-1` while chunked
+framing is incomplete. The capacity is `SERVER_PUSHBACK_BUFFER_SIZE`; when
+full, a push replaces the previous top byte with the new one and has no failure
+return.
 
 <h3 id="req-bytesRead">Request::bytesRead</h3>
 
@@ -996,7 +1024,9 @@ int bytesRead();
 ```
 
 Return bytes read from the underlying Client by this Request, including the
-request line, headers, and body. Pushback rereads are not counted again.
+request line, headers, body payload, chunk framing, and trailers, saturating at
+`INT_MAX`. Pushback rereads are not counted again. Calls such as `left()`,
+`available()`, and `peek()` can advance chunk framing and increase this count.
 
 <h3 id="req-availableForWrite">Request::availableForWrite</h3>
 

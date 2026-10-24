@@ -39,8 +39,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          # Published v4 source with WebSocket message fragmentation.
-          ref: ae16ee28cb341b2aef66e78162e966543a194f73
+          # Published v4 source with chunked request parsing.
+          ref: d6098a8d79a01d547ff96ea43bfb20d70743286f
           path: .docs-build/library
       - run: python3 scripts/check-snippets.py --library .docs-build/library --configuration '${{ matrix.configuration }}' --work-dir .docs-build/native
 
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          ref: ae16ee28cb341b2aef66e78162e966543a194f73
+          ref: d6098a8d79a01d547ff96ea43bfb20d70743286f
           path: .docs-build/library
       - uses: actions/setup-node@v4
         with:

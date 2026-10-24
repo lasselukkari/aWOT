@@ -56,6 +56,8 @@ connections at once, so the server needs to manage each connection separately.
 Set `Connection: keep-alive` before the headers are sent, consume the complete
 request body, and check `result.keepAlive` after processing. It is true only
 after successful parsing and writes, with no unread body and no open response.
+For a chunked request, consuming the complete body includes its zero chunk and
+final empty trailer line; `req.left()` stays `-1` until that framing is complete.
 If the response has no explicit Content-Length, aWOT supplies chunk framing.
 The caller still controls closure and the idle timeout.
 
@@ -161,8 +163,9 @@ protocol and must not be passed back to `process()` for another HTTP request.
 
 Call `res.keepOpen()` **before sending ordinary HTTP headers**, then emit your
 initial response. `result.responseOpen` is true when the request parsed and the
-response writes succeeded. Retain the concrete client and use its write
-methods afterward; `Request` and `Response` expire when `process()` returns.
+response writes succeeded. A chunked request body must also be fully consumed,
+including its final chunk and trailers. Retain the concrete client and use its
+write methods afterward; `Request` and `Response` expire when `process()` returns.
 The sketch below copies the accepted handle into the global `streamClient`
 before `incoming` leaves scope. That retained copy keeps the ESP32 socket alive.
 
@@ -280,6 +283,12 @@ record the status, but write errors can still occur during finalization after
 it returns. Invalid processing options bypass all callbacks and stop the client.
 Parser-error callbacks may see incomplete request metadata; do not assume that
 path, version, headers, or body have been parsed successfully.
+
+Malformed chunk framing discovered while reading a body also closes the
+connection. If no response status was sent when routing finishes, aWOT invokes
+`onError` with 400 and supplies its usual fallback; it does not replace an
+already-started response. An incomplete chunked body permits neither
+keep-alive reuse nor an open-response handoff.
 
 <h2 id="timeouts">Request and idle timeouts</h2>
 

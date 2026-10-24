@@ -96,10 +96,11 @@ documented version.
   Those results do not validate the pending Astro changes. The local workflow
   removes the duplicate push trigger so PR updates run once.
 
-The published channel API and current CI library baseline is revision
-`ae16ee28cb341b2aef66e78162e966543a194f73`, with unified SSE/WebSocket targeting,
-shared room/write helpers, and WebSocket message fragmentation. Use it for
-current local validation too. The earlier unified channel API validation used
+The published API and current CI library baseline is revision
+`d6098a8d79a01d547ff96ea43bfb20d70743286f`, with unified SSE/WebSocket targeting,
+shared room/write helpers, WebSocket message fragmentation, and chunked request
+parsing. Use it for current local validation too. The earlier unified channel
+API validation used
 `d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`. Older entries used local revision
 `4117ee51` and the matching public revision
 `bb13af5963ad950015312fe73107766056ccd936`; those results are historical.
@@ -234,3 +235,35 @@ release or evidence that Library Manager has indexed the package.
   `4` and advance both documentation CI source pins to that published commit.
 - [ ] Review the hosted documentation checks at the fragmentation source
   revision before publishing the documentation.
+
+## Chunked request validation
+
+- [x] Document chunked HTTP/1.1 request decoding, `left() == -1` until framing
+  completes, nonblocking framing progress, discarded extensions/trailers,
+  framing errors, and connection reuse/open-response requirements. Update the
+  generic form loop and clarify the Content-Length requirement in bounded
+  request-data and JSON examples.
+- [x] At library revision `d6098a8d79a01d547ff96ea43bfb20d70743286f`, compile
+  45 partial examples and pass all 25 native/behavior checks with address and
+  undefined-behavior sanitizers. Compile 43 partial examples and pass all 24
+  checks with small buffers and function-pointer callbacks. Logs are
+  `/private/tmp/awot-chunked-docs-sanitized.log` and
+  `/private/tmp/awot-chunked-docs-small.log`.
+- [x] Run Astro checks with zero errors, warnings, or hints, build the site,
+  and validate 45 HTML pages, 3108 local links, 22 aliases, both API versions,
+  and preserved 3.x anchors.
+- [x] Check the updated API and request-data pages in Chrome at 1440×1000 and
+  390×844. Anchors clear the sticky header; navigation, mobile menus, code
+  highlighting, edit links, and fragment redirects pass, with no horizontal
+  overflow or runtime errors. Reports and screenshots are under
+  `/private/tmp/awot-chunked-docs-browser`.
+- [x] Compile Ethernet and SerialBridge for Uno with AVR 1.8.8 and Ethernet
+  2.0.2. Ethernet uses 26,360 flash bytes and 711 global RAM bytes; SerialBridge
+  uses 30,312 flash bytes and 1,078 global RAM bytes. Compared with `ae16ee28`,
+  flash grows by 1,084 and 1,070 bytes respectively, with unchanged globals.
+  `sizeof(Request)` grows from 79 to 82 bytes. These are compile and size checks;
+  no hardware runtime test is claimed.
+- [x] Push library revision `d6098a8d79a01d547ff96ea43bfb20d70743286f` to branch
+  `4` and advance both documentation CI source pins to that published commit.
+- [ ] Review hosted documentation checks at the chunked request source revision
+  before publishing the documentation.

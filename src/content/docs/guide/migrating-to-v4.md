@@ -195,8 +195,22 @@ Recheck applications that depended on permissive parsing. `path()` is decoded
 and `query()` is raw; named query/form decoding treats `+` as a space, while
 path decoding preserves `+`. Invalid target escapes or decoded NUL produce
 400. Query/form capacities include NUL, and extraction can fail; always check
-the returned boolean. Incoming Transfer-Encoding, including chunked bodies,
-is rejected. Repeated Content-Length values must agree and fit `INT_MAX`.
+the returned boolean. HTTP/1.1 requests support a single
+`Transfer-Encoding: chunked` field.
+Repeated or unsupported transfer codings, transfer coding on HTTP/1.0, and
+Content-Length combined with Transfer-Encoding are rejected with 400.
+Repeated Content-Length values must agree and fit `INT_MAX`. Chunked reads
+decode payload directly; extensions are ignored and trailers are discarded.
+Each chunk size can be up to `UINT32_MAX`.
+
+For chunked requests, `req.left()` returns `-1` until the final chunk and
+trailers have been consumed, then the remaining pushback count or zero. Change
+generic body loops from `req.left() > 0` to `req.left() != 0`, and handle failed
+reads. Code that requires a known total length can continue rejecting negative
+`left()` values. An incomplete chunked body allows neither connection reuse nor
+an open-response handoff. Malformed chunk framing closes the connection and,
+if no response status was sent when routing finishes, invokes `onError` with
+400; an existing response is not replaced.
 
 `app.onError(handler)` adds a shared parser and missing-route error callback.
 A custom error response must call `res.end()` to suppress the built-in fallback.
