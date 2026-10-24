@@ -50,11 +50,24 @@ void testTimers() {
   for (auto& thread : threads) thread.join();
   check(valid, "millis and micros must be monotonic and share an origin");
 
-  const auto before = std::chrono::steady_clock::now();
-  delay(15);
-  check(std::chrono::steady_clock::now() - before >=
-            std::chrono::milliseconds(15),
-        "delay must wait for the requested duration");
+  // Repeat intervals around Windows timer ticks to catch early wakeups.
+  const unsigned long delays[] = {0, 1, 2, 15, 16, 31};
+  for (int sample = 0; sample < 8; ++sample) {
+    for (unsigned long ms : delays) {
+      const auto before = std::chrono::steady_clock::now();
+      delay(ms);
+      const auto elapsed = std::chrono::steady_clock::now() - before;
+      if (elapsed < std::chrono::milliseconds(ms)) {
+        std::fprintf(
+            stderr, "delay(%lu) returned after %lld microseconds\n", ms,
+            static_cast<long long>(
+                std::chrono::duration_cast<std::chrono::microseconds>(elapsed)
+                    .count()));
+      }
+      check(elapsed >= std::chrono::milliseconds(ms),
+            "delay must wait for the requested duration");
+    }
+  }
   yield();
 }
 

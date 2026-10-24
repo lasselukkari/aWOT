@@ -67,7 +67,18 @@ unsigned long micros(void) {
 }
 
 void delay(unsigned long ms) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+  auto now = std::chrono::steady_clock::now();
+  while (now < deadline) {
+    // Windows sleeps can finish early because of the system timer resolution.
+    // Round up the remaining interval so retries do not become a busy wait.
+    auto remaining =
+        std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now);
+    if (remaining < deadline - now) remaining += std::chrono::milliseconds(1);
+    std::this_thread::sleep_for(remaining);
+    now = std::chrono::steady_clock::now();
+  }
 }
 
 void yield(void) { std::this_thread::yield(); }
