@@ -1,7 +1,8 @@
 CXX = clang++
+ARDUINO_API = ../ArduinoCore-API/api
 
 # Keep the local shim in dependency files so edits rebuild every user of it.
-CXXFLAGS = -std=c++11 -Wall -Wextra -MMD -MP -I../../src -I. -isystem ArduinoCore-API/api -isystem ArduinoCore-API/api/deprecated-avr-comp
+CXXFLAGS = -std=c++11 -Wall -Wextra -MMD -MP -I../../src -I. -isystem $(ARDUINO_API) -isystem $(ARDUINO_API)/deprecated-avr-comp
 
 ARDUINO_OBJECTS = Print.o Stream.o WString.o IPAddress.o Common.o
 APP_OBJECTS = HelloWorld.o MacOSSocket.o
@@ -36,19 +37,19 @@ HelloWorld.o: HelloWorld.cpp
 MacOSSocket.o: MacOSSocket.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-Print.o: ArduinoCore-API/api/Print.cpp
+Print.o: $(ARDUINO_API)/Print.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-Stream.o: ArduinoCore-API/api/Stream.cpp
+Stream.o: $(ARDUINO_API)/Stream.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-WString.o: ArduinoCore-API/api/WString.cpp
+WString.o: $(ARDUINO_API)/WString.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-IPAddress.o: ArduinoCore-API/api/IPAddress.cpp
+IPAddress.o: $(ARDUINO_API)/IPAddress.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-Common.o: ArduinoCore-API/api/Common.cpp
+Common.o: $(ARDUINO_API)/Common.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 App.o: ../../src/App.cpp

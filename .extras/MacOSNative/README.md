@@ -9,7 +9,8 @@ This example demonstrates running the aWOT web server library on macOS without A
 
 ## Setup
 
-The ArduinoCore-API sources are included in this example. Its String files use
+The ArduinoCore-API sources are bundled in [`../ArduinoCore-API`](../ArduinoCore-API/README.md)
+and shared by all native examples. Its String files use
 `WString.h` / `WString.cpp` to avoid the macOS case-insensitive `string.h`
 collision. No additional download or renaming is needed.
 
@@ -65,7 +66,7 @@ wrk -t4 -c10 -d10s http://localhost:8080/
 | `HelloWorld.cpp` | The example application |
 | `Makefile` | Build system |
 | `tests/` | Native socket and compatibility regression tests |
-| `ArduinoCore-API/` | Arduino Core API (external dependency) |
+| `../ArduinoCore-API/` | Arduino Core API shared by all native examples |
 
 ## How It Works
 
@@ -100,4 +101,5 @@ run on an Ubuntu CI runner.
 
 ## License
 
-Same as the aWOT library (MIT).
+The example follows the aWOT library's MIT license. The bundled ArduinoCore-API
+retains its own license notices in [`../ArduinoCore-API`](../ArduinoCore-API/LICENSE).

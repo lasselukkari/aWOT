@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Reuse the bundled API instead of maintaining another copy of ArduinoCore.
-set(ARDUINO_API "${CMAKE_CURRENT_SOURCE_DIR}/../MacOSNative/ArduinoCore-API/api")
+# All native examples share the bundled ArduinoCore-API.
+set(ARDUINO_API "${CMAKE_CURRENT_SOURCE_DIR}/../ArduinoCore-API/api")
 set(AWOT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
 find_package(Threads REQUIRED)
 

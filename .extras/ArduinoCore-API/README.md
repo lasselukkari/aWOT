@@ -7,7 +7,9 @@ This directory contains the API sources and license from
 macOS, Windows, and Linux native examples. Upstream tests and repository
 configuration are omitted. The development instructions below describe the
 upstream repository; aWOT's native checks are documented in the
-[native example README](../README.md#test).
+[macOS](../MacOSNative/README.md#test),
+[Windows](../WindowsNative/README.md#test-on-windows), and
+[Linux](../LinuxNative/README.md#test-on-linux) example READMEs.
 
 The String files are named `WString.h` and `WString.cpp` in this copy to avoid
 collisions with the system `string.h` on case-insensitive filesystems. The

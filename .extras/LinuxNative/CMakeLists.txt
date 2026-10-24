@@ -9,9 +9,10 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Keep one POSIX adapter, Arduino shim, and API bundle for Linux and macOS.
+# Linux and macOS share the POSIX adapter and Arduino shim.
 set(POSIX_NATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../MacOSNative")
-set(ARDUINO_API "${POSIX_NATIVE}/ArduinoCore-API/api")
+# All native examples share the bundled ArduinoCore-API.
+set(ARDUINO_API "${CMAKE_CURRENT_SOURCE_DIR}/../ArduinoCore-API/api")
 set(AWOT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
 find_package(Threads REQUIRED)
 

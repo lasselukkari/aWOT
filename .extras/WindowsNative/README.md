@@ -18,8 +18,9 @@ Use the UCRT64/MinGW toolchain rather than the MSYS POSIX compiler. This example
 supports MinGW GCC; the bundled ArduinoCore API uses GNU attributes and has not
 been adapted for MSVC. See [MSYS2's CMake instructions](https://www.msys2.org/docs/cmake/).
 
-The build reuses the ArduinoCore-API sources bundled in `../MacOSNative`; no
-separate Arduino installation or download is needed.
+The build uses the ArduinoCore-API sources bundled in
+[`../ArduinoCore-API`](../ArduinoCore-API/README.md), shared by all native
+examples. No separate Arduino installation or download is needed.
 
 For the other desktop platforms, see the [macOS native example](../MacOSNative/README.md)
 or [Linux native example](../LinuxNative/README.md).
@@ -104,4 +105,4 @@ interfaces.
 ## License
 
 The example follows the aWOT library's MIT license. The bundled ArduinoCore-API
-retains its own license notices in `../MacOSNative/ArduinoCore-API`.
+retains its own license notices in [`../ArduinoCore-API`](../ArduinoCore-API/LICENSE).

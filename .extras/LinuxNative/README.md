@@ -19,10 +19,11 @@ sudo apt update
 sudo apt install build-essential cmake ninja-build python3
 ```
 
-Keep this directory inside a Git checkout containing `.extras/MacOSNative` and
-`.extras/WindowsNative`. The build reuses the POSIX adapter and ArduinoCore-API
-bundled in the macOS directory; the HTTP test reuses the Python script from the
-Windows directory. No separate Arduino installation or download is needed.
+Keep this directory inside the aWOT Git checkout. The build uses ArduinoCore-API
+from [`../ArduinoCore-API`](../ArduinoCore-API/README.md), shared by all native
+examples, and reuses the POSIX adapter from `../MacOSNative`. The HTTP test
+reuses the Python script from `../WindowsNative`. No separate Arduino
+installation or download is needed.
 
 ## Build and run
 
@@ -102,4 +103,4 @@ the client afterward.
 ## License
 
 The example follows the aWOT library's MIT license. The bundled ArduinoCore-API
-retains its own license notices in `../MacOSNative/ArduinoCore-API`.
+retains its own license notices in [`../ArduinoCore-API`](../ArduinoCore-API/LICENSE).
