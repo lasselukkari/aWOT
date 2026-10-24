@@ -65,11 +65,9 @@ Keep a separate aWOT library checkout available. Use revision
 documentation, including WebSocket message fragmentation. The script supports
 native tests in either `test/` or `.extras/test/` to accommodate their relocation.
 
-CI still pins the published revision
-`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`, which provides the unified channel
-API but predates fragmentation. Once the new library commit is published,
-advance both source pins in `.github/workflows/docs-check.yml` before the next
-documentation CI run. Update the pin again when publishing the final package.
+Both CI source pins in `.github/workflows/docs-check.yml` use this published
+revision. Keep them aligned with the documented behavior and update them again
+when publishing the final package.
 
 The native [macOS guide](src/content/docs/guide/macos.md),
 [Windows guide](src/content/docs/guide/windows.md), and

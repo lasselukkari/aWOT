@@ -97,10 +97,10 @@ documented version.
   removes the duplicate push trigger so PR updates run once.
 
 The published channel API and current CI library baseline is revision
-`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`, with unified SSE/WebSocket targeting
-and shared room/write helpers. It predates the fragmentation support documented
-below; use `ae16ee28cb341b2aef66e78162e966543a194f73` for current local validation.
-Earlier validation entries used local revision
+`ae16ee28cb341b2aef66e78162e966543a194f73`, with unified SSE/WebSocket targeting,
+shared room/write helpers, and WebSocket message fragmentation. Use it for
+current local validation too. The earlier unified channel API validation used
+`d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b`. Older entries used local revision
 `4117ee51` and the matching public revision
 `bb13af5963ad950015312fe73107766056ccd936`; those results are historical.
 Update the CI pin to the released source revision when preparing final
@@ -230,7 +230,7 @@ release or evidence that Library Manager has indexed the package.
 - [x] Run Astro checks with zero errors, warnings, or hints, build the site,
   and validate 45 HTML pages, 3107 local links, 22 aliases, both API versions,
   and preserved 3.x anchors. The documentation update changes no code examples.
-- [ ] Once the library commit is published, advance both CI source pins to
-  `ae16ee28cb341b2aef66e78162e966543a194f73` or a newer published revision and
-  review the hosted documentation checks before publication. The current
-  published CI baseline does not validate fragmentation.
+- [x] Push library revision `ae16ee28cb341b2aef66e78162e966543a194f73` to branch
+  `4` and advance both documentation CI source pins to that published commit.
+- [ ] Review the hosted documentation checks at the fragmentation source
+  revision before publishing the documentation.

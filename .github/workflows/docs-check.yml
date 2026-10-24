@@ -39,8 +39,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          # Published v4 source with the unified SSE/WebSocket channel API.
-          ref: d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b
+          # Published v4 source with WebSocket message fragmentation.
+          ref: ae16ee28cb341b2aef66e78162e966543a194f73
           path: .docs-build/library
       - run: python3 scripts/check-snippets.py --library .docs-build/library --configuration '${{ matrix.configuration }}' --work-dir .docs-build/native
 
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lasselukkari/aWOT
-          ref: d671a0cb466b5e3c6824e6044a20c4e7b8b7b13b
+          ref: ae16ee28cb341b2aef66e78162e966543a194f73
           path: .docs-build/library
       - uses: actions/setup-node@v4
         with:
