@@ -74,6 +74,14 @@ and Upgrade connection header.
 
 WebSockets keep one outstanding heartbeat ping until a pong or timeout, reject
 control-frame extended lengths, and require an entire `upgrade` Connection token.
+Fragmented text and binary messages are assembled in the existing receive buffer;
+`WS_RX_BUFFER_SIZE` limits the complete message, including all fragments.
+`onMessage()` runs once after the final fragment, and text is checked for valid
+UTF-8 as a complete message. Each connection has a separate 125-byte control
+buffer so ping, pong, and close frames can be handled between message fragments.
+Unexpected continuations or a new data message before the previous one finishes
+close with code 1002; messages exceeding the buffer close with 1009. Frame and
+message state are cleared on disconnect and when a slot is reused.
 
 Both WebSocket and SSE channels use `send(clientId, ...)` for one client,
 `to(room, ...)` for room members, and `broadcast(...)` for every active client.

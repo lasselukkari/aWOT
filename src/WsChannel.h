@@ -16,9 +16,9 @@
   sockets.broadcast(...).
 
   Limitations:
-    - Single-fragment frames only (FIN must be 1; continuation opcode closes
-  1003).
-    - Payload cap = WS_RX_BUFFER_SIZE (default 256). Oversize closes 1009.
+    - Complete message cap = WS_RX_BUFFER_SIZE (default 256), including all
+      fragments. Oversize closes 1009.
+    - Each connection also reserves 125 bytes for control-frame payloads.
     - MAX_ROOMS <= 32 (room membership stored as uint32_t bitmap).
     - Polled, single-threaded; call poll() from loop().
     - No permessage-deflate, no WSS.
@@ -274,7 +274,10 @@ class WsChannel {
     uint8_t rxMaskKey[4];
     uint32_t rxExpected;
     uint32_t rxFilledPayload;
+    size_t rxMessageLength;
+    uint8_t rxMessageOpcode;
     uint8_t rxPayload[WS_RX_BUFFER_SIZE];
+    uint8_t rxControl[125];
     uint32_t lastPingSentMs;
     bool awaitingPong;
   };
@@ -362,6 +365,12 @@ class WsChannel {
   }
 
   void resetRxState(int i) {
+    resetRxFrame(i);
+    m_slots[i].rxMessageLength = 0;
+    m_slots[i].rxMessageOpcode = 0;
+  }
+
+  void resetRxFrame(int i) {
     m_slots[i].rxHeaderFilled = 0;
     m_slots[i].rxHeaderNeeded = 2;
     m_slots[i].rxHeaderDecoded = false;
@@ -374,6 +383,7 @@ class WsChannel {
   void deactivate(int i) {
     if (!m_slots[i].active) return;
     m_slots[i].active = false;
+    resetRxState(i);
     m_rooms.clearClient(i);
     m_slots[i].client.stop();
     callOnDisconnect(i);
@@ -445,7 +455,7 @@ class WsChannel {
         uint8_t masked = s.rxHeader[1] & 0x80;
         uint8_t len7 = s.rxHeader[1] & 0x7F;
 
-        if ((s.rxOpcode & 0x8) && len7 > 125) {
+        if ((s.rxOpcode & 0x8) && (!fin || len7 > 125)) {
           closeSlot(i, 1002);
           return;
         }
@@ -453,20 +463,23 @@ class WsChannel {
           closeSlot(i, 1002);
           return;
         }
-        if (!fin) {
-          closeSlot(i, (s.rxOpcode & 0x8) ? 1002 : 1003);
-          return;
-        }
         if (!masked) {
           closeSlot(i, 1002);  // client-to-server must be masked
           return;
         }
         if (s.rxOpcode == 0x0) {
-          closeSlot(i, 1003);  // continuation unsupported
-          return;
-        }
-        if (s.rxOpcode != 0x1 && s.rxOpcode != 0x2 && s.rxOpcode != 0x8 &&
-            s.rxOpcode != 0x9 && s.rxOpcode != 0xA) {
+          if (!s.rxMessageOpcode) {
+            closeSlot(i, 1002);  // continuation without a message
+            return;
+          }
+        } else if (s.rxOpcode == 0x1 || s.rxOpcode == 0x2) {
+          if (s.rxMessageOpcode) {
+            closeSlot(i, 1002);  // previous message is still incomplete
+            return;
+          }
+          s.rxMessageOpcode = s.rxOpcode;
+        } else if (s.rxOpcode != 0x8 && s.rxOpcode != 0x9 &&
+                   s.rxOpcode != 0xA) {
           closeSlot(i, 1002);
           return;
         }
@@ -522,7 +535,8 @@ class WsChannel {
             return;
           }
         }
-        if (len > WS_RX_BUFFER_SIZE) {
+        if (!(s.rxOpcode & 0x8) &&
+            len > WS_RX_BUFFER_SIZE - s.rxMessageLength) {
           closeSlot(i, 1009);
           return;
         }
@@ -532,12 +546,14 @@ class WsChannel {
       }
 
       // Stage 3: payload
+      uint8_t* payload =
+          (s.rxOpcode & 0x8) ? s.rxControl : s.rxPayload + s.rxMessageLength;
       while (s.rxFilledPayload < s.rxExpected && s.client.available() > 0) {
         uint32_t remaining = s.rxExpected - s.rxFilledPayload;
         int avail = s.client.available();
         uint32_t chunk =
             (uint32_t)avail < remaining ? (uint32_t)avail : remaining;
-        int got = s.client.read(s.rxPayload + s.rxFilledPayload, chunk);
+        int got = s.client.read(payload + s.rxFilledPayload, chunk);
         if (got <= 0) break;
         s.rxFilledPayload += (uint32_t)got;
         progress = true;
@@ -546,12 +562,12 @@ class WsChannel {
 
       // Unmask + dispatch
       for (uint32_t k = 0; k < s.rxExpected; k++) {
-        s.rxPayload[k] ^= s.rxMaskKey[k & 3];
+        payload[k] ^= s.rxMaskKey[k & 3];
       }
-      dispatchFrame(i);
+      dispatchFrame(i, payload);
       if (!s.active) return;
 
-      resetRxState(i);
+      resetRxFrame(i);
       progress = true;
     }
 
@@ -571,17 +587,25 @@ class WsChannel {
     }
   }
 
-  void dispatchFrame(int i) {
+  void dispatchFrame(int i, uint8_t* payload) {
     Slot& s = m_slots[i];
     switch (s.rxOpcode) {
+      case 0x0:    // continuation
       case 0x1:    // text
       case 0x2: {  // binary
-        if (s.rxOpcode == 0x1 && !validUtf8(s.rxPayload, s.rxExpected)) {
+        s.rxMessageLength += (size_t)s.rxExpected;
+        if (!(s.rxHeader[0] & 0x80)) break;
+
+        size_t length = s.rxMessageLength;
+        uint8_t opcode = s.rxMessageOpcode;
+        s.rxMessageLength = 0;
+        s.rxMessageOpcode = 0;
+        if (opcode == 0x1 && !validUtf8(s.rxPayload, length)) {
           closeSlot(i, 1007);
           return;
         }
         if (m_onMessage) {
-          WsMessage msg(s.rxPayload, s.rxExpected, s.rxOpcode, i);
+          WsMessage msg(s.rxPayload, length, opcode, i);
           callOnMessage(msg);
         }
         break;
@@ -592,22 +616,22 @@ class WsChannel {
           return;
         }
         if (s.rxExpected >= 2) {
-          uint16_t code = ((uint16_t)s.rxPayload[0] << 8) | s.rxPayload[1];
+          uint16_t code = ((uint16_t)payload[0] << 8) | payload[1];
           if (!validCloseCode(code)) {
             closeSlot(i, 1002);
             return;
           }
-          if (!validUtf8(s.rxPayload + 2, s.rxExpected - 2)) {
+          if (!validUtf8(payload + 2, s.rxExpected - 2)) {
             closeSlot(i, 1007);
             return;
           }
         }
-        writeFrame(s.client, 0x8, s.rxPayload, s.rxExpected);
+        writeFrame(s.client, 0x8, payload, s.rxExpected);
         deactivate(i);
         break;
       }
       case 0x9:  // ping
-        sendFrame(i, 0xA, s.rxPayload, s.rxExpected);
+        sendFrame(i, 0xA, payload, s.rxExpected);
         break;
       case 0xA:  // pong
         if (s.awaitingPong) {

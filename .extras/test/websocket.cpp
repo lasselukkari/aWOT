@@ -133,9 +133,11 @@ static bool handshake(Channel& ws, SharedClient& client,
 }
 
 static std::vector<uint8_t> frame(uint8_t opcode,
-                                  const std::vector<uint8_t>& data) {
+                                  const std::vector<uint8_t>& data,
+                                  bool fin = true,
+                                  const uint8_t* mask = nullptr) {
   std::vector<uint8_t> result;
-  result.push_back(0x80 | opcode);
+  result.push_back((fin ? 0x80 : 0) | opcode);
   if (data.size() <= 125) {
     result.push_back(0x80 | (uint8_t)data.size());
   } else {
@@ -143,7 +145,8 @@ static std::vector<uint8_t> frame(uint8_t opcode,
     result.push_back((uint8_t)(data.size() >> 8));
     result.push_back((uint8_t)data.size());
   }
-  const uint8_t mask[] = {0x37, 0xFA, 0x21, 0x3D};
+  const uint8_t defaultMask[] = {0x37, 0xFA, 0x21, 0x3D};
+  if (!mask) mask = defaultMask;
   result.insert(result.end(), mask, mask + 4);
   for (size_t i = 0; i < data.size(); ++i)
     result.push_back(data[i] ^ mask[i & 3]);
@@ -478,6 +481,266 @@ unittest(extended_binary_payload_at_capacity_and_empty_frames) {
   assertTrue(lastData.empty());
 }
 
+unittest(fragmented_text_and_binary_dispatch_once_with_per_frame_masks) {
+  const uint8_t secondMask[] = {1, 2, 3, 4};
+  const uint8_t finalMask[] = {0xA0, 0xB1, 0xC2, 0xD3};
+  for (uint8_t opcode : {1, 2}) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    ws.onMessage(messageHandler);
+    messageCount = 0;
+    std::vector<uint8_t> expected = {
+        'A', (uint8_t)(opcode == 1 ? 'B' : 0xFF), 'C', 'D', 'E', 'F'};
+    client.feed(frame(opcode, {expected[0], expected[1], expected[2]}, false));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertEqual(0, messageCount);
+    client.feed(frame(0, {}, false));
+    ws.poll();
+    assertEqual(0, messageCount);
+    client.feed(frame(0, {'D'}, false, secondMask));
+    ws.poll();
+    assertEqual(0, messageCount);
+    client.feed(frame(0, {'E', 'F'}, true, finalMask));
+    ws.poll();
+    assertEqual(1, messageCount);
+    assertEqual(opcode == 2, lastBinary);
+    assertTrue(lastData == expected);
+    client.feed(frame(opcode, {'G'}));
+    ws.poll();
+    assertEqual(2, messageCount);
+    assertTrue(lastData == std::vector<uint8_t>({'G'}));
+  }
+}
+
+unittest(empty_fragments_still_form_one_text_or_binary_message) {
+  for (uint8_t opcode : {1, 2}) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    ws.onMessage(messageHandler);
+    messageCount = 0;
+    client.feed(frame(opcode, {}, false));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertEqual(0, messageCount);
+    client.feed(frame(0, {}, false));
+    ws.poll();
+    assertEqual(0, messageCount);
+    client.feed(frame(0, {}));
+    ws.poll();
+    assertEqual(1, messageCount);
+    assertEqual(opcode == 2, lastBinary);
+    assertTrue(lastData.empty());
+  }
+}
+
+unittest(fragmented_utf8_frames_can_arrive_one_byte_at_a_time) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  ws.onMessage(messageHandler);
+  std::vector<uint8_t> input = frame(1, {'A', 0xF0, 0x9F}, false);
+  std::vector<uint8_t> middle = frame(0, {0x98}, false);
+  std::vector<uint8_t> final = frame(0, {0x80, 'B'});
+  input.insert(input.end(), middle.begin(), middle.end());
+  input.insert(input.end(), final.begin(), final.end());
+  for (size_t i = 0; i < input.size(); ++i) {
+    client.feed(std::vector<uint8_t>(1, input[i]));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertEqual(i + 1 == input.size() ? 1 : 0, messageCount);
+  }
+  assertFalse(lastBinary);
+  assertTrue(lastData ==
+             std::vector<uint8_t>({'A', 0xF0, 0x9F, 0x98, 0x80, 'B'}));
+}
+
+unittest(fragmented_invalid_utf8_is_rejected_when_the_message_finishes) {
+  const std::vector<uint8_t> prefixes[] = {{0xE2, 0x82}, {0xFF}, {0xE2}};
+  const std::vector<uint8_t> endings[] = {{}, {}, {'x'}};
+  for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); ++i) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    client.clearOutput();
+    ws.onMessage(messageHandler);
+    client.feed(frame(1, prefixes[i], false));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertTrue(client.state->output.empty());
+    assertEqual(0, messageCount);
+    client.feed(frame(0, endings[i]));
+    ws.poll();
+    assertFalse(ws.connected(0));
+    assertEqual(0, messageCount);
+    assertTrue(client.state->output ==
+               std::vector<uint8_t>({0x88, 2, 3, 0xEF}));
+  }
+}
+
+unittest(interleaved_ping_and_pong_preserve_the_fragmented_message) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  ws.onMessage(messageHandler);
+  client.feed(frame(1, {'h', 'e'}, false));
+  ws.poll();
+  client.feed(frame(9, {'p', 0xFF}));
+  ws.poll();
+  assertTrue(client.state->output ==
+             std::vector<uint8_t>({0x8A, 2, 'p', 0xFF}));
+  client.clearOutput();
+  client.feed(frame(10, {'q', 0xFF}));
+  ws.poll();
+  assertTrue(client.state->output.empty());
+  assertEqual(0, messageCount);
+  client.feed(frame(0, {'l', 'l', 'o'}));
+  ws.poll();
+  assertEqual(1, messageCount);
+  assertFalse(lastBinary);
+  assertTrue(lastData == std::vector<uint8_t>({'h', 'e', 'l', 'l', 'o'}));
+}
+
+unittest(interleaved_close_discards_the_incomplete_message) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  ws.onMessage(messageHandler);
+  ws.onDisconnect(disconnectHandler);
+  client.feed(frame(1, {'h', 'i'}, false));
+  ws.poll();
+  client.feed(frame(8, {3, 0xE8, 'b', 'y', 'e'}));
+  ws.poll();
+  assertEqual(0, messageCount);
+  assertEqual(1, disconnects);
+  assertFalse(ws.connected(0));
+  assertTrue(client.state->output ==
+             std::vector<uint8_t>({0x88, 5, 3, 0xE8, 'b', 'y', 'e'}));
+}
+
+unittest(full_fragmented_message_allows_a_maximum_ping_and_empty_final_frame) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  client.clearOutput();
+  ws.onMessage(messageHandler);
+  const std::vector<uint8_t> payload(WS_RX_BUFFER_SIZE, 0xFF);
+  client.feed(frame(2, payload, false));
+  ws.poll();
+  assertTrue(ws.connected(0));
+  assertEqual(0, messageCount);
+  std::vector<uint8_t> ping(125);
+  for (size_t i = 0; i < ping.size(); ++i) ping[i] = (uint8_t)i;
+  std::vector<uint8_t> input = frame(9, ping);
+  for (size_t i = 0; i < input.size(); ++i) {
+    client.feed(std::vector<uint8_t>(1, input[i]));
+    ws.poll();
+    assertTrue(ws.connected(0));
+  }
+  std::vector<uint8_t> pong = {0x8A, 125};
+  pong.insert(pong.end(), ping.begin(), ping.end());
+  assertTrue(client.state->output == pong);
+  assertEqual(0, messageCount);
+  client.feed(frame(0, {}));
+  ws.poll();
+  assertEqual(1, messageCount);
+  assertTrue(lastBinary);
+  assertTrue(lastData == payload);
+}
+
+unittest(fragmented_messages_reject_aggregate_overflow_and_invalid_sequences) {
+  for (int fin = 0; fin < 2; ++fin) {
+    std::vector<uint8_t> input =
+        frame(2, std::vector<uint8_t>(WS_RX_BUFFER_SIZE - 1), false);
+    std::vector<uint8_t> continuation = frame(0, {'a', 'b'}, fin != 0);
+    input.insert(input.end(), continuation.begin(), continuation.end());
+    assertTrue(closesWith(input, 1009));
+    assertTrue(closesWith(frame(0, {}, fin != 0), 1002));
+    for (uint8_t opcode : {1, 2}) {
+      input = frame(1, {'a'}, false);
+      std::vector<uint8_t> next = frame(opcode, {'b'}, fin != 0);
+      input.insert(input.end(), next.begin(), next.end());
+      assertTrue(closesWith(input, 1002));
+    }
+  }
+}
+
+unittest(disconnect_and_slot_reuse_clear_partial_message_and_control_state) {
+  for (int localClose = 0; localClose < 2; ++localClose) {
+    Channel ws;
+    SharedClient first, replacement;
+    assertTrue(handshake(ws, first));
+    ws.onMessage(messageHandler);
+    messageCount = 0;
+    first.feed(frame(1, {'o', 'l', 'd'}, false));
+    ws.poll();
+    std::vector<uint8_t> ping = frame(9, {'x', 'y'});
+    first.feed(std::vector<uint8_t>(ping.begin(), ping.end() - 1));
+    ws.poll();
+    if (localClose) {
+      ws.close(0);
+    } else {
+      first.stop();
+      ws.poll();
+    }
+    assertFalse(ws.connected(0));
+    assertEqual(0, messageCount);
+    assertTrue(handshake(ws, replacement));
+    replacement.feed(frame(2, {0xFF}, false));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertEqual(0, messageCount);
+    replacement.feed(frame(0, {0}));
+    ws.poll();
+    assertEqual(1, messageCount);
+    assertEqual(0, lastSocket);
+    assertTrue(lastBinary);
+    assertTrue(lastData == std::vector<uint8_t>({0xFF, 0}));
+  }
+}
+
+unittest(two_clients_keep_partial_control_frames_and_messages_independent) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  first.clearOutput();
+  second.clearOutput();
+  ws.onMessage(messageHandler);
+  first.feed(frame(1, {'A'}, false));
+  second.feed(frame(1, {'B'}, false));
+  ws.poll();
+  std::vector<uint8_t> firstPing = frame(9, {'x', 'y'});
+  std::vector<uint8_t> secondPing = frame(9, {'z', 'w'});
+  first.feed(std::vector<uint8_t>(firstPing.begin(), firstPing.end() - 1));
+  second.feed(std::vector<uint8_t>(secondPing.begin(), secondPing.end() - 1));
+  ws.poll();
+  assertTrue(first.state->output.empty());
+  assertTrue(second.state->output.empty());
+  assertEqual(0, messageCount);
+  first.feed(std::vector<uint8_t>(1, firstPing.back()));
+  ws.poll();
+  assertTrue(first.state->output == std::vector<uint8_t>({0x8A, 2, 'x', 'y'}));
+  assertTrue(second.state->output.empty());
+  second.feed(std::vector<uint8_t>(1, secondPing.back()));
+  ws.poll();
+  assertTrue(second.state->output == std::vector<uint8_t>({0x8A, 2, 'z', 'w'}));
+  first.feed(frame(0, {'a'}));
+  ws.poll();
+  assertEqual(1, messageCount);
+  assertEqual(0, lastSocket);
+  assertTrue(lastData == std::vector<uint8_t>({'A', 'a'}));
+  second.feed(frame(0, {'b'}));
+  ws.poll();
+  assertEqual(2, messageCount);
+  assertEqual(1, lastSocket);
+  assertTrue(lastData == std::vector<uint8_t>({'B', 'b'}));
+}
+
 unittest(
     text_utf8_validation_rejects_overlong_surrogate_and_truncated_sequences) {
   const std::vector<uint8_t> invalid[] = {{0xFF},
@@ -510,8 +773,7 @@ unittest(invalid_frame_headers_and_oversize_payloads_close) {
   assertTrue(closesWith({0x83, 0x80}, 1002));
   assertTrue(closesWith({0x89, 0xFE}, 1002));
   assertTrue(closesWith({0x09, 0x80}, 1002));
-  assertTrue(closesWith({0x01, 0x80}, 1003));
-  assertTrue(closesWith({0x80, 0x80}, 1003));
+  assertTrue(closesWith({0x80, 0x80}, 1002));
   assertTrue(closesWith({0x81, 0xFE, 0, 1, 0, 0, 0, 0}, 1002));
   assertTrue(
       closesWith({0x81, 0xFF, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 1002));

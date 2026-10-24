@@ -1,5 +1,5 @@
 /*
-  WsMessage: Stream-derived wrapper over a completed WebSocket frame payload.
+  WsMessage: Stream-derived wrapper over a completed WebSocket message payload.
   Handed to application message callbacks so they can consume payload through
   the same Stream interface aWOT uses elsewhere.
 */
