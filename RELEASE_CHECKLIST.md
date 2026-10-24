@@ -69,9 +69,10 @@ documented version.
   navigation, edit links, archive notices, API sidebar highlighting, resize
   behavior, Arduino/Bash/JSON/TSX highlighting, fragment redirects, and all five
   tutorial anchors. No JavaScript errors or horizontal overflow were observed.
-- [x] The existing tutorial and companion project validation remains applicable
+- [x] The original tutorial and companion project were validated
   at LedBlink revision `ece7d3e1ab0a57c977742468af619a201c199959`: clean npm install,
   Vite/TypeScript build, generated asset and LED HTTP behavior, and ESP32 build.
+  The sibling-directory layout is verified separately below.
 - [x] All 13 ESP32 documentation/repository sketch cases compile with core
   3.3.10 and ArduinoJson 7.4.3, including both tutorial stages, middleware,
   request context/storage, keep-alive/open responses, channels, static files,
@@ -267,3 +268,37 @@ release or evidence that Library Manager has indexed the package.
   `4` and advance both documentation CI source pins to that published commit.
 - [ ] Review hosted documentation checks at the chunked request source revision
   before publishing the documentation.
+
+## Full-stack directory separation (2026-10-24)
+
+- [x] Place the frontend in `BlinkUI` beside the `BlinkServer` sketch directory.
+  Update the tutorial's setup commands, file paths, npm working directories,
+  build configuration, and ignore-file instructions. Preserve application code,
+  the tutorial URL, and all five historical section anchors.
+- [x] Pin the tutorial's companion link to LedBlink revision
+  `2ed08c5c989bacea1d5542a0d1c65f22d4745312`, on the existing
+  [PR #40](https://github.com/lasselukkari/LedBlink/pull/40) branch. The moved
+  frontend sources, configuration, and dependency lockfile retain their exact
+  contents; `package.json` changes only `sketchDir` to `../BlinkServer`.
+- [x] Run a clean `npm ci` and `npm run build:firmware` from the companion
+  project's `BlinkUI`. Verify that every generated gzip payload decompresses
+  exactly to its current `BlinkUI/dist` asset, with correct content lengths.
+  Confirm the header is in the sibling sketch directory, no nested
+  `BlinkUI/BlinkServer` exists, and generated files are ignored by Git.
+- [x] Reproduce the exact revised `create-vite@9.2.1` setup in a clean directory
+  and build the frontend from the tutorial snippets. Verify the generated
+  routes, payloads, lengths, and sibling output path. Fresh template dependency
+  resolution uses React 19.3.1, Vite 8.3.5, TypeScript 6.0.3, and
+  `awot-scripts` 3.1.2; the companion retains its existing locked versions.
+- [x] Compile both tutorial stages and the companion sketch with ESP32 core
+  3.3.10 against aWOT `f7e4941cb655782954c96e60d65e7e02def845d2`.
+  The API stage uses 922,948 flash bytes and 46,616 global RAM bytes; the tutorial
+  with its actual frontend uses 993,460 and 46,624 bytes; the companion uses
+  993,524 and 46,624 bytes. No hardware runtime test is claimed. Logs are under
+  `/private/tmp/awot-tutorial-layout.muLfxe` and in
+  `/private/tmp/ledblink-split-esp32-build.log`.
+- [x] Run Astro checks with zero errors, warnings, or hints, build the site,
+  and validate 45 HTML pages, 3108 local links, 22 aliases, both API versions,
+  and preserved 3.x and tutorial anchors.
+- [x] The user authorized pushing this directory split to the existing LedBlink
+  and documentation PR branches. Merging and live publication remain separate.

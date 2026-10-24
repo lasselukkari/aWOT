@@ -19,7 +19,7 @@ This tutorial uses **aWOT 4.0.0**, React, and Vite's `react-ts` template. The
 firmware uses `App` and closes each connection after processing its request.
 
 The complete project is available in
-[LedBlink](https://github.com/lasselukkari/LedBlink/tree/ece7d3e1ab0a57c977742468af619a201c199959).
+[LedBlink](https://github.com/lasselukkari/LedBlink/tree/2ed08c5c989bacea1d5542a0d1c65f22d4745312).
 Its README explains how to build and upload the finished application if you
 want to try it before following the walkthrough.
 
@@ -61,19 +61,22 @@ requirements and project templates.
 <h3 id="setup">2. Project setup</h3>
 
 
-Create the React and TypeScript project with Vite:
+Create a project directory with separate folders for the React interface and
+Arduino firmware, then scaffold the interface with Vite:
 
 ```bash
-npm create vite@9.2.1 led-blink -- --template react-ts --no-interactive
+mkdir led-blink
 cd led-blink
+mkdir BlinkUI BlinkServer
+cd BlinkUI
+npm create vite@9.2.1 . -- --template react-ts --no-interactive
 npm install
 ```
 
-Install the asset converter and create the Arduino sketch directory:
+Install the asset converter in `BlinkUI`:
 
 ```bash
 npm install --save-dev --save-exact awot-scripts@3.1.2
-mkdir BlinkServer
 ```
 
 We use the published `awot-static` command from
@@ -82,31 +85,36 @@ to generate assets compatible with aWOT 4. The tool's version is independent of
 the library version. Create the firmware manually as shown below so that it uses
 the installed v4 library.
 
-The files you will edit are:
+The relevant files are shown below. File paths in this tutorial are relative to
+the `led-blink` project directory. Run npm commands from `led-blink/BlinkUI`;
+your terminal is already there after the setup commands above.
 
 ```text
 led-blink/
+├── BlinkUI/
+│   ├── .gitignore
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── App.css
+│   │   ├── index.css
+│   │   └── main.tsx        (keep Vite's generated entry point)
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── tsconfig.json
+│   ├── tsconfig.app.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
 ├── BlinkServer/
 │   ├── BlinkServer.ino
 │   └── StaticFiles.h       (generated when building for the board)
-├── src/
-│   ├── App.tsx
-│   ├── App.css
-│   ├── index.css
-│   └── main.tsx            (keep Vite's generated entry point)
-├── index.html
-├── package.json
-├── package-lock.json
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.node.json
-└── vite.config.ts
+└── .gitignore              (ignores the generated firmware assets)
 ```
 
-Keep the generated TypeScript configuration files and commit `package-lock.json`
-with your project. Use `npm ci` to install the locked dependencies on another
-computer. Vite's TypeScript template includes a build step that checks types
-before producing the frontend assets.
+Keep the generated TypeScript configuration files and commit
+`BlinkUI/package-lock.json` with your project. Run `npm ci` from `BlinkUI` to
+install the locked dependencies on another computer. Vite's TypeScript template
+includes a build step that checks types before producing the frontend assets.
 
 <h3 id="back-end">3. Back-end development</h3>
 
@@ -200,9 +208,9 @@ in v4. `app.process()` finalizes an ordinary response, and the caller owns the
 connection. This sketch calls `client.stop()` after every request; it does not
 request connection reuse or leave responses open.
 
-Open `BlinkServer.ino` in Arduino IDE and upload it. Open Serial Monitor at
-**115200 baud** and record the printed IP address. Replace `192.168.1.227` in
-the following commands with your board's address:
+Open `BlinkServer/BlinkServer.ino` in Arduino IDE and upload it. Open Serial
+Monitor at **115200 baud** and record the printed IP address. Replace
+`192.168.1.227` in the following commands with your board's address:
 
 ```bash
 curl --fail http://192.168.1.227/led
@@ -221,8 +229,9 @@ curl -i -X PUT --data-binary 'invalid' http://192.168.1.227/led
 <h3 id="front-end">4. Front-end development</h3>
 
 
-Configure Vite to forward `/led` requests to the ESP32. Replace `vite.config.ts`
-with the following, using the IP address from Serial Monitor:
+Configure Vite to forward `/led` requests to the ESP32. Replace
+`BlinkUI/vite.config.ts` with the following, using the IP address from Serial
+Monitor:
 
 ```typescript
 import { defineConfig } from 'vite'
@@ -247,7 +256,7 @@ IP address. The frontend uses relative URLs such as `fetch('/led')`: Vite proxie
 them during development, and they go directly to the ESP32 when the board serves
 the built app.
 
-Replace `src/App.tsx` with:
+Replace `BlinkUI/src/App.tsx` with:
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -343,7 +352,7 @@ The API calls use `async`/`await` with `try`/`catch` for errors. The effect star
 an inner async function so its callback can return the cleanup function that
 sets the flag. The request can finish, but its result is ignored after cleanup.
 
-Replace `src/index.css` to remove the template's page styles:
+Replace `BlinkUI/src/index.css` to remove the template's page styles:
 
 ```css
 :root {
@@ -361,7 +370,7 @@ button {
 }
 ```
 
-Replace `src/App.css` with:
+Replace `BlinkUI/src/App.css` with:
 
 ```css
 main {
@@ -390,7 +399,7 @@ button:disabled {
 }
 ```
 
-Keep `src/main.tsx` as generated. Replace the root `index.html` with:
+Keep `BlinkUI/src/main.tsx` as generated. Replace `BlinkUI/index.html` with:
 
 ```html
 <!doctype html>
@@ -407,9 +416,8 @@ Keep `src/main.tsx` as generated. Replace the root `index.html` with:
 </html>
 ```
 
-Delete the template assets in `public/` and `src/assets/` to keep unused files out
-of the deployed bundle.
-Start Vite:
+Delete the template assets in `BlinkUI/public/` and `BlinkUI/src/assets/` to keep
+unused files out of the deployed bundle. Start Vite from `BlinkUI`:
 
 ```bash
 npm run dev
@@ -424,10 +432,10 @@ address matches the proxy target.
 <h3 id="build">5. Building and deploying the project</h3>
 
 
-Vite writes the production frontend to **`dist/`**. Merge the following entries
-into the existing `package.json`, keeping the template's dependencies and other
-scripts. The JSON below shows the relevant fields, rather than a replacement for
-the entire file:
+Vite writes the production frontend to **`BlinkUI/dist/`**. Merge the following
+entries into the existing `BlinkUI/package.json`, keeping the template's
+dependencies and other scripts. The JSON below shows the relevant fields,
+rather than a replacement for the entire file:
 
 ```json
 {
@@ -439,26 +447,28 @@ the entire file:
   "awot-static": {
     "sources": "./dist",
     "indexFile": "index.html",
-    "sketchDir": "./BlinkServer",
+    "sketchDir": "../BlinkServer",
     "exclude": ["*.map"]
   }
 }
 ```
 
-Run this command from the `led-blink` project directory:
+The converter paths are relative to `BlinkUI`: `./dist` contains the frontend
+build, and `../BlinkServer` selects the sibling Arduino sketch directory. Run
+this command from `led-blink/BlinkUI`:
 
 ```bash
 npm run build:firmware
 ```
 
 The command checks TypeScript, builds the frontend, then generates
-`BlinkServer/StaticFiles.h` from `dist/`. Check that the converter completes
-successfully and the header contains the current build before uploading.
+`BlinkServer/StaticFiles.h` from `BlinkUI/dist/`. Check that the converter
+completes successfully and the header contains the current build before uploading.
 The generated handlers serve gzip-compressed files with their content type,
 encoding, and compressed content length. The index is served at `/`, and Vite's
 JavaScript and CSS files are served under `/assets/`.
 
-Add this include after `<aWOT.h>` in `BlinkServer.ino`:
+Add this include after `<aWOT.h>` in `BlinkServer/BlinkServer.ino`:
 
 ```cpp
 #include "StaticFiles.h"
@@ -474,14 +484,15 @@ app.use(staticFiles());
 server.begin();
 ```
 
-Mount the router once during setup. The `base: '/'` setting in `vite.config.ts`
-keeps asset URLs aligned with these routes. This app has one page at `/`; adding
-client-side routes later also requires handling those paths in the firmware.
+Mount the router once during setup. The `base: '/'` setting in
+`BlinkUI/vite.config.ts` keeps asset URLs aligned with these routes. This app has
+one page at `/`; adding client-side routes later also requires handling those
+paths in the firmware.
 
-Compile and upload `BlinkServer.ino` again, then open the board's address, such as
-`http://192.168.1.227/`. You can now close Vite: the ESP32 serves both the interface
-and the API. Verify that `/` displays the app, `/led` returns its state, and the
-button still switches the physical LED.
+Compile and upload `BlinkServer/BlinkServer.ino` again, then open the board's
+address, such as `http://192.168.1.227/`. You can now close Vite: the ESP32 serves
+both the interface and the API. Verify that `/` displays the app, `/led` returns
+its state, and the button still switches the physical LED.
 
 You can also inspect the compressed index response from the command line:
 
@@ -489,11 +500,19 @@ You can also inspect the compressed index response from the command line:
 curl --fail --compressed -i http://192.168.1.227/
 ```
 
-After changing the frontend, run `npm run build:firmware` and upload again.
-After changing only firmware code, compile and upload the sketch. The built web
-assets consume program flash along with the library and sketch; check the
-Arduino compiler's size report against your board's application partition.
+After changing the frontend, run `npm run build:firmware` from `BlinkUI` and
+upload again. After changing only firmware code, compile and upload the sketch.
+The built web assets consume program flash along with the library and sketch;
+check the Arduino compiler's size report against your board's application
+partition.
 
-Add `BlinkServer/StaticFiles.h` to `.gitignore` if you generate it during your
-build process. Keep the source files and dependency lockfile so you can rebuild
-the assets when needed.
+Create `.gitignore` in the `led-blink` project directory, beside `BlinkUI` and
+`BlinkServer`, and add:
+
+```text
+/BlinkServer/StaticFiles.h
+```
+
+Keep Vite's generated `BlinkUI/.gitignore` for frontend build output and
+dependencies. Keep the source files and `BlinkUI/package-lock.json` so you can
+rebuild the assets when needed.
