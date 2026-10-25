@@ -26,7 +26,7 @@ examples:
 | [headers-reading.cpp](http/headers-reading.cpp) | Capture request headers into caller-owned buffers. |
 | [headers-writing.cpp](http/headers-writing.cpp) | Set response headers and inspect HTTP chunk framing. |
 | [process-options.cpp](http/process-options.cpp) | Supply per-request buffers, captured headers, and context. |
-| [error-handler.cpp](http/error-handler.cpp) | Write a custom error response. |
+| [error-handler.cpp](http/error-handler.cpp) | Handle parser errors and timeouts, write custom JSON errors, and reject requests before routing. |
 
 `regression/` contains focused API, parser, buffer, transport-failure, timeout,
 SSE, and WebSocket checks. Many of these also use `App::process()` to reach the

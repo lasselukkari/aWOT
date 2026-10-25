@@ -2,6 +2,7 @@
 #include <aWOT.h>
 
 #include "mocks/MockStream.h"
+#include "mocks/SharedClient.h"
 
 struct Observation {
   bool called;
@@ -62,6 +63,10 @@ unittest(exact_http_versions) {
 }
 
 unittest(invalid_http_versions_never_dispatch) {
+  const char* expected =
+      "HTTP/1.1 505 HTTP Version Not Supported" CRLF
+      "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF
+      "HTTP Version Not Supported";
   const char* requests[] = {
       "GET / HTTP/2.0" CRLF CRLF,
       "GET / rubbish" CRLF CRLF,
@@ -76,10 +81,14 @@ unittest(invalid_http_versions_never_dispatch) {
     Observation observation = {false, -1, false};
     App::ProcessOptions options;
     options.context = &observation;
-    MockStream stream(request);
-    app.process(&stream, options);
+    SharedClient client;
+    client.feed(request);
+    App::ProcessResult result = app.process(&client, options);
     assertFalse(observation.called);
-    assertTrue(strstr(stream.response(), "HTTP/1.1 505 ") == stream.response());
+    assertEqual(std::string(expected), client.outputString());
+    assertFalse(result.keepAlive);
+    assertFalse(result.responseOpen);
+    assertFalse(client.connected());
   }
 }
 
@@ -149,6 +158,9 @@ unittest(header_names_can_exceed_avr_pushback_capacity) {
 }
 
 unittest(malformed_header_names_and_framing_never_dispatch) {
+  const char* expected =
+      "HTTP/1.1 400 Bad Request" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "Bad Request";
   const char* requests[] = {
       "POST / HTTP/1.1" CRLF ": value" CRLF CRLF,
       "POST / HTTP/1.1" CRLF "Bad Header: value" CRLF CRLF,
@@ -175,10 +187,14 @@ unittest(malformed_header_names_and_framing_never_dispatch) {
     Observation observation = {false, -1, false};
     App::ProcessOptions options;
     options.context = &observation;
-    MockStream stream(request);
-    app.process(&stream, options);
+    SharedClient client;
+    client.feed(request);
+    App::ProcessResult result = app.process(&client, options);
     assertFalse(observation.called);
-    assertTrue(strstr(stream.response(), "HTTP/1.1 400 ") == stream.response());
+    assertEqual(std::string(expected), client.outputString());
+    assertFalse(result.keepAlive);
+    assertFalse(result.responseOpen);
+    assertFalse(client.connected());
   }
 }
 
@@ -186,15 +202,22 @@ unittest(uncaptured_header_nul_never_dispatches) {
   static const char request[] =
       "POST / HTTP/1.1" CRLF "X-Ignored: value\0Content-Length: 4" CRLF CRLF
       "body";
+  const char* expected =
+      "HTTP/1.1 400 Bad Request" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "Bad Request";
   App app;
   app.post("/", observe);
   Observation observation = {false, -1, false};
   App::ProcessOptions options;
   options.context = &observation;
-  MockStream stream(request, sizeof(request) - 1);
-  app.process(&stream, options);
+  SharedClient client;
+  client.feed(std::string(request, sizeof(request) - 1));
+  App::ProcessResult result = app.process(&client, options);
   assertFalse(observation.called);
-  assertTrue(strstr(stream.response(), "HTTP/1.1 400 ") == stream.response());
+  assertEqual(std::string(expected), client.outputString());
+  assertFalse(result.keepAlive);
+  assertFalse(result.responseOpen);
+  assertFalse(client.connected());
 }
 
 void observeBody(Request& req, Response& res) {
@@ -245,6 +268,9 @@ unittest(encoded_delimiters_do_not_split_query_fields) {
 }
 
 unittest(invalid_percent_escapes_never_dispatch) {
+  const char* expected =
+      "HTTP/1.1 400 Bad Request" CRLF "Content-Type: text/plain" CRLF
+      "Connection: close" CRLF CRLF "Bad Request";
   const char* requests[] = {
       "GET /bad% HTTP/1.1" CRLF CRLF,
       "GET /bad%2 HTTP/1.1" CRLF CRLF,
@@ -259,10 +285,14 @@ unittest(invalid_percent_escapes_never_dispatch) {
     Observation observation = {false, -1, false};
     App::ProcessOptions options;
     options.context = &observation;
-    MockStream stream(request);
-    app.process(&stream, options);
+    SharedClient client;
+    client.feed(request);
+    App::ProcessResult result = app.process(&client, options);
     assertFalse(observation.called);
-    assertTrue(strstr(stream.response(), "HTTP/1.1 400 ") == stream.response());
+    assertEqual(std::string(expected), client.outputString());
+    assertFalse(result.keepAlive);
+    assertFalse(result.responseOpen);
+    assertFalse(client.connected());
   }
 }
 
