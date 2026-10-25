@@ -273,6 +273,7 @@ Request's inherited Stream timeout. It is neither a whole-request deadline nor
 a keep-alive idle timeout. Changing a current body's timeout uses
 [`req.setTimeout()`](#req-setTimeout).
 
+<span id="app-header"></span>
 <h3 id="app-process-options">App::ProcessOptions</h3>
 
 
@@ -397,14 +398,6 @@ static int strcmpiP(const char* s1, const unsigned char* s2);
 Compare two NUL-terminated strings ignoring case. Return 0 for equality, -1
 when the first sorts earlier, or 1 when it sorts later. `strcmpiP` reads its
 second argument from program memory. Supply valid non-null pointers.
-
-<h3 id="app-header">Migrating App header registration</h3>
-
-
-The old `Application::header()` registration is retired. Capture headers with a
-[`Request::Header` array](#req-header) passed to `process(client, headers)` or
-assigned to `ProcessOptions.headers`. See the
-[v4 migration guide](/en/guide/migrating-to-v4.html).
 
 <h2 id="router">Router</h2>
 
