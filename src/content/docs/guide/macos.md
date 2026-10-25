@@ -185,9 +185,20 @@ and synchronize shared mutable application state with a mutex or atomics.
 Give each concurrent request its own header-capture buffers and custom request
 and response storage, and synchronize access to any shared context.
 
-`MacOSClient` owns its socket and can be moved but cannot be copied. The
-`WsChannel` and `SseChannel` helpers store copies of client handles, so this
-adapter cannot be substituted directly into those channel examples.
+`MacOSClient` copies share the socket, connection status, and a 1 KiB receive
+buffer, including bytes read ahead during HTTP parsing. Destroying or reassigning
+one handle releases its reference; the last reference closes the socket.
+Calling `stop()` on any copy closes the connection and clears buffered input
+for every copy. Reconnecting a handle closes its old shared connection and
+attaches that handle to a new one. Synchronize concurrent access to copies of
+the same connection.
+
+Use `WsChannel<MacOSClient, N>` or `SseChannel<MacOSClient, N>` to retain native
+connections. Adapt the Hello World worker to check `ProcessResult.responseOpen`:
+after a successful WebSocket upgrade, let the local client leave scope without
+calling `stop()`. For SSE, call `events.add(client)` after `process()` returns
+an open response, then let the local client leave scope. The channel's copy
+keeps the connection alive. Close connections that were not handed to a channel.
 
 ## Run the native checks
 

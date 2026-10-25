@@ -180,18 +180,29 @@ and synchronize shared mutable state with a mutex or atomics. Give each
 concurrent request its own header-capture buffers and custom request and response
 storage, and synchronize access to any shared context.
 
-`WindowsClient` owns its `SOCKET` and closes it with `closesocket`. It can be
-moved but cannot be copied. The adapter manages `WSAStartup` and `WSACleanup`;
-each live socket retains Winsock initialization, including clients that outlive
-their listener. Reads use nonblocking sockets and a 1 KiB per-client receive
-buffer, including for raw `request.client()` reads, so Arduino and aWOT can
+`WindowsClient` copies share the `SOCKET`, connection status, and unread receive
+buffer. Destroying or reassigning a handle releases its reference; the last
+reference closes the socket with `closesocket`. Calling `stop()` on any copy
+closes the connection and clears buffered input for every copy. Reconnecting a
+handle closes its old shared connection and attaches that handle to a new one.
+Synchronize concurrent access to copies of the same connection.
+
+The adapter manages `WSAStartup` and `WSACleanup`; each live connection retains
+Winsock initialization, including copies that outlive their listener. Reads use
+nonblocking sockets and a 1 KiB shared receive buffer, including for raw
+`request.client()` reads, so Arduino and aWOT can
 apply their read timeouts. Writes wait for backpressure to clear within the
 client's timeout.
 
 Outgoing `WindowsClient::connect()` calls accept numeric IPv4 addresses. DNS
-names and IPv6 connections are not implemented. The `WsChannel` and `SseChannel`
-helpers store copies of client handles, so this adapter cannot be substituted
-directly into those channel examples.
+names and IPv6 connections are not implemented.
+
+Use `WsChannel<WindowsClient, N>` or `SseChannel<WindowsClient, N>` to retain native
+connections. Adapt the Hello World worker to check `ProcessResult.responseOpen`:
+after a successful WebSocket upgrade, let the local client leave scope without
+calling `stop()`. For SSE, call `events.add(client)` after `process()` returns
+an open response, then let the local client leave scope. The channel's copy
+keeps the connection alive. Close connections that were not handed to a channel.
 
 ## Run the Windows checks
 
@@ -227,9 +238,10 @@ establishes that the code builds. Wine can provide an additional local check
 from macOS or Linux using the commands in the
 [example README](https://github.com/lasselukkari/aWOT/blob/master/.extras/WindowsNative/README.md#cross-check-from-macos-or-linux).
 
-As of 11 October 2026, all three checks pass under Wine; the first native
-Windows CI run is pending. Check the Windows job's result before considering
-the port verified on Windows.
+Library revision `26cc31a4` passed all three checks on the Windows runner on
+25 October 2026, including the shared client ownership and channel regressions,
+in the [hosted native CI run](https://github.com/lasselukkari/aWOT/actions/runs/40203372961).
+The same checks also passed under Wine on macOS.
 
 ## Troubleshooting
 

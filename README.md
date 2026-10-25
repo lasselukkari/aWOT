@@ -61,9 +61,9 @@ Markdown is native Astro content, so C++ initializers do not need Liquid escapes
 ## Check the documented examples
 
 Keep a separate aWOT library checkout available. Use revision
-`f7e4941cb655782954c96e60d65e7e02def845d2` for local validation of the current
-documentation, including chunked request parsing and the shared native
-ArduinoCore-API directory. The script supports
+`26cc31a4a1b38dc4a28e7b8073f7d48562192e21` for local validation of the current
+documentation, including chunked request parsing, shared native client ownership,
+and the bundled ArduinoCore-API directory. The script supports
 native tests in either `test/` or `.extras/test/` to accommodate their relocation.
 
 Both CI source pins in `.github/workflows/docs-check.yml` use this published
@@ -73,11 +73,19 @@ when publishing the final package.
 The native [macOS guide](src/content/docs/guide/macos.md),
 [Windows guide](src/content/docs/guide/windows.md), and
 [Linux guide](src/content/docs/guide/linux.md) use a Git checkout of the
-repository; their `.extras` adapters are omitted from library
-packages. Windows example validation used library revision `dbe250ff`: MinGW
-cross-compilation and all three CTest checks passed under Wine. The library's
-Windows CI job runs the same checks on Windows once that revision is pushed.
-The documentation build does not itself establish native Windows runtime support.
+repository; their `.extras` adapters are omitted from library packages.
+
+The native adapters at library revision `26cc31a4` share connection ownership and
+unread receive bytes between client copies. `WsChannel` and `SseChannel` can
+retain these handles after local clients leave scope; explicitly stopping any
+copy closes the shared connection. Validation on 25 October 2026 passed the
+macOS socket/shim/HTTP checks, sanitizer-enabled socket checks, and all three
+Windows checks under Wine. Shared regressions cover copied handles, assignment,
+closure, SSE lifetime, and a WebSocket frame buffered with its handshake.
+The [Unit Tests run for that revision](https://github.com/lasselukkari/aWOT/actions/runs/40203372961)
+also passed on hosted macOS, Linux, and Windows runners, including the Linux
+and Windows native socket/shim/HTTP checks. A documentation build alone does not
+establish native platform support.
 
 The Linux example at library revision `be979fae` reuses the macOS POSIX adapter
 and bundled ArduinoCore API through `LinuxClient` and `LinuxServer` aliases.
@@ -86,8 +94,7 @@ Run those checks with
 `ctest --test-dir .extras/LinuxNative/build --output-on-failure` from the library
 checkout after configuring and building it as described in the guide. The
 Linux example built with GCC 14.4 and passed all three checks in a Debian Linux
-Docker container using Python 3.13 on 2026-10-11. The library's Linux native CI
-job runs the same checks; its first hosted run is pending. The exact guide
+Docker container using Python 3.13 on 2026-10-11. The exact guide
 program also compiled and linked on Linux and passed its HTTP smoke test.
 A documentation build or compilation on macOS does not establish Linux runtime
 support.

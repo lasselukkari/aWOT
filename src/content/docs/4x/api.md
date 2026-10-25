@@ -1501,6 +1501,9 @@ The stored copy must keep the connection usable after the original handle is
 destroyed. ESP32 `WiFiClient` copies share socket ownership, so destroying the
 local accepted handle after a successful upgrade leaves the channel's owner
 alive; explicitly stopping any copy closes the shared socket.
+The bundled native `MacOSClient`, `LinuxClient`, and `WindowsClient` adapters
+support the same ownership model. Their copies also share unread receive bytes,
+so a frame buffered during the handshake remains available to the channel.
 Do not pass the temporary adapter from `process(Stream*)` to such a channel.
 Keep the channel alive while it owns connections; close active sockets before
 discarding it. A channel is intended for single-threaded use.
@@ -1797,8 +1800,10 @@ eight. The channel uses a fixed room table and does not allocate receive buffers
 connection, and the usual Client write, connected, and stop methods. Match it
 to the concrete accepted client type, such as `SseChannel<WiFiClient, 4, 1>`.
 The stored copy must keep the connection usable after the original handle is
-destroyed. ESP32 `WiFiClient` supports this shared ownership: `add()` retains
-a copy before the local accepted handle leaves scope.
+destroyed. ESP32 `WiFiClient` and the bundled native `MacOSClient`, `LinuxClient`,
+and `WindowsClient` adapters support this shared ownership: `add()` retains
+a copy before the local accepted handle leaves scope. Explicitly stopping any
+copy closes the shared connection.
 Keep the channel alive for the lifetime of its connections. It has no explicit
 close-all operation; arrange transport closure before discarding it. Use the
 channel from a single thread, or supply your own synchronization.

@@ -165,17 +165,28 @@ a mutex or atomics, give each concurrent request its own header-capture buffers
 and custom request and response storage, and synchronize access to shared
 context.
 
-Clients own their socket descriptors and can be moved but cannot be copied.
+Client copies share the socket descriptor, connection status, and unread receive
+buffer. Destroying or reassigning a handle releases its reference; the last
+reference closes the socket. Calling `stop()` on any copy closes the connection
+and clears buffered input for every copy. Reconnecting a handle closes its old
+shared connection and attaches that handle to a new one. Synchronize concurrent
+access to copies of the same connection.
+
 Socket reads return promptly when no data is available, allowing Arduino and
-aWOT read timeouts to expire. Each client has a 1 KiB receive buffer, including
-for raw `request.client()` reads. Linux sends suppress `SIGPIPE` with
+aWOT read timeouts to expire. Each shared connection has a 1 KiB receive buffer,
+including for raw `request.client()` reads. Linux sends suppress `SIGPIPE` with
 `MSG_NOSIGNAL`, so writing to a disconnected peer reports failure through the
 client API.
 
 Outgoing connections accept numeric IPv4 addresses; DNS and IPv6 connections
-are not implemented. The `WsChannel` and `SseChannel` helpers store copies of
-client handles, so this adapter cannot be substituted directly into those
-channel examples.
+are not implemented.
+
+Use `WsChannel<LinuxClient, N>` or `SseChannel<LinuxClient, N>` to retain native
+connections. Adapt the Hello World worker to check `ProcessResult.responseOpen`:
+after a successful WebSocket upgrade, let the local client leave scope without
+calling `stop()`. For SSE, call `events.add(client)` after `process()` returns
+an open response, then let the local client leave scope. The channel's copy
+keeps the connection alive. Close connections that were not handed to a channel.
 
 ## Run the Linux checks
 
@@ -204,10 +215,11 @@ Each test has a bounded runtime. A successful run reports
 
 The [native Unit Tests workflow](https://github.com/lasselukkari/aWOT/blob/master/.github/workflows/NativeUnitTests.yml)
 includes a **Linux native example** job that builds and runs these checks on
-Ubuntu. On 11 October 2026, the example built with GCC **14.4** and passed all
-three checks in a Debian Linux Docker container using Python **3.13**. The first
-hosted Linux CI run remains pending until the library changes are pushed; review
-that job's result at the source revision you use. The exact program above also
+Ubuntu. Library revision `26cc31a4` passed all three checks on 25 October 2026,
+including the shared client ownership and channel regressions, in the
+[hosted native CI run](https://github.com/lasselukkari/aWOT/actions/runs/40203372961).
+On 11 October 2026, the example built with GCC **14.4** and passed all three
+checks in a Debian Linux Docker container using Python **3.13**. The exact program above also
 compiled, linked, and passed its HTTP smoke test in that Linux environment.
 Compilation on macOS and building this documentation do not establish Linux
 runtime support.
