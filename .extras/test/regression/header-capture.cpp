@@ -75,6 +75,34 @@ unittest(repeated_headers_preserve_empty_values) {
   }
 }
 
+unittest(repeated_headers_trim_optional_whitespace_before_joining) {
+  char value[sizeof("first,second")];
+  Request::Header headers[] = {{"X-Test", value}};
+  MockStream stream("GET / HTTP/1.0" CRLF "X-Test: first \t" CRLF
+                    "X-Test: \tsecond \t " CRLF CRLF);
+  App app;
+  app.get("/", echoCapturedHeader);
+
+  app.process(&stream, headers);
+
+  assertTrue(String(stream.response()).endsWith("[first,second]"));
+  assertEqual("", value);
+}
+
+unittest(captured_headers_trim_ows_but_preserve_internal_whitespace) {
+  char value[sizeof("alpha \t beta")];
+  Request::Header headers[] = {{"X-Test", value}};
+  MockStream stream("GET / HTTP/1.0" CRLF
+                    "X-Test: \talpha \t beta \t " CRLF CRLF);
+  App app;
+  app.get("/", echoCapturedHeader);
+
+  app.process(&stream, headers);
+
+  assertTrue(String(stream.response()).endsWith("[alpha \t beta]"));
+  assertEqual("", value);
+}
+
 unittest(repeated_empty_headers_require_room_for_separator) {
   char value[1];
   Request::Header headers[] = {{"X-Test", value}};
@@ -143,7 +171,7 @@ unittest(explicit_header_capacity_preserves_adjacent_storage) {
   App app;
   app.get("/", echoCapturedHeader);
 
-  MockStream fits("GET / HTTP/1.0" CRLF "X-Test: test" CRLF CRLF);
+  MockStream fits("GET / HTTP/1.0" CRLF "X-Test: test \t " CRLF CRLF);
   app.process(&fits, headers);
   assertTrue(String(fits.response()).endsWith("[test]"));
   assertEqual('!', storage[0]);

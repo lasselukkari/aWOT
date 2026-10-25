@@ -654,6 +654,7 @@ bool Request::m_headerValue(Header* header, bool connection) {
   if (!m_skipSpace()) return false;
 
   bool valid = true;
+  char* valueEnd = buffer;
   ConnectionParser connectionValue;
   while (!m_expect(CRLF)) {
     int ch = m_timedRead();
@@ -662,15 +663,20 @@ bool Request::m_headerValue(Header* header, bool connection) {
 
     if (connection) connectionValue.read(ch);
 
-    if (header && bufferLength > 1 && valid) {
-      *buffer++ = (char)ch;
-      *buffer = '\0';
-      --bufferLength;
-    } else if (header) {
-      valid = false;
+    if (header && valid) {
+      bool whitespace = ch == ' ' || ch == '\t';
+      if (bufferLength > 1) {
+        *buffer++ = (char)ch;
+        *buffer = '\0';
+        --bufferLength;
+        if (!whitespace) valueEnd = buffer;
+      } else if (!whitespace) {
+        valid = false;
+      }
     }
   }
 
+  if (header && valid) *valueEnd = '\0';
   if (connection) {
     connectionValue.finish();
     m_connectionClose |= connectionValue.close;
