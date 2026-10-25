@@ -201,8 +201,7 @@ void Response::set(const char* name, const char* value) {
   }
 }
 
-void Response::setDefaults() {
-}
+void Response::setDefaults() {}
 
 bool Response::m_canStartChannel(int code, int headerCount) {
   return !getWriteError() && !m_ended && !m_headersSent && !m_sendingHeaders &&

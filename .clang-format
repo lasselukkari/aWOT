@@ -2,5 +2,6 @@
 BasedOnStyle: Google
 IndentWidth: 2
 DerivePointerAlignment: false
+FixNamespaceComments: false
 PointerAlignment: Left
 Language: Cpp

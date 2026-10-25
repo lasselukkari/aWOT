@@ -174,10 +174,11 @@ static void readCapturedFraming(Request& req, Response& res) {
   const char* value = req.get(observation.name);
   observation.captured = value && strcmp(value, observation.expected) == 0;
   char body[4];
-  observation.bodyRead =
-      req.left() == observation.initialLeft &&
-      req.read(reinterpret_cast<uint8_t*>(body), sizeof(body)) == sizeof(body) &&
-      memcmp(body, "body", sizeof(body)) == 0 && req.left() == 0;
+  observation.bodyRead = req.left() == observation.initialLeft &&
+                         req.read(reinterpret_cast<uint8_t*>(body),
+                                  sizeof(body)) == sizeof(body) &&
+                         memcmp(body, "body", sizeof(body)) == 0 &&
+                         req.left() == 0;
   res.set("Connection", "keep-alive");
   res.print("ok");
 }
@@ -197,11 +198,10 @@ unittest(framing_headers_capture_normalized_values_and_decode_bodies) {
   } cases[] = {
       {"Content-Length: 4", "Content-Length", "4", false},
       {"cOnTeNt-LeNgTh: \t0004 \t", "content-length", "4", false},
-      {"Content-Length: 4" CRLF "content-length: \t04 \t",
-       "Content-Length", "4", false},
+      {"Content-Length: 4" CRLF "content-length: \t04 \t", "Content-Length",
+       "4", false},
       {"Transfer-Encoding: chunked", "Transfer-Encoding", "chunked", true},
-      {"tRaNsFeR-EnCoDiNg: \tChUnKeD \t", "transfer-encoding", "chunked",
-       true},
+      {"tRaNsFeR-EnCoDiNg: \tChUnKeD \t", "transfer-encoding", "chunked", true},
   };
   App app;
   app.post("/", readCapturedFraming);
@@ -209,8 +209,8 @@ unittest(framing_headers_capture_normalized_values_and_decode_bodies) {
     char length[16], encoding[16];
     Request::Header headers[] = {{"Content-Length", length},
                                  {"Transfer-Encoding", encoding}};
-    FramingCapture observation = {test.name, test.expected,
-                                  test.chunked ? -1 : 4, false, false, false};
+    FramingCapture observation = {
+        test.name, test.expected, test.chunked ? -1 : 4, false, false, false};
     App::ProcessOptions options;
     options.headers = headers;
     options.context = &observation;
@@ -237,8 +237,8 @@ unittest(framing_header_capture_requires_space_for_the_complete_value) {
     bool chunked;
   } cases[] = {
       {"Content-Length: 0004 \t", "Content-Length", "4", false},
-      {"Content-Length: 4" CRLF "Content-Length: 04 \t",
-       "Content-Length", "4", false},
+      {"Content-Length: 4" CRLF "Content-Length: 04 \t", "Content-Length", "4",
+       false},
       {"Transfer-Encoding: chunked ", "Transfer-Encoding", "chunked", true},
   };
   App app;
@@ -249,8 +249,8 @@ unittest(framing_header_capture_requires_space_for_the_complete_value) {
       memset(storage, '!', sizeof(storage));
       int capacity = strlen(test.expected) + fits;
       Request::Header headers[] = {{test.name, storage + 1, capacity}};
-      FramingCapture observation = {test.name, test.expected,
-                                    test.chunked ? -1 : 4, false, false, false};
+      FramingCapture observation = {
+          test.name, test.expected, test.chunked ? -1 : 4, false, false, false};
       App::ProcessOptions options;
       options.headers = headers;
       options.context = &observation;
@@ -324,8 +324,7 @@ unittest(capturing_framing_headers_does_not_bypass_validation) {
     char length[32], encoding[32];
     Request::Header headers[] = {{"Content-Length", length},
                                  {"Transfer-Encoding", encoding}};
-    FramingCapture observation = {"Content-Length", "", 0, false, false,
-                                  false};
+    FramingCapture observation = {"Content-Length", "", 0, false, false, false};
     App::ProcessOptions options;
     options.headers = headers;
     options.context = &observation;
