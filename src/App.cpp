@@ -35,7 +35,7 @@ int App::strcmpiP(const char* s1, const unsigned char* s2) {
 }
 
 App::App()
-    : m_final(NULL), m_notFound(NULL), m_errorHandler(NULL), m_timeout(1000) {}
+    : m_final(), m_notFound(), m_errorHandler(NULL), m_timeout(1000) {}
 
 App::~App() {}
 
@@ -90,7 +90,7 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
     response.m_printHeaders();
   }
 
-  if (m_final != NULL) {
+  if (m_final) {
     m_final(request, response);
   }
 
@@ -285,7 +285,7 @@ void App::m_process(Request& request, Response& response) {
   }
 
   if (!response.statusSent() && !response.ended()) {
-    if (m_notFound != NULL) {
+    if (m_notFound) {
       response.status(404);
       return m_notFound(request, response);
     }

@@ -1,6 +1,7 @@
 #ifndef AWOT_APP_H_
 #define AWOT_APP_H_
 
+#include "CallbackSlot.h"
 #include "Router.h"
 #include "StreamClient.h"
 
@@ -188,8 +189,13 @@ class App {
   ProcessResult
   m_processWithDefaultWrite(Client* client, ProcessOptions options);
 
+#ifdef STD_FUNCTION_MIDDLEWARE
+  detail::CallbackSlot<Router::Middleware> m_final;
+  detail::CallbackSlot<Router::Middleware> m_notFound;
+#else
   Router::MIDDLEWARE_PARAM m_final;
   Router::MIDDLEWARE_PARAM m_notFound;
+#endif
   ErrorHandler m_errorHandler;
   Router m_defaultRouter;
   unsigned long m_timeout;
