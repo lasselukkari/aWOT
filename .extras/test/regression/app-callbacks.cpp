@@ -1,6 +1,9 @@
 #include <ArduinoUnitTests.h>
 #include <aWOT.h>
 
+#include <string>
+#include <vector>
+
 #include "mocks/MockStream.h"
 
 #ifdef STD_FUNCTION_MIDDLEWARE
