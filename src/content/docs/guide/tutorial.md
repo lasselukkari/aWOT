@@ -124,8 +124,8 @@ The API uses one byte of plain text to represent the LED state:
 | Request | Behavior |
 | --- | --- |
 | `GET /led` | Return `0` when the LED is off or `1` when it is on. |
-| `PUT /led` with body `0` or `1` | Set the LED and return its new state. |
-| `PUT /led` with any other body | Return HTTP 400 without changing the LED. |
+| `PUT /led` with a body starting with `0` or `1` | Set the LED and return its new state. |
+| `PUT /led` with an empty body or any other first byte | Return HTTP 400 without changing the LED. |
 
 Create `BlinkServer/BlinkServer.ino` with this complete sketch. Set your Wi-Fi
 credentials and the LED pin and polarity for your board:
@@ -154,11 +154,6 @@ void readLed(Request& req, Response& res) {
 }
 
 void updateLed(Request& req, Response& res) {
-  if (req.left() != 1) {
-    res.sendStatus(400);
-    return;
-  }
-
   char value;
   if (req.readBytes(&value, 1) != 1 || (value != '0' && value != '1')) {
     res.sendStatus(400);
@@ -199,8 +194,8 @@ void loop() {
 ```
 
 `Request` is an Arduino `Stream`. Its `readBytes()` method waits for the body
-byte, so we can check the read succeeded before changing the LED. `req.left()`
-checks that the request declares exactly one byte. `Response` is a `Print`:
+byte, so we can check the read succeeded before changing the LED. The handler
+uses the first byte and ignores any remaining body. `Response` is a `Print`:
 set headers before writing the body with `print()`.
 
 Returning from a handler without calling `req.next()` finishes route dispatch
