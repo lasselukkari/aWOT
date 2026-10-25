@@ -7,7 +7,6 @@
 namespace awot {
 namespace detail {
 
-// Fixed room registry and memberships shared by the channel implementations.
 template <int N, int MAX_ROOMS>
 class ChannelRooms {
   static_assert(N > 0, "N must be positive");
@@ -83,7 +82,7 @@ class ChannelRooms {
   int m_count;
 };
 
-}  // namespace detail
-}  // namespace awot
+}
+}
 
 #endif

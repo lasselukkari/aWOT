@@ -53,8 +53,6 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
     return result;
   }
 
-  // A null pointer selects its default capacity regardless of the unused
-  // length. Supplied storage always requires a valid capacity.
   if ((options.urlBuffer.data() && options.urlBuffer.size() < 2) ||
       (options.writeBuffer.data() &&
        options.writeBuffer.size() <= CHUNK_OVERHEAD) ||
@@ -88,9 +86,6 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
 
   m_process(request, response);
 
-  // Error and not-found callbacks can end a response without writing a body.
-  // Complete any selected final response before the final callback, matching
-  // the normal dispatch path.
   if (response.statusSent() && !response.headersSent()) {
     response.m_printHeaders();
   }
@@ -120,8 +115,6 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
   return result;
 }
 
-// Keep convenience storage out of the stack frame used with caller buffers.
-// Both helpers are noinline so optimization cannot fold these arrays back in.
 App::ProcessResult App::m_processWithDefaultUrl(Client* client,
                                                 ProcessOptions options) {
   char buffer[SERVER_URL_BUFFER_SIZE];
@@ -280,7 +273,6 @@ void App::m_process(Request& request, Response& response) {
 
   m_defaultRouter.m_dispatchMiddleware(request, response);
 
-  // A body decoder can discover malformed framing while middleware reads it.
   request.left();
   int bodyError = request.m_bodyError();
   if (bodyError) {

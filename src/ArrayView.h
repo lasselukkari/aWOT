@@ -6,8 +6,6 @@
 
 namespace awot {
 
-// Non-owning storage. Arrays infer their size; pointers require an explicit
-// size.
 template <typename T>
 class ArrayView {
  public:
@@ -28,6 +26,6 @@ class ArrayView {
   int m_size;
 };
 
-}  // namespace awot
+}
 
 #endif

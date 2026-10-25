@@ -76,7 +76,6 @@ bool headerValueChar(int ch) {
   return ch == '\t' || (ch >= 0x20 && ch != 0x7f);
 }
 
-// The caller identifies component boundaries before decoding.
 int decodedChar(const char*& cursor, const char* end, bool plusAsSpace) {
   int ch = (unsigned char)*cursor++;
   if (ch == '%' && end - cursor >= 2) {
@@ -125,7 +124,7 @@ class ConnectionParser {
   uint8_t m_length;
   bool m_ended;
 };
-}  // namespace
+}
 
 bool Request::form(char* name, int nameLength, char* value, int valueLength) {
   if (!name || !value || nameLength <= 0 || valueLength <= 0) return false;
@@ -194,7 +193,6 @@ int Request::peek() {
 }
 
 void Request::push(uint8_t ch) {
-  // Keep the most recently pushed byte when the stack is full.
   if (m_pushbackDepth == SERVER_PUSHBACK_BUFFER_SIZE) --m_pushbackDepth;
   m_pushback[m_pushbackDepth++] = ch;
 }
@@ -295,8 +293,6 @@ bool Request::m_bodyAvailable() {
     return m_left > 0;
   }
 
-  // Only framing is consumed here. Payload stays in the transport until read().
-  // m_left holds the current chunk size, then its remaining payload bytes.
   for (;;) {
     if (m_bodyState == CHUNK_DATA) {
       if (m_left) return true;
@@ -478,9 +474,6 @@ bool Request::m_processMethod() {
   P(PATCH_VERB) = "PATCH ";
   P(OPTIONS_VERB) = "OPTIONS ";
 
-  // Try each verb in sequence, but stop as soon as a read has timed out —
-  // otherwise a client that connects and never sends data costs us one
-  // full Stream::_timeout per verb (seven of them).
   if (m_expectP(GET_VERB)) {
     m_method = GET;
     return true;
@@ -545,8 +538,6 @@ bool Request::m_readVersion() {
 }
 
 bool Request::m_processURL() {
-  // Validate the entire raw target, including query components not requested by
-  // the handler, before modifying the path in place.
   const char* cursor = m_path;
   const char* end = m_path + strlen(m_path);
   while (cursor < end) {
@@ -602,7 +593,6 @@ int Request::m_processHeaders() {
     }
   }
 
-  // Framing headers are already validated; capture their normalized values.
   P(lengthName) = "Content-Length";
   P(encodingName) = "Transfer-Encoding";
   for (int i = 0; i < m_headers.size(); ++i) {
@@ -649,9 +639,6 @@ bool Request::m_headerName(Header*& header, bool& connection) {
       connection = false;
     }
     if (header && tolower((unsigned char)header->name[matched]) != expected) {
-      // The current candidate remembers the prefix already read. Find the
-      // next candidate with that prefix and this character without rewinding
-      // the stream or storing a copy of an arbitrarily long field name.
       Header* candidate = nullptr;
       while (++index < m_headers.size()) {
         candidate = &m_headers[index];
@@ -803,11 +790,8 @@ bool Request::m_skipSpace() {
 bool Request::m_timedout() { return m_readTimedout; }
 
 int Request::m_timedRead() {
-  // A request cannot recover after a parser read exhausts its timeout. Avoid
-  // charging the same request another full timeout in speculative branches.
   if (m_readTimedout) return -1;
 
-  // Avoid consulting the clock while data is already available.
   int ch = read();
   if (ch == -1 && _timeout != 0) ch = timedRead();
   if (ch == -1) {

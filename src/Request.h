@@ -45,18 +45,13 @@ class Request : public Stream {
   Client* client();
   void flush();
   bool form(char* name, int nameLength, char* value, int valueLength);
-  // Null for absent or uncaptured headers; present empty values return "".
   char* get(const char* name);
-  // Chunked bodies return -1 until their final chunk and trailers are read.
   int left();
   MethodType method();
   char* path();
   int peek();
   void push(uint8_t ch);
-  // Raw encoded query (without ?); path() is percent-decoded.
   char* query();
-  // Match decoded names and decode values; + is a space. Invalid escapes,
-  // decoded NUL, and insufficient capacity fail without overrunning the buffer.
   bool query(const char* name, char* buffer, int bufferLength);
   int read();
   int read(uint8_t* buf, size_t size);
@@ -131,6 +126,6 @@ class Request : public Stream {
   bool m_next;
 };
 
-}  // namespace awot
+}
 
 #endif

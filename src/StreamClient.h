@@ -41,6 +41,6 @@ class StreamClient : public Client {
   operator bool() { return true; };
 };
 
-}  // namespace awot
+}
 
 #endif

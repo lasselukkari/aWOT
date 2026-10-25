@@ -125,9 +125,6 @@ class App {
   }
 #endif
 
-  // Storage is borrowed for process(). Arrays infer capacities and counts.
-  // Null buffers select default storage; pointers require explicit capacities.
-  // Invalid options close the client without invoking handlers.
   struct ProcessOptions {
     ArrayView<char> urlBuffer;
     ArrayView<uint8_t> writeBuffer;
@@ -198,6 +195,6 @@ class App {
   unsigned long m_timeout;
 };
 
-}  // namespace awot
+}
 
 #endif

@@ -1,31 +1,3 @@
-/*
-  WsChannel: RFC 6455 WebSocket channel with server-driven "rooms" for
-  broadcast targeting. Mirrors SseChannel's template/static-allocation design.
-
-  Usage:
-    // Transport must match what your server accepts (e.g. WiFiClient).
-    WsChannel<WiFiClient, 4, 8> sockets;  // 4 max sockets, 8 max rooms
-    // Call sockets.defineRoom("chat") during setup before using the room name.
-
-    void onUpgrade(Request& req, Response& res) {
-      if (!sockets.upgrade(req, res)) res.sendStatus(400);
-    }
-
-    // Register /api/ws, call sockets.poll() from loop(), broadcast via
-    // sockets.to("chat", ...), sockets.send(socketId, ...),
-  sockets.broadcast(...).
-
-  Limitations:
-    - Complete message cap = WS_RX_BUFFER_SIZE (default 256), including all
-      fragments. Oversize closes 1009.
-    - Each connection also reserves 125 bytes for control-frame payloads.
-    - MAX_ROOMS <= 32 (room membership stored as uint32_t bitmap).
-    - Polled, single-threaded; call poll() from loop().
-    - No permessage-deflate, no WSS.
-    - TClient template parameter must match the underlying Client type the
-      request is delivered on (same requirement as SseChannel).
-*/
-
 #ifndef AWOT_WS_CHANNEL_H_
 #define AWOT_WS_CHANNEL_H_
 
@@ -103,8 +75,6 @@ class WsChannel {
 
     Client* c = req.client();
     if (!c) return false;
-    // The two queued handshake headers must fit before the 101 status is
-    // committed. Sec-WebSocket-Accept is generated and written directly.
     if (!res.m_canStartChannel(101, 2)) return false;
 
     int slot = findFreeSlot();
@@ -304,7 +274,6 @@ class WsChannel {
     ConnectCb callback;
     callback.swap(m_onConnect);
     callback(socketId);
-    // Restore the invoked callback unless it replaced itself.
     if (!m_connectChanged) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(socketId);
@@ -313,8 +282,6 @@ class WsChannel {
 
   void callOnDisconnect(int socketId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    // Reentrant deactivation uses the callback that is already executing,
-    // unless it has replaced or cleared its registration.
     if (m_activeDisconnect &&
         m_activeDisconnectRevision == m_disconnectRevision) {
       (*m_activeDisconnect)(socketId);
@@ -361,7 +328,6 @@ class WsChannel {
         if (!m_slots[i].active) return i;
       }
     }
-    // A disconnect callback may have freed an earlier slot.
     for (int i = 0; i < N; i++) {
       if (!m_slots[i].active) return i;
     }
@@ -443,7 +409,6 @@ class WsChannel {
     while (progress) {
       progress = false;
 
-      // Stage 1: first two header bytes
       while (s.rxHeaderFilled < 2 && s.client.available() > 0) {
         int b = s.client.read();
         if (b < 0) break;
@@ -468,17 +433,17 @@ class WsChannel {
           return;
         }
         if (!masked) {
-          closeSlot(i, 1002);  // client-to-server must be masked
+          closeSlot(i, 1002);
           return;
         }
         if (s.rxOpcode == 0x0) {
           if (!s.rxMessageOpcode) {
-            closeSlot(i, 1002);  // continuation without a message
+            closeSlot(i, 1002);
             return;
           }
         } else if (s.rxOpcode == 0x1 || s.rxOpcode == 0x2) {
           if (s.rxMessageOpcode) {
-            closeSlot(i, 1002);  // previous message is still incomplete
+            closeSlot(i, 1002);
             return;
           }
           s.rxMessageOpcode = s.rxOpcode;
@@ -488,7 +453,7 @@ class WsChannel {
           return;
         }
 
-        int need = 2 + 4;  // base + mask
+        int need = 2 + 4;
         if (len7 == 126)
           need += 2;
         else if (len7 == 127)
@@ -497,7 +462,6 @@ class WsChannel {
         s.rxHeaderDecoded = true;
       }
 
-      // Stage 2: extended length + mask
       while (s.rxHeaderFilled < s.rxHeaderNeeded && s.client.available() > 0) {
         int b = s.client.read();
         if (b < 0) break;
@@ -549,7 +513,6 @@ class WsChannel {
         s.rxPayloadResolved = true;
       }
 
-      // Stage 3: payload
       uint8_t* payload =
           (s.rxOpcode & 0x8) ? s.rxControl : s.rxPayload + s.rxMessageLength;
       while (s.rxFilledPayload < s.rxExpected && s.client.available() > 0) {
@@ -564,7 +527,6 @@ class WsChannel {
       }
       if (s.rxFilledPayload < s.rxExpected) break;
 
-      // Unmask + dispatch
       for (uint32_t k = 0; k < s.rxExpected; k++) {
         payload[k] ^= s.rxMaskKey[k & 3];
       }
@@ -594,9 +556,9 @@ class WsChannel {
   void dispatchFrame(int i, uint8_t* payload) {
     Slot& s = m_slots[i];
     switch (s.rxOpcode) {
-      case 0x0:    // continuation
-      case 0x1:    // text
-      case 0x2: {  // binary
+      case 0x0:
+      case 0x1:
+      case 0x2: {
         s.rxMessageLength += (size_t)s.rxExpected;
         if (!(s.rxHeader[0] & 0x80)) break;
 
@@ -614,7 +576,7 @@ class WsChannel {
         }
         break;
       }
-      case 0x8: {  // close
+      case 0x8: {
         if (s.rxExpected == 1) {
           closeSlot(i, 1002);
           return;
@@ -634,10 +596,10 @@ class WsChannel {
         deactivate(i);
         break;
       }
-      case 0x9:  // ping
+      case 0x9:
         sendFrame(i, 0xA, payload, s.rxExpected);
         break;
-      case 0xA:  // pong
+      case 0xA:
         if (s.awaitingPong) {
           s.awaitingPong = false;
           s.lastPingSentMs = millis();
@@ -694,7 +656,6 @@ class WsChannel {
             (c >= '0' && c <= '9') || c == '+' || c == '/'))
         return false;
     }
-    // Sixteen bytes have two padding characters and four unused zero bits.
     if (key[21] != 'A' && key[21] != 'Q' && key[21] != 'g' && key[21] != 'w') {
       return false;
     }
@@ -716,7 +677,6 @@ class WsChannel {
     return !*value;
   }
 
-  // Compare complete comma-separated tokens, ignoring surrounding OWS.
   static bool containsToken(const char* haystack, const char* needle) {
     if (!haystack || !needle || !*needle) return false;
     size_t length = strlen(needle);
@@ -742,6 +702,6 @@ class WsChannel {
   }
 };
 
-}  // namespace awot
+}
 
 #endif

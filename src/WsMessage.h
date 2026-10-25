@@ -1,9 +1,3 @@
-/*
-  WsMessage: Stream-derived wrapper over a completed WebSocket message payload.
-  Handed to application message callbacks so they can consume payload through
-  the same Stream interface aWOT uses elsewhere.
-*/
-
 #ifndef AWOT_WS_MESSAGE_H_
 #define AWOT_WS_MESSAGE_H_
 
@@ -53,6 +47,6 @@ class WsMessage : public Stream {
   int m_socketId;
 };
 
-}  // namespace awot
+}
 
 #endif

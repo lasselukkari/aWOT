@@ -52,8 +52,6 @@ void Response::beginHeaders() {
 
   m_sendingHeaders = true;
 
-  // Streaming HTTP responses continue directly on the client after process().
-  // They must be close-delimited, even after keep-alive middleware ran.
   bool streaming = m_responseOpen && m_statusSent >= 200;
   if (streaming) {
     m_keepAlive = false;
@@ -88,8 +86,6 @@ void Response::beginHeaders() {
     m_printCRLF();
     if (connection) connectionWritten = true;
   }
-  // Defaults do not occupy caller header slots. Protocol switches and interim
-  // responses have only their explicitly supplied headers.
   if (m_statusSent >= 200) {
     if (!m_contentTypeSet && m_statusSent != 204 && m_statusSent != 205 &&
         m_statusSent != 304) {
@@ -206,8 +202,6 @@ void Response::set(const char* name, const char* value) {
 }
 
 void Response::setDefaults() {
-  // Kept for callers that explicitly prepare headers. Defaults are now
-  // derived in beginHeaders(), once the status and connection mode are known.
 }
 
 bool Response::m_canStartChannel(int code, int headerCount) {
@@ -248,10 +242,6 @@ void Response::status(int code) {
 
   m_printCRLF();
 
-  // 1xx is provisional (100 Continue, 102, 103) — headers are flushed and
-  // m_statusSent is reset so the final status can follow. 101 is special:
-  // it is a FINAL response that switches protocols, so we leave
-  // m_statusSent set and let the caller add headers + flush normally.
   if (code < 200 && code != 101) {
     beginHeaders();
     endHeaders();
@@ -799,8 +789,6 @@ void Response::m_finalize() {
   }
 }
 
-// Write chunk size in hex to the reserved header space (right-aligned)
-// Returns the number of bytes written, including CRLF.
 int Response::m_writeChunkHeader(int dataSize) {
   static const char hexDigits[] = "0123456789abcdef";
 
@@ -817,5 +805,5 @@ int Response::m_writeChunkHeader(int dataSize) {
     hexLen++;
   } while (n > 0 && pos >= 0);
 
-  return hexLen + 2;  // hex digits + CRLF
+  return hexLen + 2;
 }

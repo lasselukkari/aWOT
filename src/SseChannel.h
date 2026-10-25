@@ -30,7 +30,6 @@ class SseChannel {
   }
 
   void open(Response& res) {
-    // A stream without its required headers must not be retained by the caller.
     if (!res.m_canStartChannel(200, 2)) {
       res.m_failWrite();
       return;
@@ -195,7 +194,6 @@ class SseChannel {
     ConnectCb callback;
     callback.swap(m_onConnect);
     callback(clientId);
-    // Restore the invoked callback unless it replaced itself.
     if (!m_connectChanged) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(clientId);
@@ -203,6 +201,6 @@ class SseChannel {
   }
 };
 
-}  // namespace awot
+}
 
 #endif

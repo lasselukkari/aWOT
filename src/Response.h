@@ -33,8 +33,6 @@ class Response : public Print {
   size_t write(uint8_t data);
   size_t write(const uint8_t* buffer, size_t bufferLength);
   void writeP(const unsigned char* data, size_t length);
-  // Call before sending headers to continue a close-delimited HTTP response
-  // directly on the client. A 101 response retains its upgrade headers.
   void keepOpen();
 
  private:
@@ -80,6 +78,6 @@ class Response : public Print {
   int m_bufFill;
 };
 
-}  // namespace awot
+}
 
 #endif

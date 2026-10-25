@@ -155,6 +155,6 @@ class Router {
   MiddlewareNode* m_head;
 };
 
-}  // namespace awot
+}
 
 #endif

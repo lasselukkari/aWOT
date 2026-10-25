@@ -1,10 +1,3 @@
-/*
-  WebSocket handshake crypto: SHA-1 + Base64.
-
-  SHA-1 implementation adapted from Steve Reid's public domain reference
-  (100% public domain). Base64 encoder is a standard table lookup.
-*/
-
 #ifndef AWOT_WS_CRYPTO_H_
 #define AWOT_WS_CRYPTO_H_
 
@@ -39,8 +32,6 @@ static inline void sha1_transform(uint32_t state[5], const uint8_t buffer[64]) {
   d = state[3];
   e = state[4];
 
-  // A 16-word ring avoids an 80-word schedule, and the loop keeps flash use
-  // small on AVR where unrolling all 80 rounds is prohibitively expensive.
   for (uint8_t i = 0; i < 80; ++i) {
     uint8_t slot = i & 15;
     if (i >= 16) {
@@ -129,8 +120,6 @@ static inline void sha1(const uint8_t* data, size_t len, uint8_t digest[20]) {
   sha1_final(&ctx, digest);
 }
 
-// Encodes `inLen` bytes into standard Base64; writes ceil(inLen/3)*4 bytes.
-// Does not null-terminate. Returns bytes written.
 static inline size_t base64Encode(const uint8_t* in, size_t inLen, char* out) {
   static const char kAlpha[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -157,8 +146,6 @@ static inline size_t base64Encode(const uint8_t* in, size_t inLen, char* out) {
   return o;
 }
 
-// Computes Sec-WebSocket-Accept for a given Sec-WebSocket-Key.
-// Writes exactly 28 chars + NUL into `out` (buffer must be >= 29 bytes).
 static inline void computeAcceptKey(const char* key, char* out) {
   static const char kGuid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   while (*key == ' ' || *key == '\t') ++key;
@@ -175,7 +162,7 @@ static inline void computeAcceptKey(const char* key, char* out) {
   out[n] = '\0';
 }
 
-}  // namespace ws
-}  // namespace awot
+}
+}
 
 #endif

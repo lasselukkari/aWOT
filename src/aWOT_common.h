@@ -1,25 +1,3 @@
-/*
-  aWOT, Express.js inspired microcontroller web framework for the Web of Things
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  THE SOFTWARE.
-*/
-
 #ifndef AWOT_COMMON_H_
 #define AWOT_COMMON_H_
 
@@ -29,8 +7,6 @@
 
 #include "Client.h"
 
-// Advanced override: apply to EVERY library and sketch translation unit.
-// Defaults remain automatic; a sketch-local define cannot change library ABI.
 #if defined(AWOT_NO_STD_FUNCTION_MIDDLEWARE) && defined(STD_FUNCTION_MIDDLEWARE)
 #error "Conflicting aWOT middleware configuration"
 #endif
@@ -39,7 +15,6 @@
 #if defined(ESP8266) || defined(ESP32)
 #define STD_FUNCTION_MIDDLEWARE
 #elif defined(__has_include)
-// Keep the operator in its own guard for compilers that do not support it.
 #if __has_include(<functional>)
 #define STD_FUNCTION_MIDDLEWARE
 #endif
@@ -85,20 +60,19 @@
 #endif
 #endif
 
-// Header format: "<hex_size>\r\n" + data + "\r\n"
 #if SERVER_OUTPUT_BUFFER_SIZE <= 0xF
-#define CHUNK_HEADER_SIZE 3  // "F\r\n"
+#define CHUNK_HEADER_SIZE 3
 #elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFF
-#define CHUNK_HEADER_SIZE 4  // "FF\r\n"
+#define CHUNK_HEADER_SIZE 4
 #elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFFF
-#define CHUNK_HEADER_SIZE 5  // "FFF\r\n"
+#define CHUNK_HEADER_SIZE 5
 #elif SERVER_OUTPUT_BUFFER_SIZE <= 0xFFFF
-#define CHUNK_HEADER_SIZE 6  // "FFFF\r\n"
+#define CHUNK_HEADER_SIZE 6
 #else
-#define CHUNK_HEADER_SIZE 10  // "FFFFFFFF\r\n"
+#define CHUNK_HEADER_SIZE 10
 #endif
 
-#define CHUNK_TRAILER_SIZE 2  // "\r\n"
+#define CHUNK_TRAILER_SIZE 2
 #define CHUNK_OVERHEAD (CHUNK_HEADER_SIZE + CHUNK_TRAILER_SIZE)
 #define CHUNK_DATA_SIZE (SERVER_OUTPUT_BUFFER_SIZE - CHUNK_OVERHEAD)
 
@@ -122,6 +96,6 @@ class Request;
 class Router;
 class App;
 
-}  // namespace awot
+}
 
 #endif
