@@ -466,47 +466,20 @@ size_t Request::write(const uint8_t* buffer, size_t bufferLength) {
 }
 
 bool Request::m_processMethod() {
-  P(GET_VERB) = "GET ";
-  P(HEAD_VERB) = "HEAD ";
-  P(POST_VERB) = "POST ";
-  P(PUT_VERB) = "PUT ";
-  P(DELETE_VERB) = "DELETE ";
-  P(PATCH_VERB) = "PATCH ";
-  P(OPTIONS_VERB) = "OPTIONS ";
+  // Keep verbs in MethodType order (GET through OPTIONS).
+  // Those enum values must remain consecutive.
+  P(VERBS) = "GET \0HEAD \0POST \0PUT \0DELETE \0PATCH \0OPTIONS ";
+  const unsigned char* verb = VERBS;
 
-  if (m_expectP(GET_VERB)) {
-    m_method = GET;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(HEAD_VERB)) {
-    m_method = HEAD;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(POST_VERB)) {
-    m_method = POST;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(PUT_VERB)) {
-    m_method = PUT;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(DELETE_VERB)) {
-    m_method = DELETE;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(PATCH_VERB)) {
-    m_method = PATCH;
-    return true;
-  }
-  if (m_readTimedout) return false;
-  if (m_expectP(OPTIONS_VERB)) {
-    m_method = OPTIONS;
-    return true;
+  for (int method = GET; method <= OPTIONS; ++method) {
+    if (m_expectP(verb)) {
+      m_method = static_cast<MethodType>(method);
+      return true;
+    }
+    if (m_readTimedout) return false;
+
+    while (pgm_read_byte(verb++)) {
+    }
   }
   return false;
 }
