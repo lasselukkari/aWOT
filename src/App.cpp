@@ -34,8 +34,7 @@ int App::strcmpiP(const char* s1, const unsigned char* s2) {
   return a < b ? -1 : 1;
 }
 
-App::App()
-    : m_final(), m_notFound(), m_errorHandler(NULL), m_timeout(1000) {}
+App::App() : m_final(), m_notFound(), m_errorHandler(NULL), m_timeout(1000) {}
 
 App::~App() {}
 

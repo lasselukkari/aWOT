@@ -42,9 +42,8 @@ unittest(valid_token_continues_to_protected_handler) {
 }
 
 unittest(valid_token_ignores_surrounding_optional_whitespace) {
-  const char* request =
-      "GET /private HTTP/1.1" CRLF
-      "Authorization: \tBearer test-token \t" CRLF CRLF;
+  const char* request = "GET /private HTTP/1.1" CRLF
+                        "Authorization: \tBearer test-token \t" CRLF CRLF;
 
   const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
                          "Connection: close" CRLF CRLF "private data";
