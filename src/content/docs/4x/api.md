@@ -59,7 +59,7 @@ void get(Router::MIDDLEWARE_PARAM middleware);
 
 Register a GET handler. The overload without a path matches every GET path.
 Handlers run in registration order. Call [`req.next()`](#req-next) to continue;
-returning without it stops dispatch. See [route matching](#router-use) and
+returning without it stops dispatch. See
 [`Router::Middleware`](#router-Middleware) for callback configuration.
 
 <h3 id="app-head">App::head</h3>
@@ -550,7 +550,7 @@ void options(MIDDLEWARE_PARAM middleware);
 
 Register OPTIONS middleware. Generate any required CORS headers in the handler.
 
-<h3 id="router-use">Router::use and matching</h3>
+<h3 id="router-use">Router::use</h3>
 
 
 ```cpp
@@ -560,14 +560,8 @@ void use(const char* path, MIDDLEWARE_PARAM middleware);
 void use(MIDDLEWARE_PARAM middleware);
 ```
 
-The callback overload matches every supported HTTP method. A provided callback
-path matches the full route, using the same patterns as method-specific
-registrations. Patterns are case-sensitive; `:name` consumes a segment and is
-read with `req.route("name", buffer, capacity)`. Matching uses the decoded path,
-and excludes the query. A route `/items/:id` matches `/items/42` and
-`/items/42/`; a single extra trailing slash is accepted after a complete
-pattern. A pattern ending in `/` still requires that slash. There are no wildcard
-or regular-expression patterns. The pathless overload matches every path.
+Callback overloads match every supported HTTP method. A provided path matches
+the full route; without a path, the callback matches every path.
 
 The Router overload mounts at a segment boundary. Trailing slashes on the mount
 prefix are ignored, so `/api`, `/api/`, and `/api///` mount equivalently.
