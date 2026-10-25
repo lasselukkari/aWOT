@@ -142,8 +142,8 @@ translation unit. Do not define this only inside a sketch. Defining both it and
 
 Native tests live in `.extras/test/`: `http/` contains full request/response
 examples, and `regression/` contains focused API and protocol checks. See the
-[test README](../.extras/test/README.md) for examples, build configurations, and
-commands to run each group. CI runs both groups in the
-[test workflow](../.github/workflows/NativeUnitTests.yml).
+[test README](../.extras/test/README.md) for examples, build configurations,
+commands to run each group, and HTTP code coverage reports. CI runs both groups
+in the [test workflow](../.github/workflows/NativeUnitTests.yml).
 Arduino examples are compiled separately for the boards listed in the
 [examples workflow](../.github/workflows/CompileExamples.yml).

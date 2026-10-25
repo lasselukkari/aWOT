@@ -69,6 +69,40 @@ The member-function example is omitted when function-pointer middleware is
 selected. All translation units must use the same configuration; let CMake
 apply the definitions to the library and tests together.
 
+## HTTP code coverage
+
+On macOS or Linux, use Clang, its matching `llvm-cov` and `llvm-profdata` tools,
+and Python 3.6 or newer. Apple's Command Line Tools include the LLVM tools; on Ubuntu,
+install `clang llvm`. Coverage is optional and leaves normal builds unchanged.
+
+```sh
+cmake -S .extras/test -B .extras/test/build/coverage \
+  -DCMAKE_CXX_COMPILER=clang++ -DAWOT_ENABLE_COVERAGE=ON
+cmake --build .extras/test/build/coverage --target coverage-http --parallel 4
+```
+
+The target builds and runs only the `http` examples, then prints per-file line,
+function, and branch coverage for the library. Open
+`.extras/test/build/coverage/coverage-http/html/index.html` in a browser to see
+which lines and branches the HTTP examples exercise. The same directory
+contains `summary.txt`, `summary.md`, `coverage.json`, and `coverage.lcov` for
+other tools. Each run replaces this report and starts with fresh profiles, so
+earlier runs and regression tests cannot inflate the results.
+
+The report measures instrumented native code in `src/`, including instantiated
+templates. Templates that no HTTP test instantiates and inactive `#if` branches
+are outside the measured totals. Test support and Arduino compatibility code
+are excluded. This describes the HTTP examples' coverage in this configuration,
+not coverage across all tests or boards. There is no minimum coverage threshold.
+
+If CMake finds tools from another LLVM installation, specify the matching paths
+with `-DAWOT_LLVM_COV=/path/to/llvm-cov` and
+`-DAWOT_LLVM_PROFDATA=/path/to/llvm-profdata` when configuring.
+
+The **HTTP coverage** job in the test workflow publishes the totals in its job
+summary and saves the HTML report and machine-readable exports in the
+**http-coverage** artifact. Download and extract it, then open `html/index.html`.
+
 ## Add a test
 
 Put application examples in `http/`. Keep the handler, raw request, and complete

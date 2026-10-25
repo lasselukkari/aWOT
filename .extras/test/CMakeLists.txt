@@ -8,8 +8,41 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(AWOT_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(AWOT_ENABLE_COVERAGE "Enable LLVM source coverage and the coverage-http target" OFF)
 option(AWOT_NO_STD_FUNCTION_MIDDLEWARE "Use function pointer middleware" OFF)
 option(AWOT_SMALL_BUFFERS "Test the Uno-sized URL, output and pushback buffers" OFF)
+
+if(AWOT_ENABLE_COVERAGE)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR NOT UNIX OR CMAKE_CROSSCOMPILING)
+    message(FATAL_ERROR "HTTP coverage requires a native Clang build on macOS or Linux")
+  endif()
+  find_package(Python3 3.6 REQUIRED COMPONENTS Interpreter)
+
+  # Prefer the LLVM tools from the compiler's own installation. Apple's compiler
+  # launcher lives in /usr/bin, so ask xcrun for the selected toolchain as well.
+  get_filename_component(AWOT_CLANG_PATH "${CMAKE_CXX_COMPILER}" REALPATH)
+  get_filename_component(AWOT_LLVM_DIR "${AWOT_CLANG_PATH}" DIRECTORY)
+  if(APPLE)
+    execute_process(COMMAND xcrun --find llvm-cov
+      OUTPUT_VARIABLE AWOT_XCRUN_LLVM_COV OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(AWOT_XCRUN_LLVM_COV)
+      get_filename_component(AWOT_XCRUN_LLVM_DIR "${AWOT_XCRUN_LLVM_COV}" DIRECTORY)
+      list(APPEND AWOT_LLVM_DIR "${AWOT_XCRUN_LLVM_DIR}")
+    endif()
+  endif()
+  string(REGEX MATCH "^[0-9]+" AWOT_CLANG_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+  find_program(AWOT_LLVM_COV NAMES llvm-cov llvm-cov-${AWOT_CLANG_MAJOR}
+    HINTS ${AWOT_LLVM_DIR} REQUIRED)
+  find_program(AWOT_LLVM_PROFDATA NAMES llvm-profdata llvm-profdata-${AWOT_CLANG_MAJOR}
+    HINTS ${AWOT_LLVM_DIR} REQUIRED)
+
+  # Instrument library definitions in every translation unit, including inline
+  # and template code in tests. Skipping test helpers avoids profile collisions
+  # between their differing definitions in separate executables.
+  add_compile_options(-O0 -g -fprofile-instr-generate -fcoverage-mapping)
+  add_compile_options("-fprofile-list=${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage-files.txt")
+  add_link_options(-fprofile-instr-generate)
+endif()
 
 # Every translation unit must use the same configuration and class layouts.
 add_compile_definitions(DEBUG)
@@ -63,7 +96,25 @@ foreach(TEST_GROUP http regression)
     add_test(NAME ${TEST_NAME} COMMAND $<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>)
     set_tests_properties(${TEST_NAME} PROPERTIES LABELS ${TEST_GROUP})
     list(APPEND TEST_LIST ${PROJECT_NAME}-${TEST_NAME})
+    if(TEST_GROUP STREQUAL "http")
+      list(APPEND HTTP_TEST_LIST ${PROJECT_NAME}-${TEST_NAME})
+      string(APPEND HTTP_COVERAGE_EXECUTABLES "$<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>\n")
+    endif()
   endforeach()
 endforeach()
 
 add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS ${TEST_LIST})
+
+if(AWOT_ENABLE_COVERAGE)
+  file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/http-coverage-$<CONFIG>.txt"
+    CONTENT "${HTTP_COVERAGE_EXECUTABLES}")
+  add_custom_target(coverage-http
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/coverage.py"
+      --build-dir "${CMAKE_CURRENT_BINARY_DIR}"
+      --source-dir "${CMAKE_CURRENT_SOURCE_DIR}/../../src"
+      --manifest "${CMAKE_CURRENT_BINARY_DIR}/http-coverage-$<CONFIG>.txt"
+      --llvm-cov "${AWOT_LLVM_COV}" --llvm-profdata "${AWOT_LLVM_PROFDATA}"
+      --ctest "${CMAKE_CTEST_COMMAND}" --config "$<CONFIG>"
+    DEPENDS ${HTTP_TEST_LIST}
+    USES_TERMINAL VERBATIM)
+endif()
