@@ -17,6 +17,7 @@ examples:
 | [static-resource.cpp](http/static-resource.cpp) | Serve flash-backed HTML with GET, HEAD, and ETag-based conditional requests. |
 | [downloads.cpp](http/downloads.cpp) | Send a binary download larger than the output buffer and flush a chunked CSV response. |
 | [request-logging.cpp](http/request-logging.cpp) | Record request outcomes with per-request context and `app.finally()`. |
+| [statuses.cpp](http/statuses.cpp) | Check complete responses for supported status codes, interim responses, protocol switching, and body suppression. |
 | [form-params.cpp](http/form-params.cpp) | Read form fields with bounded name/value storage. |
 | [chunked-form.cpp](http/chunked-form.cpp) | Decode a chunked form request using the ordinary request API. |
 | [keep-alive.cpp](http/keep-alive.cpp) | Consume a request body and use `ProcessResult` to manage connection reuse. |
