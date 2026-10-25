@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "App.h"
+#include "ConnectionParser.h"
 
 using namespace awot;
 
@@ -193,12 +194,6 @@ void Response::set(const char* name, const char* value) {
       App::strcmpiP(value, chunked) == 0) {
     m_chunkedEncoding = true;
   }
-
-  P(connection) = "Connection";
-  if (App::strcmpiP(name, connection) == 0) {
-    P(keepAlive) = "keep-alive";
-    m_keepAlive = App::strcmpiP(value, keepAlive) == 0;
-  }
 }
 
 void Response::setDefaults() {}
@@ -210,8 +205,21 @@ bool Response::m_canStartChannel(int code, int headerCount) {
 }
 
 bool Response::m_canKeepAlive() const {
-  if (!m_keepAlive || !m_requestKeepAlive || m_responseOpen) return false;
-  return !m_bodyAllowed() || m_contentLengthSet || m_chunkingAllowed;
+  if (!m_requestKeepAlive || m_responseOpen) return false;
+  bool keepAlive = false;
+  P(connection) = "Connection";
+  for (int i = 0; i < m_headersCount; ++i) {
+    if (App::strcmpiP(m_headers[i].name, connection) != 0) continue;
+    detail::ConnectionParser value;
+    for (const char* cursor = m_headers[i].value; *cursor; ++cursor) {
+      value.read((unsigned char)*cursor);
+    }
+    value.finish();
+    if (value.close) return false;
+    keepAlive |= value.keepAlive;
+  }
+  return keepAlive &&
+         (!m_bodyAllowed() || m_contentLengthSet || m_chunkingAllowed);
 }
 
 bool Response::m_bodyAllowed() const {

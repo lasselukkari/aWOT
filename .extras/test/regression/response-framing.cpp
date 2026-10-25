@@ -110,6 +110,45 @@ unittest(request_connection_close_overrides_response_keep_alive) {
   assertFalse(result.keepAlive);
 }
 
+unittest(response_connection_close_overrides_keep_alive_in_any_order) {
+  const char* closed =
+      "HTTP/1.1 204 No Content" CRLF "Connection: close" CRLF CRLF;
+  struct ConnectionCase {
+    const char* first;
+    const char* second;
+    const char* expected;
+    bool keepAlive;
+  } cases[] = {
+      {"close", "keep-alive", closed, false},
+      {"keep-alive", "close", closed, false},
+      {"keep-alive, close", "keep-alive", closed, false},
+      {"close, keep-alive", "keep-alive", closed, false},
+      {" \tClOsE \t", "keep-alive", closed, false},
+      {"keep-alive, cLoSe", nullptr, closed, false},
+      {"keep-alivex", nullptr, closed, false},
+      {"keep", "-alive", closed, false},
+      {" \tKeEp-AlIvE\t, xclose", "custom",
+       "HTTP/1.1 204 No Content" CRLF "Connection:  \tKeEp-AlIvE\t, xclose" CRLF
+       "Connection: custom" CRLF CRLF,
+       true}};
+  App app;
+  app.get("/", [](Request& req, Response& res) {
+    ConnectionCase& test = *static_cast<ConnectionCase*>(req.context);
+    res.set("Connection", test.first);
+    if (test.second) res.set("Connection", test.second);
+    res.sendStatus(204);
+  });
+  for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+    MockStream stream("GET / HTTP/1.1" CRLF CRLF);
+    App::ProcessOptions options;
+    options.context = &cases[i];
+    App::ProcessResult result = app.process(&stream, options);
+    assertEqual(cases[i].expected, stream.response());
+    assertEqual(cases[i].keepAlive, result.keepAlive);
+    assertFalse(result.responseOpen);
+  }
+}
+
 unittest(http_1_0_never_uses_chunked_transfer_encoding) {
   MockStream stream("GET / HTTP/1.0" CRLF "Connection: keep-alive" CRLF CRLF);
   App app;
