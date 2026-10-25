@@ -20,6 +20,7 @@ examples:
 | [statuses.cpp](http/statuses.cpp) | Check complete responses for supported status codes, interim responses, protocol switching, and body suppression. |
 | [form-params.cpp](http/form-params.cpp) | Read form fields with bounded name/value storage. |
 | [chunked-form.cpp](http/chunked-form.cpp) | Decode a chunked form request using the ordinary request API. |
+| [chunked-upload.cpp](http/chunked-upload.cpp) | Read a binary chunked upload, handle extensions and trailers, reject malformed framing, and reuse the connection. |
 | [keep-alive.cpp](http/keep-alive.cpp) | Consume a request body and use `ProcessResult` to manage connection reuse. |
 | [server-sent-events.cpp](http/server-sent-events.cpp) | Open an SSE response, retain the client, and send an event. |
 | [headers-reading.cpp](http/headers-reading.cpp) | Capture request headers into caller-owned buffers. |
