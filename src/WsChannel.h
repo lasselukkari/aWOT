@@ -358,8 +358,12 @@ class WsChannel {
       if (!m_slots[i].active) return i;
       if (!m_slots[i].client.connected()) {
         deactivate(i);
-        return i;
+        if (!m_slots[i].active) return i;
       }
+    }
+    // A disconnect callback may have freed an earlier slot.
+    for (int i = 0; i < N; i++) {
+      if (!m_slots[i].active) return i;
     }
     return -1;
   }

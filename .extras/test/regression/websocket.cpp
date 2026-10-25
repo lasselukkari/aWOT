@@ -22,6 +22,9 @@ static int callbackDepth;
 static int maxCallbackDepth;
 static bool nestedPayloadUnchanged;
 static std::string queuedAccept;
+static SharedClient* disconnectReplacement;
+static bool replacementUpgradeResult;
+static int closeAfterReplacement;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
 struct StatefulConnectCallback {
@@ -132,6 +135,14 @@ static bool handshake(Channel& ws, SharedClient& client,
   return upgradeResult && result.responseOpen;
 }
 
+static void upgradeOnDisconnect(int) {
+  if (!disconnectReplacement) return;
+  SharedClient* replacement = disconnectReplacement;
+  disconnectReplacement = nullptr;
+  replacementUpgradeResult = handshake(*upgrading, *replacement);
+  if (closeAfterReplacement >= 0) upgrading->close(closeAfterReplacement);
+}
+
 static std::vector<uint8_t> frame(uint8_t opcode,
                                   const std::vector<uint8_t>& data,
                                   bool fin = true,
@@ -172,6 +183,9 @@ unittest_setup() {
   lastSocket = -1;
   lastData.clear();
   queuedAccept.clear();
+  disconnectReplacement = nullptr;
+  replacementUpgradeResult = false;
+  closeAfterReplacement = -1;
 }
 
 unittest(sha1_known_vectors_cover_empty_short_and_multiple_blocks) {
@@ -305,6 +319,78 @@ unittest(handshake_does_not_take_over_an_existing_http_response) {
     assertTrue(client.outputString().find("HTTP/1.1 200 OK\r\n") == 0);
     assertTrue(client.outputString().find("Upgrade:") == std::string::npos);
   }
+}
+
+unittest(handshake_preserves_a_slot_reused_by_the_disconnect_callback) {
+  Channel ws;
+  SharedClient expired, nested, incoming;
+  assertTrue(handshake(ws, expired));
+  expired.stop();
+  disconnectReplacement = &nested;
+  ws.onDisconnect(upgradeOnDisconnect);
+
+  assertTrue(handshake(ws, incoming));
+  assertTrue(replacementUpgradeResult);
+  assertEqual(2, ws.count());
+  assertTrue(nested.connected());
+  assertTrue(incoming.connected());
+
+  nested.clearOutput();
+  incoming.clearOutput();
+  ws.send(0, "A");
+  ws.send(1, "B");
+  assertTrue(nested.state->output == std::vector<uint8_t>({0x81, 1, 'A'}));
+  assertTrue(incoming.state->output == std::vector<uint8_t>({0x81, 1, 'B'}));
+}
+
+unittest(handshake_fails_if_the_disconnect_callback_fills_the_last_slot) {
+  Channel ws;
+  SharedClient expired, healthy, nested, incoming;
+  assertTrue(handshake(ws, expired));
+  assertTrue(handshake(ws, healthy));
+  expired.stop();
+  disconnectReplacement = &nested;
+  ws.onDisconnect(upgradeOnDisconnect);
+
+  assertFalse(handshake(ws, incoming));
+  assertTrue(replacementUpgradeResult);
+  assertEqual(2, ws.count());
+  assertTrue(nested.connected());
+  assertTrue(incoming.outputString().find("HTTP/1.1 400 Bad Request\r\n") == 0);
+  assertTrue(incoming.outputString().find("101 Switching Protocols") ==
+             std::string::npos);
+
+  nested.clearOutput();
+  healthy.clearOutput();
+  ws.send(0, "A");
+  ws.send(1, "B");
+  assertTrue(nested.state->output == std::vector<uint8_t>({0x81, 1, 'A'}));
+  assertTrue(healthy.state->output == std::vector<uint8_t>({0x81, 1, 'B'}));
+}
+
+unittest(handshake_uses_an_earlier_slot_freed_by_the_disconnect_callback) {
+  Channel ws;
+  SharedClient earlier, expired, nested, incoming;
+  assertTrue(handshake(ws, earlier));
+  assertTrue(handshake(ws, expired));
+  expired.stop();
+  disconnectReplacement = &nested;
+  closeAfterReplacement = 0;
+  ws.onDisconnect(upgradeOnDisconnect);
+
+  assertTrue(handshake(ws, incoming));
+  assertTrue(replacementUpgradeResult);
+  assertEqual(2, ws.count());
+  assertFalse(earlier.connected());
+  assertTrue(nested.connected());
+  assertTrue(incoming.connected());
+
+  nested.clearOutput();
+  incoming.clearOutput();
+  ws.send(0, "A");
+  ws.send(1, "B");
+  assertTrue(incoming.state->output == std::vector<uint8_t>({0x81, 1, 'A'}));
+  assertTrue(nested.state->output == std::vector<uint8_t>({0x81, 1, 'B'}));
 }
 
 unittest(nested_poll_preserves_messages_and_defers_other_sockets) {
