@@ -54,9 +54,10 @@ The suite runs three checks:
 
 - `windows-shims`: monotonic timers, concurrent timing calls, integer conversion,
   and floating-point formatting using the same assertions as the macOS example.
-- `windows-sockets`: real loopback TCP connections exercising socket ownership,
-  automatic Winsock initialization and lifetime, buffered reads, disconnects,
-  reconnection, nonblocking reads, timeouts, write backpressure, listener
+- `windows-sockets`: real loopback TCP connections exercising shared socket
+  ownership, WebSocket and SSE handoffs, automatic Winsock initialization and
+  lifetime, buffered reads, disconnects, reconnection, nonblocking reads,
+  timeouts, write backpressure, listener
   conflicts and aWOT request processing.
 - `windows-http`: starts the built executable on port 8080 and checks HTTP
   status, content type, the Hello World body, missing routes and concurrent
@@ -92,11 +93,24 @@ CI run as well to exercise Microsoft's Winsock implementation.
 
 ## Adapter behavior
 
-Clients own their native `SOCKET` handles and can be moved but cannot be copied.
-The adapter manages `WSAStartup`/`WSACleanup`, closes sockets with
-`closesocket`, and keeps reads nonblocking so Arduino/aWOT request timeouts work.
-Each client has a 1 KiB receive buffer, including for raw `request.client()`
-reads. Listener waits sleep until a connection arrives.
+Client copies share their native `SOCKET`, connection status, and unread
+receive buffer. Destroying or reassigning a handle releases only its reference;
+the last reference closes the socket. `stop()` closes the connection and clears
+buffered input for every copy. Reconnecting a handle closes its old shared
+connection and attaches that handle to a new one. Synchronize concurrent access
+to copies of the same connection.
+
+The adapter manages `WSAStartup`/`WSACleanup` for each shared connection, closes
+sockets with `closesocket`, and keeps reads nonblocking so Arduino/aWOT request
+timeouts work. Each shared connection has a 1 KiB receive buffer, including for
+raw `request.client()` reads. Listener waits sleep until a connection arrives.
+
+`WsChannel<WindowsClient, N>` and `SseChannel<WindowsClient, N>` can retain these
+shared handles. For channel routes, retain clients only when `app.process()`
+returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
+Let the local client leave scope without calling `stop()` after handing it to
+the channel. The Hello World worker deliberately stops every connection, so
+adapt its lifecycle before using channel routes.
 
 Like the macOS adapter, outgoing connections accept numeric IPv4 addresses;
 DNS and IPv6 connections are not implemented. The example listens on all IPv4

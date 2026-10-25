@@ -7,7 +7,9 @@
 #include <chrono>
 #include <climits>
 #include <cstdio>
+#include <cstring>
 #include <mutex>
+#include <utility>
 
 // Every live socket retains Winsock initialization, including clients that
 // outlive their listener or move into a worker thread.
@@ -97,20 +99,46 @@ int transferLength(size_t size) {
 
 }  // namespace
 
-WindowsClient::WindowsClient(SOCKET socket)
-    : _socket(socket), _connected(socket != INVALID_SOCKET) {
-  if (!_connected) return;
-  _runtime = socketRuntime();
-  if (!_runtime || !setNonblocking(_socket)) stop();
+struct WindowsClient::Connection {
+  Connection(SOCKET socket, std::shared_ptr<WindowsSocketRuntime> runtime)
+      : socket(socket),
+        connected(socket != INVALID_SOCKET),
+        runtime(std::move(runtime)) {}
+  ~Connection() { stop(); }
+
+  void stop() {
+    if (socket != INVALID_SOCKET) {
+      closesocket(socket);
+      socket = INVALID_SOCKET;
+    }
+    connected = false;
+    receiveOffset = receiveLength = 0;
+    runtime.reset();
+  }
+
+  SOCKET socket;
+  bool connected;
+  std::shared_ptr<WindowsSocketRuntime> runtime;
+  uint8_t receiveBuffer[1024];
+  size_t receiveOffset = 0;
+  size_t receiveLength = 0;
+};
+
+WindowsClient::WindowsClient(SOCKET socket) {
+  if (socket == INVALID_SOCKET) return;
+  _connection = std::make_shared<Connection>(socket, socketRuntime());
+  if (!_connection->runtime || !setNonblocking(_connection->socket)) stop();
 }
 
 int WindowsClient::connect(IPAddress ip, uint16_t port) {
   stop();
   if (ip.type() != arduino::IPv4) return 0;
-  _runtime = socketRuntime();
-  if (!_runtime) return 0;
-  _socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (_socket == INVALID_SOCKET) {
+  auto runtime = socketRuntime();
+  if (!runtime) return 0;
+  _connection =
+      std::make_shared<Connection>(INVALID_SOCKET, std::move(runtime));
+  _connection->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (_connection->socket == INVALID_SOCKET) {
     stop();
     return 0;
   }
@@ -120,13 +148,13 @@ int WindowsClient::connect(IPAddress ip, uint16_t port) {
   address.sin_port = htons(port);
   // IPAddress already stores its octets in network byte order.
   address.sin_addr.s_addr = static_cast<uint32_t>(ip);
-  if (::connect(_socket, reinterpret_cast<sockaddr*>(&address),
+  if (::connect(_connection->socket, reinterpret_cast<sockaddr*>(&address),
                 sizeof(address)) == SOCKET_ERROR ||
-      !setNonblocking(_socket)) {
+      !setNonblocking(_connection->socket)) {
     stop();
     return 0;
   }
-  _connected = true;
+  _connection->connected = true;
   return 1;
 }
 
@@ -143,11 +171,14 @@ int WindowsClient::connect(const char* host, uint16_t port) {
 size_t WindowsClient::write(uint8_t byte) { return write(&byte, 1); }
 
 size_t WindowsClient::write(const uint8_t* buf, size_t size) {
-  if (_socket == INVALID_SOCKET || !_connected || size == 0) return 0;
+  if (!_connection || _connection->socket == INVALID_SOCKET ||
+      !_connection->connected || size == 0)
+    return 0;
   const auto deadline = Clock::now() + std::chrono::milliseconds(getTimeout());
   for (;;) {
-    const int result = send(_socket, reinterpret_cast<const char*>(buf),
-                            transferLength(size), 0);
+    const int result =
+        send(_connection->socket, reinterpret_cast<const char*>(buf),
+             transferLength(size), 0);
     // aWOT retries partial writes using the returned count.
     if (result >= 0) return static_cast<size_t>(result);
     const int error = WSAGetLastError();
@@ -156,14 +187,14 @@ size_t WindowsClient::write(const uint8_t* buf, size_t size) {
       continue;
     }
     if (error != WSAEWOULDBLOCK) {
-      _connected = false;
+      _connection->connected = false;
       return 0;
     }
     // aWOT treats zero as a failed write. Give temporary backpressure a
     // bounded chance to clear, without blocking receive or Stream timeouts.
-    const int ready = waitSocket(_socket, true, false, deadline);
+    const int ready = waitSocket(_connection->socket, true, false, deadline);
     if (ready <= 0) {
-      if (ready == SOCKET_ERROR) _connected = false;
+      if (ready == SOCKET_ERROR) _connection->connected = false;
       return 0;
     }
     if (Clock::now() >= deadline) return 0;
@@ -171,45 +202,55 @@ size_t WindowsClient::write(const uint8_t* buf, size_t size) {
 }
 
 int WindowsClient::receive(uint8_t* buf, size_t size) {
-  if (_socket == INVALID_SOCKET || !_connected) return -1;
+  if (!_connection || _connection->socket == INVALID_SOCKET ||
+      !_connection->connected)
+    return -1;
   if (size == 0) return 0;
   // Sockets are nonblocking, leaving all read timeouts to Arduino Stream.
   int result;
   do {
-    result =
-        recv(_socket, reinterpret_cast<char*>(buf), transferLength(size), 0);
+    result = recv(_connection->socket, reinterpret_cast<char*>(buf),
+                  transferLength(size), 0);
   } while (result == SOCKET_ERROR && WSAGetLastError() == WSAEINTR);
   if (result == 0 ||
       (result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)) {
-    _connected = false;
+    _connection->connected = false;
   }
   return result;
 }
 
 bool WindowsClient::fillReceiveBuffer() {
-  if (_receiveOffset < _receiveLength) return true;
-  _receiveOffset = _receiveLength = 0;
-  const int received = receive(_receiveBuffer, sizeof(_receiveBuffer));
-  if (received > 0) _receiveLength = static_cast<size_t>(received);
-  return _receiveLength > 0;
+  if (!_connection) return false;
+  if (_connection->receiveOffset < _connection->receiveLength) return true;
+  _connection->receiveOffset = _connection->receiveLength = 0;
+  const int received =
+      receive(_connection->receiveBuffer, sizeof(_connection->receiveBuffer));
+  if (received > 0) _connection->receiveLength = static_cast<size_t>(received);
+  return _connection->receiveLength > 0;
 }
 
 int WindowsClient::available() {
+  if (!_connection) return 0;
   fillReceiveBuffer();
-  return static_cast<int>(_receiveLength - _receiveOffset);
+  return static_cast<int>(_connection->receiveLength -
+                          _connection->receiveOffset);
 }
 
 int WindowsClient::read() {
-  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset++] : -1;
+  return fillReceiveBuffer()
+             ? _connection->receiveBuffer[_connection->receiveOffset++]
+             : -1;
 }
 
 int WindowsClient::read(uint8_t* buf, size_t size) {
-  if (size == 0) return 0;
-  if (_receiveOffset < _receiveLength) {
-    const size_t buffered = _receiveLength - _receiveOffset;
+  if (size == 0 || !_connection) return 0;
+  if (_connection->receiveOffset < _connection->receiveLength) {
+    const size_t buffered =
+        _connection->receiveLength - _connection->receiveOffset;
     const size_t count = size < buffered ? size : buffered;
-    std::memcpy(buf, _receiveBuffer + _receiveOffset, count);
-    _receiveOffset += count;
+    std::memcpy(buf, _connection->receiveBuffer + _connection->receiveOffset,
+                count);
+    _connection->receiveOffset += count;
     return static_cast<int>(count);
   }
   const int result = receive(buf, size);
@@ -217,7 +258,9 @@ int WindowsClient::read(uint8_t* buf, size_t size) {
 }
 
 int WindowsClient::peek() {
-  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset] : -1;
+  return fillReceiveBuffer()
+             ? _connection->receiveBuffer[_connection->receiveOffset]
+             : -1;
 }
 
 void WindowsClient::flush() {
@@ -225,18 +268,23 @@ void WindowsClient::flush() {
 }
 
 void WindowsClient::stop() {
-  if (_socket != INVALID_SOCKET) {
-    closesocket(_socket);
-    _socket = INVALID_SOCKET;
-  }
-  _connected = false;
-  _receiveOffset = _receiveLength = 0;
-  _runtime.reset();
+  if (_connection) _connection->stop();
+  _connection.reset();
 }
 
 uint8_t WindowsClient::connected() {
   const bool buffered = fillReceiveBuffer();
-  return _connected || buffered ? 1 : 0;
+  return (_connection && _connection->connected) || buffered ? 1 : 0;
+}
+
+WindowsClient::operator bool() {
+  return _connection &&
+         (_connection->connected ||
+          _connection->receiveOffset < _connection->receiveLength);
+}
+
+SOCKET WindowsClient::getSocket() const {
+  return _connection ? _connection->socket : INVALID_SOCKET;
 }
 
 bool WindowsServer::begin() {

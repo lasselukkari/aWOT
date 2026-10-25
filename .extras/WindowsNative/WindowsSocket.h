@@ -24,9 +24,7 @@
 #undef DELETE
 #endif
 
-#include <cstring>
 #include <memory>
-#include <utility>
 
 // Avoid a conflict with arduino::INADDR_NONE in IPAddress.h.
 #ifdef INADDR_NONE
@@ -40,53 +38,23 @@ class WindowsSocketRuntime;
 
 class WindowsClient : public Client {
  private:
-  SOCKET _socket = INVALID_SOCKET;
-  bool _connected = false;
-  std::shared_ptr<WindowsSocketRuntime> _runtime;
-  uint8_t _receiveBuffer[1024];
-  size_t _receiveOffset = 0;
-  size_t _receiveLength = 0;
+  struct Connection;
+  std::shared_ptr<Connection> _connection;
 
   int receive(uint8_t* buf, size_t size);
   bool fillReceiveBuffer();
-  void moveReceiveBuffer(WindowsClient& other) {
-    _receiveOffset = 0;
-    _receiveLength = other._receiveLength - other._receiveOffset;
-    std::memcpy(_receiveBuffer, other._receiveBuffer + other._receiveOffset,
-                _receiveLength);
-    other._receiveOffset = other._receiveLength = 0;
-  }
 
  public:
   WindowsClient() = default;
   // Takes ownership of a connected Winsock socket.
   explicit WindowsClient(SOCKET socket);
-  ~WindowsClient() { stop(); }
-
-  WindowsClient(WindowsClient&& other) noexcept
-      : _socket(other._socket),
-        _connected(other._connected),
-        _runtime(std::move(other._runtime)) {
-    moveReceiveBuffer(other);
-    other._socket = INVALID_SOCKET;
-    other._connected = false;
-  }
-
-  WindowsClient& operator=(WindowsClient&& other) noexcept {
-    if (this != &other) {
-      stop();
-      _socket = other._socket;
-      _connected = other._connected;
-      _runtime = std::move(other._runtime);
-      moveReceiveBuffer(other);
-      other._socket = INVALID_SOCKET;
-      other._connected = false;
-    }
-    return *this;
-  }
-
-  WindowsClient(const WindowsClient&) = delete;
-  WindowsClient& operator=(const WindowsClient&) = delete;
+  // Copies share the socket and unread bytes. Only the last handle's
+  // destruction closes the connection; stop() closes it for every copy.
+  ~WindowsClient() = default;
+  WindowsClient(const WindowsClient&) = default;
+  WindowsClient& operator=(const WindowsClient&) = default;
+  WindowsClient(WindowsClient&&) noexcept = default;
+  WindowsClient& operator=(WindowsClient&&) noexcept = default;
 
   int connect(IPAddress ip, uint16_t port) override;
   int connect(const char* host, uint16_t port) override;
@@ -99,11 +67,9 @@ class WindowsClient : public Client {
   void flush() override;
   void stop() override;
   uint8_t connected() override;
-  operator bool() override {
-    return _connected || _receiveOffset < _receiveLength;
-  }
+  operator bool() override;
 
-  SOCKET getSocket() const { return _socket; }
+  SOCKET getSocket() const;
 };
 
 class WindowsServer {

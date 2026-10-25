@@ -5,6 +5,7 @@
 #include "MacOSSocket.h"
 
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <thread>
 
@@ -136,17 +137,39 @@ bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
 
 }  // namespace
 
-MacOSClient::MacOSClient(int socket)
-    : _socket(socket), _connected(socket >= 0) {
-  if (_connected && !suppressSigpipe(_socket)) stop();
+struct MacOSClient::Connection {
+  explicit Connection(int socket) : socket(socket), connected(socket >= 0) {}
+  ~Connection() { stop(); }
+
+  void stop() {
+    if (socket >= 0) {
+      close(socket);
+      socket = -1;
+    }
+    connected = false;
+    receiveOffset = receiveLength = 0;
+  }
+
+  int socket;
+  bool connected;
+  uint8_t receiveBuffer[1024];
+  size_t receiveOffset = 0;
+  size_t receiveLength = 0;
+};
+
+MacOSClient::MacOSClient(int socket) {
+  if (socket < 0) return;
+  _connection = std::make_shared<Connection>(socket);
+  if (!suppressSigpipe(socket)) stop();
 }
 
 int MacOSClient::connect(IPAddress ip, uint16_t port) {
   stop();
   if (ip.type() != arduino::IPv4) return 0;
 
-  _socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (_socket < 0 || !suppressSigpipe(_socket)) {
+  _connection = std::make_shared<Connection>(-1);
+  _connection->socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (_connection->socket < 0 || !suppressSigpipe(_connection->socket)) {
     stop();
     return 0;
   }
@@ -158,12 +181,13 @@ int MacOSClient::connect(IPAddress ip, uint16_t port) {
   // IPAddress already stores the octets in network byte order.
   addr.sin_addr.s_addr = (uint32_t)ip;
 
-  if (::connect(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (::connect(_connection->socket, (struct sockaddr*)&addr, sizeof(addr)) <
+      0) {
     stop();
     return 0;
   }
 
-  _connected = true;
+  _connection->connected = true;
   return 1;
 }
 
@@ -180,62 +204,72 @@ int MacOSClient::connect(const char* host, uint16_t port) {
 size_t MacOSClient::write(uint8_t byte) { return write(&byte, 1); }
 
 size_t MacOSClient::write(const uint8_t* buf, size_t size) {
-  if (_socket < 0 || !_connected) return 0;
+  if (!_connection || _connection->socket < 0 || !_connection->connected)
+    return 0;
 
   ssize_t result;
   do {
 #ifdef MSG_NOSIGNAL
-    result = send(_socket, buf, size, MSG_NOSIGNAL);
+    result = send(_connection->socket, buf, size, MSG_NOSIGNAL);
 #else
-    result = send(_socket, buf, size, 0);
+    result = send(_connection->socket, buf, size, 0);
 #endif
   } while (result < 0 && errno == EINTR);
   if (result < 0) {
-    if (!wouldBlock()) _connected = false;
+    if (!wouldBlock()) _connection->connected = false;
     return 0;
   }
   return (size_t)result;
 }
 
 ssize_t MacOSClient::receive(uint8_t* buf, size_t size, int flags) {
-  if (_socket < 0 || !_connected) return -1;
+  if (!_connection || _connection->socket < 0 || !_connection->connected)
+    return -1;
   if (size == 0) return 0;
 
   // Stream implements its own timeouts, so an empty read must return promptly.
   ssize_t result;
   do {
-    result = recv(_socket, buf, size, flags | MSG_DONTWAIT);
+    result = recv(_connection->socket, buf, size, flags | MSG_DONTWAIT);
   } while (result < 0 && errno == EINTR);
   if (result == 0 || (result < 0 && !wouldBlock())) {
-    _connected = false;
+    _connection->connected = false;
   }
   return result;
 }
 
 bool MacOSClient::fillReceiveBuffer() {
-  if (_receiveOffset < _receiveLength) return true;
-  _receiveOffset = _receiveLength = 0;
-  const ssize_t received = receive(_receiveBuffer, sizeof(_receiveBuffer), 0);
-  if (received > 0) _receiveLength = static_cast<size_t>(received);
-  return _receiveLength > 0;
+  if (!_connection) return false;
+  if (_connection->receiveOffset < _connection->receiveLength) return true;
+  _connection->receiveOffset = _connection->receiveLength = 0;
+  const ssize_t received = receive(_connection->receiveBuffer,
+                                   sizeof(_connection->receiveBuffer), 0);
+  if (received > 0) _connection->receiveLength = static_cast<size_t>(received);
+  return _connection->receiveLength > 0;
 }
 
 int MacOSClient::available() {
+  if (!_connection) return 0;
   fillReceiveBuffer();
-  return static_cast<int>(_receiveLength - _receiveOffset);
+  return static_cast<int>(_connection->receiveLength -
+                          _connection->receiveOffset);
 }
 
 int MacOSClient::read() {
-  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset++] : -1;
+  return fillReceiveBuffer()
+             ? _connection->receiveBuffer[_connection->receiveOffset++]
+             : -1;
 }
 
 int MacOSClient::read(uint8_t* buf, size_t size) {
-  if (size == 0) return 0;
-  if (_receiveOffset < _receiveLength) {
-    const size_t buffered = _receiveLength - _receiveOffset;
+  if (size == 0 || !_connection) return 0;
+  if (_connection->receiveOffset < _connection->receiveLength) {
+    const size_t buffered =
+        _connection->receiveLength - _connection->receiveOffset;
     const size_t count = size < buffered ? size : buffered;
-    std::memcpy(buf, _receiveBuffer + _receiveOffset, count);
-    _receiveOffset += count;
+    std::memcpy(buf, _connection->receiveBuffer + _connection->receiveOffset,
+                count);
+    _connection->receiveOffset += count;
     return static_cast<int>(count);
   }
   ssize_t result = receive(buf, size, 0);
@@ -243,7 +277,9 @@ int MacOSClient::read(uint8_t* buf, size_t size) {
 }
 
 int MacOSClient::peek() {
-  return fillReceiveBuffer() ? _receiveBuffer[_receiveOffset] : -1;
+  return fillReceiveBuffer()
+             ? _connection->receiveBuffer[_connection->receiveOffset]
+             : -1;
 }
 
 void MacOSClient::flush() {
@@ -251,17 +287,23 @@ void MacOSClient::flush() {
 }
 
 void MacOSClient::stop() {
-  if (_socket >= 0) {
-    close(_socket);
-    _socket = -1;
-  }
-  _connected = false;
-  _receiveOffset = _receiveLength = 0;
+  if (_connection) _connection->stop();
+  _connection.reset();
 }
 
 uint8_t MacOSClient::connected() {
   const bool buffered = fillReceiveBuffer();
-  return _connected || buffered ? 1 : 0;
+  return (_connection && _connection->connected) || buffered ? 1 : 0;
+}
+
+MacOSClient::operator bool() {
+  return _connection &&
+         (_connection->connected ||
+          _connection->receiveOffset < _connection->receiveLength);
+}
+
+int MacOSClient::getSocket() const {
+  return _connection ? _connection->socket : -1;
 }
 
 bool MacOSServer::begin() {

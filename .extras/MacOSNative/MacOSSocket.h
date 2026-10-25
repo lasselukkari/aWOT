@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <cstring>
+#include <memory>
 
 // Undef system macro to avoid conflict with arduino::INADDR_NONE
 #ifdef INADDR_NONE
@@ -25,49 +25,21 @@
 
 class MacOSClient : public Client {
  private:
-  int _socket;
-  bool _connected;
-  uint8_t _receiveBuffer[1024];
-  size_t _receiveOffset = 0;
-  size_t _receiveLength = 0;
+  struct Connection;
+  std::shared_ptr<Connection> _connection;
   ssize_t receive(uint8_t* buf, size_t size, int flags);
   bool fillReceiveBuffer();
 
-  void moveReceiveBuffer(MacOSClient& other) {
-    _receiveOffset = 0;
-    _receiveLength = other._receiveLength - other._receiveOffset;
-    std::memcpy(_receiveBuffer, other._receiveBuffer + other._receiveOffset,
-                _receiveLength);
-    other._receiveOffset = other._receiveLength = 0;
-  }
-
  public:
-  MacOSClient() : _socket(-1), _connected(false) {}
+  MacOSClient() = default;
   explicit MacOSClient(int socket);
-  ~MacOSClient() { stop(); }
-
-  MacOSClient(MacOSClient&& other) noexcept
-      : _socket(other._socket), _connected(other._connected) {
-    moveReceiveBuffer(other);
-    other._socket = -1;
-    other._connected = false;
-  }
-
-  MacOSClient& operator=(MacOSClient&& other) noexcept {
-    if (this != &other) {
-      stop();
-      _socket = other._socket;
-      _connected = other._connected;
-      moveReceiveBuffer(other);
-      other._socket = -1;
-      other._connected = false;
-    }
-    return *this;
-  }
-
-  // Disable copy (socket can't be shared)
-  MacOSClient(const MacOSClient&) = delete;
-  MacOSClient& operator=(const MacOSClient&) = delete;
+  // Copies share the socket and unread bytes. Only the last handle's
+  // destruction closes the connection; stop() closes it for every copy.
+  ~MacOSClient() = default;
+  MacOSClient(const MacOSClient&) = default;
+  MacOSClient& operator=(const MacOSClient&) = default;
+  MacOSClient(MacOSClient&&) noexcept = default;
+  MacOSClient& operator=(MacOSClient&&) noexcept = default;
 
   int connect(IPAddress ip, uint16_t port) override;
   int connect(const char* host, uint16_t port) override;
@@ -80,11 +52,9 @@ class MacOSClient : public Client {
   void flush() override;
   void stop() override;
   uint8_t connected() override;
-  operator bool() override {
-    return _connected || _receiveOffset < _receiveLength;
-  }
+  operator bool() override;
 
-  int getSocket() const { return _socket; }
+  int getSocket() const;
 };
 
 class MacOSServer {

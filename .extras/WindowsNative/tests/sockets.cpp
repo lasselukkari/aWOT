@@ -20,10 +20,12 @@
     }                                                                  \
   } while (false)
 
-static_assert(!std::is_copy_constructible<WindowsClient>::value,
-              "Clients must own their sockets exclusively");
-static_assert(!std::is_copy_assignable<WindowsClient>::value,
-              "Clients must own their sockets exclusively");
+#include "../../NativeTests/shared-clients.h"
+
+static_assert(std::is_copy_constructible<WindowsClient>::value,
+              "Channels retain copies of native clients");
+static_assert(std::is_copy_assignable<WindowsClient>::value,
+              "Channels retain copies of native clients");
 static_assert(std::is_same<decltype(std::declval<WindowsClient>().getSocket()),
                            SOCKET>::value,
               "A Windows socket handle must not be truncated to int");
@@ -43,8 +45,11 @@ long elapsedMillis(Clock::time_point start) {
 // both endpoints so the constructor and the outgoing-client path are covered
 // independently of WindowsServer.
 struct ClientPair {
+  using ClientType = WindowsClient;
   WindowsClient client;
   WindowsClient peer;
+
+  void waitForInput(size_t length);
 
   ClientPair() {
     SOCKET listener = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -95,6 +100,10 @@ void waitQueued(SOCKET socket, size_t minimum) {
   }
 }
 
+void ClientPair::waitForInput(size_t length) {
+  waitQueued(client.getSocket(), length);
+}
+
 void checkClosed(SOCKET socket) {
   int type = 0;
   int length = sizeof(type);
@@ -116,7 +125,10 @@ void testAutomaticWinsockLifetime() {
       accepted = server.available(2000);
       CHECK(accepted);
     }
-    WindowsClient moved(std::move(accepted));
+    WindowsClient copied(accepted);
+    accepted = WindowsClient();
+    WindowsClient moved(std::move(copied));
+    CHECK(copied.getSocket() == INVALID_SOCKET);
     CHECK(accepted.getSocket() == INVALID_SOCKET);
     CHECK(outgoing.write(static_cast<uint8_t>('a')) == 1);
     waitReadable(moved.getSocket());
@@ -353,7 +365,11 @@ void testConnectAndReconnect() {
   CHECK(outgoing.peek() == 'o');
   CHECK(outgoing.available() == 3);
 
+  WindowsClient oldConnection(outgoing);
   CHECK(outgoing.connect("127.0.0.1", server.port()) == 1);
+  CHECK(!oldConnection.connected());
+  CHECK(oldConnection.getSocket() == INVALID_SOCKET);
+  CHECK(oldConnection.available() == 0);
   CHECK(outgoing.available() == 0);
   CHECK(outgoing.read() == -1);
   waitReadable(first.getSocket());
@@ -518,6 +534,7 @@ int main() {
   testClientOwnership();
   testBufferedReads();
   testBufferedMovesAndStop();
+  native_tests::testSharedClients<ClientPair>();
   testWritesAfterPeerClose();
   testWriteBackpressureTimeout();
   testConnectAndReconnect();

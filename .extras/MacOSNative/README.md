@@ -25,8 +25,9 @@ make clean  # Clean build artifacts
 
 ## Test
 
-`make test` exercises socket ownership, disconnect handling, request timeouts,
-address conversion, and numeric formatting before starting its own HTTP server.
+`make test` exercises shared socket ownership, buffered reads, WebSocket and SSE
+handoffs, disconnect handling, request timeouts, address conversion, and numeric
+formatting before starting its own HTTP server.
 Port 8080 must be free; startup fails if another process already owns it.
 
 Once running, visit http://localhost:8080/ in your browser or:
@@ -66,6 +67,7 @@ wrk -t4 -c10 -d10s http://localhost:8080/
 | `HelloWorld.cpp` | The example application |
 | `Makefile` | Build system |
 | `tests/` | Native socket and compatibility regression tests |
+| `../NativeTests/` | Shared client ownership and channel checks used by all native adapters |
 | `../ArduinoCore-API/` | Arduino Core API shared by all native examples |
 
 ## How It Works
@@ -82,11 +84,23 @@ The example uses:
 
 The main thread waits for connections without polling continuously. Socket reads
 return immediately when no data is ready, allowing aWOT's request timeouts to
-expire. Client and server objects close their sockets when destroyed.
+expire. Servers close their listening sockets when destroyed.
 
-Each native client uses a 1 KiB receive buffer to avoid a socket call for every
-parsed byte. Buffered data stays available through both the request and raw
-client read APIs, including after the peer disconnects.
+Client copies share their socket, connection status, and a 1 KiB receive buffer
+that avoids a socket call for every parsed byte. Buffered data stays available
+through both the request and raw client read APIs, including after the peer
+disconnects. Destroying or reassigning one handle releases only its reference;
+the last reference closes the socket. `stop()` closes the connection and clears
+buffered input for every copy. Reconnecting a handle closes its old shared
+connection and attaches that handle to a new one. Synchronize concurrent access
+to copies of the same connection.
+
+`WsChannel<MacOSClient, N>` and `SseChannel<MacOSClient, N>` can retain these
+shared handles. For channel routes, retain clients only when `app.process()`
+returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
+Let the local client leave scope without calling `stop()` after handing it to
+the channel. The Hello World worker deliberately stops every connection, so
+adapt its lifecycle before using channel routes.
 
 ## Windows and Linux Portability
 

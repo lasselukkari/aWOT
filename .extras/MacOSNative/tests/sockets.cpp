@@ -20,6 +20,8 @@
     }                                                                      \
   } while (false)
 
+#include "../../NativeTests/shared-clients.h"
+
 namespace {
 
 using Clock = std::chrono::steady_clock;
@@ -31,8 +33,11 @@ long elapsedMillis(Clock::time_point start) {
 }
 
 struct ClientPair {
+  using ClientType = MacOSClient;
   MacOSClient client;
   MacOSClient peer;
+
+  void waitForInput(size_t length);
 
   ClientPair() {
     int sockets[2];
@@ -48,6 +53,8 @@ void waitReadable(int socket) {
   CHECK(poll(&descriptor, 1, 1000) == 1);
   CHECK(descriptor.revents & (POLLIN | POLLHUP));
 }
+
+void ClientPair::waitForInput(size_t) { waitReadable(client.getSocket()); }
 
 void checkClosed(int socket) {
   CHECK(fcntl(socket, F_GETFD) == -1);
@@ -250,7 +257,11 @@ void testConnectAndReconnect() {
   CHECK(outgoing.peek() == 'o');
   CHECK(outgoing.available() == 3);
 
+  MacOSClient oldConnection(outgoing);
   CHECK(outgoing.connect("127.0.0.1", server.port()) == 1);
+  CHECK(!oldConnection.connected());
+  CHECK(oldConnection.getSocket() == -1);
+  CHECK(oldConnection.available() == 0);
   CHECK(outgoing.available() == 0);
   CHECK(outgoing.read() == -1);
   waitReadable(first.getSocket());
@@ -385,6 +396,7 @@ int main() {
   testClientOwnership();
   testBufferedReads();
   testBufferedMovesAndStop();
+  native_tests::testSharedClients<ClientPair>();
   testSigpipe();
   testConnectAndReconnect();
   testServerOwnershipAndWaiting();

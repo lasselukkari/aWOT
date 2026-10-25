@@ -90,6 +90,17 @@ Open a stream before sending headers; use `ProcessResult.responseOpen` to retain
 the client until the stream finishes. WebSocket upgrades keep their 101 response
 and Upgrade connection header.
 
+The bundled native `MacOSClient`, `LinuxClient`, and `WindowsClient` adapters
+support channel ownership by copying handles to shared connection state. Copies
+share the socket, connection status, and 1 KiB receive buffer, including bytes
+read ahead during an HTTP handshake. Destroying or reassigning a handle releases
+only its reference; the last reference closes the socket. Calling `stop()` on
+any copy closes the connection and clears buffered input for every copy.
+Reconnecting a handle closes its old shared connection and attaches that handle
+to a new connection. After a successful channel handoff, let the local handle
+leave scope without calling `stop()`. Synchronize concurrent access to copies
+of the same connection; sharing ownership does not synchronize I/O.
+
 WebSockets keep one outstanding heartbeat ping until a pong or timeout, reject
 control-frame extended lengths, and require an entire `upgrade` Connection token.
 Fragmented text and binary messages are assembled in the existing receive buffer;

@@ -57,9 +57,10 @@ The suite runs three checks:
 
 - `linux-shims`: monotonic timers, concurrent timing calls, integer conversion,
   and floating-point formatting using the shared POSIX compatibility layer.
-- `linux-sockets`: socket ownership, buffered reads, disconnects, reconnection,
-  nonblocking reads, read and aWOT timeouts, listener conflicts and waits,
-  writes after peer close, and aWOT request processing. It reuses the macOS
+- `linux-sockets`: shared socket ownership, buffered reads, WebSocket and SSE
+  handoffs, disconnects, reconnection, nonblocking reads, read and aWOT timeouts,
+  listener conflicts and waits, writes after peer close, and aWOT request
+  processing. It reuses the macOS
   socket tests with POSIX socket pairs and TCP loopback connections.
 - `linux-http`: starts the built executable on port 8080 and checks HTTP
   status, content type, the Hello World body, missing routes, and concurrent
@@ -83,17 +84,28 @@ implementation. `Arduino.h` forwards the shared Arduino compatibility header.
 CMake compiles that implementation and ArduinoCore-API alongside the aWOT
 sources, and links the platform's thread support.
 
-Clients own their socket descriptors and can be moved but cannot be copied.
+Client copies share their socket descriptor, connection status, and unread
+receive buffer. Destroying or reassigning a handle releases only its reference;
+the last reference closes the socket. `stop()` closes the connection and clears
+buffered input for every copy. Reconnecting a handle closes its old shared
+connection and attaches that handle to a new one. Synchronize concurrent access
+to copies of the same connection.
+
 Reads return promptly when no data is ready, allowing Arduino and aWOT request
-timeouts to expire. Each client has a 1 KiB receive buffer, including for raw
-`request.client()` reads. Listener waits sleep in `poll` until a connection
+timeouts to expire. Each shared connection has a 1 KiB receive buffer, including
+for raw `request.client()` reads. Listener waits sleep in `poll` until a connection
 arrives. Linux sends use `MSG_NOSIGNAL`, so writing to a disconnected peer
 reports failure through the client API without raising `SIGPIPE`.
 
 Outgoing connections accept numeric IPv4 addresses; DNS and IPv6 connections
-are not implemented. The `WsChannel` and `SseChannel` helpers copy client
-handles, so this move-only adapter cannot be substituted directly into those
-channel examples.
+are not implemented.
+
+`WsChannel<LinuxClient, N>` and `SseChannel<LinuxClient, N>` can retain these
+shared handles. For channel routes, retain clients only when `app.process()`
+returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
+Let the local client leave scope without calling `stop()` after handing it to
+the channel. The Hello World worker deliberately stops every connection, so
+adapt its lifecycle before using channel routes.
 
 Register routes before accepting clients. Synchronize shared mutable state and
 provide separate header buffers and custom request/response storage for each
