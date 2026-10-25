@@ -22,7 +22,10 @@ class SseChannel {
 
   SseChannel()
 #ifdef STD_FUNCTION_MIDDLEWARE
-      : m_connectChanged(false), m_onConnect(nullptr) {
+      : m_connectRevision(0),
+        m_activeConnect(nullptr),
+        m_activeConnectRevision(0),
+        m_onConnect(nullptr) {
 #else
       : m_onConnect(nullptr) {
 #endif
@@ -137,7 +140,7 @@ class SseChannel {
 
   void onConnect(ConnectCb callback) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    m_connectChanged = true;
+    ++m_connectRevision;
 #endif
     m_onConnect = callback;
   }
@@ -183,18 +186,30 @@ class SseChannel {
   bool m_active[N];
   detail::ChannelRooms<N, MAX_ROOMS> m_rooms;
 #ifdef STD_FUNCTION_MIDDLEWARE
-  bool m_connectChanged;
+  uint32_t m_connectRevision;
+  ConnectCb* m_activeConnect;
+  uint32_t m_activeConnectRevision;
 #endif
   ConnectCb m_onConnect;
 
   void callOnConnect(int clientId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
+    if (m_activeConnect && m_activeConnectRevision == m_connectRevision) {
+      (*m_activeConnect)(clientId);
+      return;
+    }
     if (!m_onConnect) return;
-    m_connectChanged = false;
+    uint32_t revision = m_connectRevision;
     ConnectCb callback;
     callback.swap(m_onConnect);
+    ConnectCb* previousActive = m_activeConnect;
+    uint32_t previousActiveRevision = m_activeConnectRevision;
+    m_activeConnect = &callback;
+    m_activeConnectRevision = revision;
     callback(clientId);
-    if (!m_connectChanged) callback.swap(m_onConnect);
+    m_activeConnect = previousActive;
+    m_activeConnectRevision = previousActiveRevision;
+    if (revision == m_connectRevision) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(clientId);
 #endif

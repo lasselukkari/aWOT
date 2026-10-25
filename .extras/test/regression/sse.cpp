@@ -115,6 +115,75 @@ unittest(sse_connect_callback_preserves_mutable_functor_state) {
   events.add(second);
   assertTrue(calls == std::vector<int>({1, 2}));
 }
+
+unittest(sse_nested_connections_preserve_callback_and_mutable_state) {
+  Events events;
+  SharedClient first, second, third;
+  std::vector<int> calls;
+  int state = 0;
+  int nestedId = -1;
+  events.onConnect([&events, &second, &calls, &nestedId, state](int) mutable {
+    calls.push_back(++state);
+    if (state == 1) nestedId = events.add(second);
+  });
+
+  assertEqual(0, events.add(first));
+  assertEqual(1, nestedId);
+  assertEqual(2, events.count());
+  assertTrue(calls == std::vector<int>({1, 2}));
+
+  events.close(1);
+  assertEqual(1, events.add(third));
+  assertTrue(calls == std::vector<int>({1, 2, 3}));
+}
+
+unittest(sse_clearing_callback_applies_to_nested_and_later_connections) {
+  Events events;
+  SharedClient first, second, third;
+  const std::string captured(256, 's');
+  std::string observed;
+  int calls = 0;
+  int nestedId = -1;
+  events.onConnect([&, captured](int) {
+    ++calls;
+    events.onConnect(nullptr);
+    nestedId = events.add(second);
+    observed = captured;
+  });
+
+  assertEqual(0, events.add(first));
+  assertEqual(1, nestedId);
+  assertEqual(captured, observed);
+  events.close(1);
+  assertEqual(1, events.add(third));
+  assertEqual(1, calls);
+}
+
+unittest(sse_callback_replacement_survives_nested_connections) {
+  Events events;
+  SharedClient first, second, third;
+  const std::string captured(256, 's');
+  std::string observed;
+  int originalCalls = 0;
+  int nestedId = -1;
+  std::vector<int> replacementCalls;
+  events.onConnect([&, captured](int) {
+    if (++originalCalls != 1) return;
+    events.onConnect(StatefulSseConnectCallback(&replacementCalls));
+    nestedId = events.add(second);
+    observed = captured;
+  });
+
+  assertEqual(0, events.add(first));
+  assertEqual(1, nestedId);
+  assertEqual(captured, observed);
+  assertTrue(replacementCalls == std::vector<int>({1}));
+
+  events.close(1);
+  assertEqual(1, events.add(third));
+  assertEqual(1, originalCalls);
+  assertTrue(replacementCalls == std::vector<int>({1, 2}));
+}
 #endif
 
 unittest(sse_normalizes_multiline_payloads_and_empty_lines) {

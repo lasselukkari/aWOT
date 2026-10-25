@@ -44,7 +44,9 @@ class WsChannel {
   WsChannel()
       : m_polling(false),
 #ifdef STD_FUNCTION_MIDDLEWARE
-        m_connectChanged(false),
+        m_connectRevision(0),
+        m_activeConnect(nullptr),
+        m_activeConnectRevision(0),
         m_disconnectRevision(0),
         m_activeDisconnect(nullptr),
         m_activeDisconnectRevision(0),
@@ -214,7 +216,7 @@ class WsChannel {
 
   void onConnect(ConnectCb cb) {
 #ifdef STD_FUNCTION_MIDDLEWARE
-    m_connectChanged = true;
+    ++m_connectRevision;
 #endif
     m_onConnect = cb;
   }
@@ -257,7 +259,9 @@ class WsChannel {
   bool m_polling;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
-  bool m_connectChanged;
+  uint32_t m_connectRevision;
+  ConnectCb* m_activeConnect;
+  uint32_t m_activeConnectRevision;
   uint32_t m_disconnectRevision;
   DisconnectCb* m_activeDisconnect;
   uint32_t m_activeDisconnectRevision;
@@ -269,12 +273,22 @@ class WsChannel {
 
   void callOnConnect(int socketId) {
 #ifdef STD_FUNCTION_MIDDLEWARE
+    if (m_activeConnect && m_activeConnectRevision == m_connectRevision) {
+      (*m_activeConnect)(socketId);
+      return;
+    }
     if (!m_onConnect) return;
-    m_connectChanged = false;
+    uint32_t revision = m_connectRevision;
     ConnectCb callback;
     callback.swap(m_onConnect);
+    ConnectCb* previousActive = m_activeConnect;
+    uint32_t previousActiveRevision = m_activeConnectRevision;
+    m_activeConnect = &callback;
+    m_activeConnectRevision = revision;
     callback(socketId);
-    if (!m_connectChanged) callback.swap(m_onConnect);
+    m_activeConnect = previousActive;
+    m_activeConnectRevision = previousActiveRevision;
+    if (revision == m_connectRevision) callback.swap(m_onConnect);
 #else
     if (m_onConnect) m_onConnect(socketId);
 #endif

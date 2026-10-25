@@ -431,6 +431,75 @@ unittest(connect_callback_can_clear_itself_and_keep_using_captures) {
   assertEqual(captured, observed);
 }
 
+unittest(nested_upgrades_preserve_connect_callback_and_mutable_state) {
+  Channel ws;
+  SharedClient first, second, third;
+  std::vector<int> calls;
+  int state = 0;
+  bool nestedUpgraded = false;
+  ws.onConnect([&ws, &second, &calls, &nestedUpgraded, state](int) mutable {
+    calls.push_back(++state);
+    if (state == 1) nestedUpgraded = handshake(ws, second);
+  });
+
+  assertTrue(handshake(ws, first));
+  assertTrue(nestedUpgraded);
+  assertEqual(2, ws.count());
+  assertTrue(calls == std::vector<int>({1, 2}));
+
+  ws.close(1);
+  assertTrue(handshake(ws, third));
+  assertTrue(calls == std::vector<int>({1, 2, 3}));
+}
+
+unittest(clearing_connect_callback_applies_to_nested_and_later_upgrades) {
+  Channel ws;
+  SharedClient first, second, third;
+  const std::string captured(256, 'c');
+  std::string observed;
+  int calls = 0;
+  bool nestedUpgraded = false;
+  ws.onConnect([&, captured](int) {
+    ++calls;
+    ws.onConnect(nullptr);
+    nestedUpgraded = handshake(ws, second);
+    observed = captured;
+  });
+
+  assertTrue(handshake(ws, first));
+  assertTrue(nestedUpgraded);
+  assertEqual(captured, observed);
+  ws.close(1);
+  assertTrue(handshake(ws, third));
+  assertEqual(1, calls);
+}
+
+unittest(connect_callback_replacement_survives_nested_upgrades) {
+  Channel ws;
+  SharedClient first, second, third;
+  const std::string captured(256, 'c');
+  std::string observed;
+  int originalCalls = 0;
+  bool nestedUpgraded = false;
+  std::vector<int> replacementCalls;
+  ws.onConnect([&, captured](int) {
+    if (++originalCalls != 1) return;
+    ws.onConnect(StatefulConnectCallback(&replacementCalls));
+    nestedUpgraded = handshake(ws, second);
+    observed = captured;
+  });
+
+  assertTrue(handshake(ws, first));
+  assertTrue(nestedUpgraded);
+  assertEqual(captured, observed);
+  assertTrue(replacementCalls == std::vector<int>({1}));
+
+  ws.close(1);
+  assertTrue(handshake(ws, third));
+  assertEqual(1, originalCalls);
+  assertTrue(replacementCalls == std::vector<int>({1, 2}));
+}
+
 unittest(disconnect_callback_can_clear_itself_and_keep_using_captures) {
   Channel ws;
   SharedClient first, second;
