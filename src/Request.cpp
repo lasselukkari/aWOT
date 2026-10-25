@@ -602,6 +602,27 @@ int Request::m_processHeaders() {
     }
   }
 
+  // Framing headers are already validated; capture their normalized values.
+  P(lengthName) = "Content-Length";
+  P(encodingName) = "Transfer-Encoding";
+  for (int i = 0; i < m_headers.size(); ++i) {
+    Header& header = m_headers[i];
+    char length[3 * sizeof(int) + 1];
+    const char* value;
+    if (lengthSeen && App::strcmpiP(header.name, lengthName) == 0) {
+      value = itoa((int)m_left, length, 10);
+    } else if (m_bodyState == CHUNK_START &&
+               App::strcmpiP(header.name, encodingName) == 0) {
+      value = "chunked";
+    } else {
+      continue;
+    }
+    size_t size = strlen(value) + 1;
+    if (size > (size_t)header.buffer.size()) return 431;
+    memcpy(header.buffer.data(), value, size);
+    header.m_present = true;
+  }
+
   m_readingContent = true;
 
   return 0;

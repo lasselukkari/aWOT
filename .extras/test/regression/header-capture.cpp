@@ -159,4 +159,189 @@ unittest(explicit_header_capacity_preserves_adjacent_storage) {
   assertEqual("", storage + 1);
 }
 
+struct FramingCapture {
+  const char* name;
+  const char* expected;
+  int initialLeft;
+  bool called;
+  bool captured;
+  bool bodyRead;
+};
+
+static void readCapturedFraming(Request& req, Response& res) {
+  FramingCapture& observation = *static_cast<FramingCapture*>(req.context);
+  observation.called = true;
+  const char* value = req.get(observation.name);
+  observation.captured = value && strcmp(value, observation.expected) == 0;
+  char body[4];
+  observation.bodyRead =
+      req.left() == observation.initialLeft &&
+      req.read(reinterpret_cast<uint8_t*>(body), sizeof(body)) == sizeof(body) &&
+      memcmp(body, "body", sizeof(body)) == 0 && req.left() == 0;
+  res.set("Connection", "keep-alive");
+  res.print("ok");
+}
+
+static std::string framingRequest(const char* fields, bool chunked) {
+  return std::string("POST / HTTP/1.1" CRLF) + fields + CRLF CRLF +
+         (chunked ? "1" CRLF "b" CRLF "3" CRLF "ody" CRLF "0" CRLF CRLF
+                  : "body");
+}
+
+unittest(framing_headers_capture_normalized_values_and_decode_bodies) {
+  const struct {
+    const char* fields;
+    const char* name;
+    const char* expected;
+    bool chunked;
+  } cases[] = {
+      {"Content-Length: 4", "Content-Length", "4", false},
+      {"cOnTeNt-LeNgTh: \t0004 \t", "content-length", "4", false},
+      {"Content-Length: 4" CRLF "content-length: \t04 \t",
+       "Content-Length", "4", false},
+      {"Transfer-Encoding: chunked", "Transfer-Encoding", "chunked", true},
+      {"tRaNsFeR-EnCoDiNg: \tChUnKeD \t", "transfer-encoding", "chunked",
+       true},
+  };
+  App app;
+  app.post("/", readCapturedFraming);
+  for (const auto& test : cases) {
+    char length[16], encoding[16];
+    Request::Header headers[] = {{"Content-Length", length},
+                                 {"Transfer-Encoding", encoding}};
+    FramingCapture observation = {test.name, test.expected,
+                                  test.chunked ? -1 : 4, false, false, false};
+    App::ProcessOptions options;
+    options.headers = headers;
+    options.context = &observation;
+    SharedClient client;
+    client.feed(framingRequest(test.fields, test.chunked));
+
+    App::ProcessResult result = app.process(&client, options);
+
+    assertTrue(observation.called);
+    assertTrue(observation.captured);
+    assertTrue(observation.bodyRead);
+    assertTrue(result.keepAlive);
+    assertEqual(0, client.available());
+    assertEqual("", length);
+    assertEqual("", encoding);
+  }
+}
+
+unittest(framing_header_capture_requires_space_for_the_complete_value) {
+  const struct {
+    const char* fields;
+    const char* name;
+    const char* expected;
+    bool chunked;
+  } cases[] = {
+      {"Content-Length: 0004 \t", "Content-Length", "4", false},
+      {"Content-Length: 4" CRLF "Content-Length: 04 \t",
+       "Content-Length", "4", false},
+      {"Transfer-Encoding: chunked ", "Transfer-Encoding", "chunked", true},
+  };
+  App app;
+  app.post("/", readCapturedFraming);
+  for (const auto& test : cases) {
+    for (int fits = 0; fits < 2; ++fits) {
+      char storage[12];
+      memset(storage, '!', sizeof(storage));
+      int capacity = strlen(test.expected) + fits;
+      Request::Header headers[] = {{test.name, storage + 1, capacity}};
+      FramingCapture observation = {test.name, test.expected,
+                                    test.chunked ? -1 : 4, false, false, false};
+      App::ProcessOptions options;
+      options.headers = headers;
+      options.context = &observation;
+      SharedClient client;
+      client.feed(framingRequest(test.fields, test.chunked));
+
+      App::ProcessResult result = app.process(&client, options);
+
+      assertEqual(fits != 0, observation.called);
+      assertEqual(fits != 0, result.keepAlive);
+      if (fits) {
+        assertTrue(observation.captured);
+        assertTrue(observation.bodyRead);
+      } else {
+        assertTrue(client.outputString().find("HTTP/1.1 431 ") == 0);
+        assertFalse(result.responseOpen);
+        assertFalse(client.connected());
+      }
+      assertEqual('!', storage[0]);
+      assertEqual('!', storage[capacity + 1]);
+      assertEqual("", storage + 1);
+    }
+  }
+}
+
+unittest(captured_zero_content_length_is_distinct_from_an_absent_header) {
+  App app;
+  app.post("/", [](Request& req, Response& res) {
+    if (req.get("Transfer-Encoding") || req.left() != 0)
+      return res.sendStatus(400);
+    const char* length = req.get("Content-Length");
+    res.print(length ? length : "missing");
+  });
+  const char* requests[] = {
+      "POST / HTTP/1.1" CRLF "Content-Length: 0" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF CRLF,
+  };
+  char length[2], encoding[8];
+  Request::Header headers[] = {{"Content-Length", length},
+                               {"Transfer-Encoding", encoding}};
+  for (int i = 0; i < 2; ++i) {
+    MockStream stream(requests[i]);
+    app.process(&stream, headers);
+    assertTrue(String(stream.response()).endsWith(i == 0 ? "0" : "missing"));
+  }
+}
+
+unittest(capturing_framing_headers_does_not_bypass_validation) {
+  const char* requests[] = {
+      "POST / HTTP/1.1" CRLF "Content-Length:" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Content-Length: +4" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Content-Length: 9999999999999999999" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Content-Length: 4, 4" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Content-Length: 4" CRLF
+      "Content-Length: 5" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding:" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding: gzip" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked, gzip" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked" CRLF
+      "Transfer-Encoding: chunked" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Transfer-Encoding: chunked" CRLF
+      "Content-Length: 0" CRLF CRLF,
+      "POST / HTTP/1.1" CRLF "Content-Length: 0" CRLF
+      "Transfer-Encoding: chunked" CRLF CRLF,
+      "POST / HTTP/1.0" CRLF "Transfer-Encoding: chunked" CRLF CRLF,
+  };
+  App app;
+  app.setTimeout(0);
+  app.post("/", readCapturedFraming);
+  for (const char* request : requests) {
+    char length[32], encoding[32];
+    Request::Header headers[] = {{"Content-Length", length},
+                                 {"Transfer-Encoding", encoding}};
+    FramingCapture observation = {"Content-Length", "", 0, false, false,
+                                  false};
+    App::ProcessOptions options;
+    options.headers = headers;
+    options.context = &observation;
+    SharedClient client;
+    client.feed(request);
+
+    App::ProcessResult result = app.process(&client, options);
+
+    assertFalse(observation.called);
+    assertTrue(client.outputString().find("HTTP/1.1 400 ") == 0);
+    assertFalse(result.keepAlive);
+    assertFalse(result.responseOpen);
+    assertFalse(client.connected());
+    assertEqual("", length);
+    assertEqual("", encoding);
+  }
+}
+
 unittest_main()

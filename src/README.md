@@ -20,6 +20,8 @@
 - `get(name)` returns `nullptr` for an absent or uncaptured header. A captured
   header present with an empty value returns a non-null pointer to an empty
   string. Header values are available only while the request is being processed.
+  Captured Content-Length is normalized to decimal digits (equal repeated fields
+  produce one value), and captured Transfer-Encoding is normalized to `chunked`.
 - `path()` returns the percent-decoded path. The literal `?` boundary is found
   before decoding. `query()` returns the raw encoded query without `?`.
   `query(name, buffer, length)` matches decoded names and returns decoded values;
