@@ -191,8 +191,7 @@ the workflow with a browser-controlled LED.
 | [Keep-alive](examples/KeepAlive/KeepAlive.ino) | Reusing HTTP connections |
 
 See the [documentation website](https://awot.net/) for guides, the API reference,
-and migration instructions. The [source contracts](src/README.md) cover buffer
-boundaries, parsing behavior, and transport handling.
+and migration instructions.
 
 ## License
 
