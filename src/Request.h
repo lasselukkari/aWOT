@@ -95,7 +95,6 @@ class Request : public Stream {
   bool m_allowsKeepAlive() const;
   bool m_readInt(int& number);
   void m_setRoute(const char* route, const char* pattern);
-  bool m_expect(const char* expected);
   bool m_expectP(const unsigned char* expected);
   bool m_skipSpace();
   int m_readRaw();

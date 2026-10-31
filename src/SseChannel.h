@@ -1,6 +1,7 @@
 #ifndef AWOT_SSE_CHANNEL_H_
 #define AWOT_SSE_CHANNEL_H_
 
+#include "CallbackSlot.h"
 #include "ChannelRooms.h"
 #include "ChannelWrite.h"
 #include "Response.h"
@@ -20,17 +21,7 @@ class SseChannel {
   typedef void (*ConnectCb)(int clientId);
 #endif
 
-  SseChannel()
-#ifdef STD_FUNCTION_MIDDLEWARE
-      : m_connectRevision(0),
-        m_activeConnect(nullptr),
-        m_activeConnectRevision(0),
-        m_onConnect(nullptr) {
-#else
-      : m_onConnect(nullptr) {
-#endif
-    memset(m_active, 0, sizeof(m_active));
-  }
+  SseChannel() : m_onConnect() { memset(m_active, 0, sizeof(m_active)); }
 
   void open(Response& res) {
     if (!res.m_canStartChannel(200, 2)) {
@@ -50,7 +41,7 @@ class SseChannel {
         m_rooms.clearClient(i);
         m_clients[i] = client;
         m_active[i] = true;
-        callOnConnect(i);
+        if (m_onConnect) m_onConnect(i);
         return i;
       }
     }
@@ -138,12 +129,7 @@ class SseChannel {
     deactivate(clientId);
   }
 
-  void onConnect(ConnectCb callback) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_connectRevision;
-#endif
-    m_onConnect = callback;
-  }
+  void onConnect(ConnectCb callback) { m_onConnect = callback; }
 
  private:
   bool validClient(int clientId) const { return clientId >= 0 && clientId < N; }
@@ -186,34 +172,10 @@ class SseChannel {
   bool m_active[N];
   detail::ChannelRooms<N, MAX_ROOMS> m_rooms;
 #ifdef STD_FUNCTION_MIDDLEWARE
-  uint32_t m_connectRevision;
-  ConnectCb* m_activeConnect;
-  uint32_t m_activeConnectRevision;
-#endif
-  ConnectCb m_onConnect;
-
-  void callOnConnect(int clientId) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    if (m_activeConnect && m_activeConnectRevision == m_connectRevision) {
-      (*m_activeConnect)(clientId);
-      return;
-    }
-    if (!m_onConnect) return;
-    uint32_t revision = m_connectRevision;
-    ConnectCb callback;
-    callback.swap(m_onConnect);
-    ConnectCb* previousActive = m_activeConnect;
-    uint32_t previousActiveRevision = m_activeConnectRevision;
-    m_activeConnect = &callback;
-    m_activeConnectRevision = revision;
-    callback(clientId);
-    m_activeConnect = previousActive;
-    m_activeConnectRevision = previousActiveRevision;
-    if (revision == m_connectRevision) callback.swap(m_onConnect);
+  detail::CallbackSlot<ConnectCb> m_onConnect;
 #else
-    if (m_onConnect) m_onConnect(clientId);
+  ConnectCb m_onConnect;
 #endif
-  }
 };
 
 }

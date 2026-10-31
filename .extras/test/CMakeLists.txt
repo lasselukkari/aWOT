@@ -70,6 +70,7 @@ elseif(MSVC)
 endif()
 
 enable_testing()
+find_package(Threads REQUIRED)
 file(GLOB EPOXY CONFIGURE_DEPENDS epoxy/*.cpp)
 add_library(${PROJECT_NAME}-EpoxyDuino OBJECT ${EPOXY})
 target_include_directories(${PROJECT_NAME}-EpoxyDuino PUBLIC epoxy)
@@ -82,6 +83,7 @@ target_include_directories(${PROJECT_NAME}-unittest PUBLIC epoxy unittest)
 file(GLOB AWOT_SOURCES CONFIGURE_DEPENDS ../../src/*.cpp)
 add_library(${PROJECT_NAME}-aWOT OBJECT ${AWOT_SOURCES})
 target_include_directories(${PROJECT_NAME}-aWOT PUBLIC ../../src epoxy)
+target_link_libraries(${PROJECT_NAME}-aWOT PUBLIC Threads::Threads)
 
 foreach(TEST_GROUP http regression)
   file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${TEST_GROUP}/*.cpp)
@@ -102,6 +104,12 @@ foreach(TEST_GROUP http regression)
     endif()
   endforeach()
 endforeach()
+
+if(AWOT_ENABLE_SANITIZERS)
+  set_tests_properties(app-callbacks sse websocket PROPERTIES
+    ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=1")
+endif()
+set_tests_properties(app-callbacks PROPERTIES TIMEOUT 30)
 
 add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS ${TEST_LIST})
 

@@ -1,6 +1,9 @@
 #include <ArduinoUnitTests.h>
 #include <aWOT.h>
 
+#include <chrono>
+#include <stdexcept>
+
 #include "mocks/SharedClient.h"
 
 static unsigned long wsNow;
@@ -599,6 +602,181 @@ unittest(callbacks_preserve_mutable_functor_state) {
   assertTrue(connectCalls == std::vector<int>({1, 2}));
   assertTrue(messageCalls == std::vector<int>({1, 2}));
   assertTrue(disconnectCalls == std::vector<int>({1, 2}));
+}
+
+unittest(throwing_connect_callback_retains_registration_and_state) {
+  Channel ws;
+  SharedClient first, second;
+  std::vector<int> calls;
+  int state = 0;
+  ws.onConnect([&calls, state](int) mutable {
+    calls.push_back(++state);
+    if (state == 1) throw std::runtime_error("connect failed");
+  });
+
+  bool caught = false;
+  try {
+    handshake(ws, first);
+  } catch (const std::runtime_error&) {
+    caught = true;
+  }
+  assertTrue(caught);
+  assertTrue(ws.connected(0));
+  assertTrue(handshake(ws, second));
+  assertTrue(calls == std::vector<int>({1, 2}));
+}
+
+unittest(throwing_disconnect_callback_retains_registration_and_state) {
+  Channel ws;
+  SharedClient first, second;
+  assertTrue(handshake(ws, first));
+  assertTrue(handshake(ws, second));
+  std::vector<int> calls;
+  int state = 0;
+  ws.onDisconnect([&calls, state](int) mutable {
+    calls.push_back(++state);
+    if (state == 1) throw std::runtime_error("disconnect failed");
+  });
+
+  bool caught = false;
+  try {
+    ws.close(0);
+  } catch (const std::runtime_error&) {
+    caught = true;
+  }
+  assertTrue(caught);
+  assertFalse(ws.connected(0));
+  ws.close(1);
+  assertEqual(0, ws.count());
+  assertTrue(calls == std::vector<int>({1, 2}));
+}
+
+unittest(throwing_connection_callbacks_preserve_registration_updates) {
+  for (int disconnect = 0; disconnect < 2; ++disconnect) {
+    for (int replace = 0; replace < 2; ++replace) {
+      Channel ws;
+      SharedClient first, second, third;
+      if (disconnect) {
+        assertTrue(handshake(ws, first));
+        assertTrue(handshake(ws, second));
+      }
+      const std::string captured(256, 'c');
+      std::string observed;
+      int originalCalls = 0;
+      std::vector<int> replacementCalls;
+      typedef void (Channel::*Setter)(Channel::ConnectCb);
+      Setter setter = disconnect ? &Channel::onDisconnect : &Channel::onConnect;
+      (ws.*setter)([&, captured](int) {
+        ++originalCalls;
+        if (replace)
+          (ws.*setter)(StatefulConnectCallback(&replacementCalls));
+        else
+          (ws.*setter)(nullptr);
+        observed = captured;
+        throw std::runtime_error("updated connection callback failed");
+      });
+
+      bool caught = false;
+      try {
+        if (disconnect)
+          ws.close(0);
+        else
+          handshake(ws, first);
+      } catch (const std::runtime_error&) {
+        caught = true;
+      }
+      assertTrue(caught);
+      assertEqual(captured, observed);
+      if (disconnect) {
+        ws.close(1);
+        assertTrue(handshake(ws, third));
+        ws.close(0);
+      } else {
+        assertTrue(handshake(ws, second));
+        ws.close(0);
+        assertTrue(handshake(ws, third));
+      }
+      assertEqual(1, originalCalls);
+      assertTrue(replacementCalls ==
+                 (replace ? std::vector<int>({1, 2}) : std::vector<int>()));
+    }
+  }
+}
+
+unittest(throwing_message_callback_retains_state_without_replaying_the_frame) {
+  Channel ws;
+  SharedClient client;
+  assertTrue(handshake(ws, client));
+  std::vector<int> calls;
+  std::string messages;
+  int state = 0;
+  ws.onMessage([&calls, &messages, state](WsMessage& msg) mutable {
+    calls.push_back(++state);
+    messages.append((const char*)msg.data(), msg.length());
+    if (state == 1) throw std::runtime_error("message failed");
+  });
+  std::vector<uint8_t> input = frame(1, {'A'});
+  const std::vector<uint8_t> next = frame(1, {'B'});
+  input.insert(input.end(), next.begin(), next.end());
+  client.feed(input);
+
+  bool caught = false;
+  try {
+    ws.poll();
+  } catch (const std::runtime_error&) {
+    caught = true;
+  }
+  assertTrue(caught);
+  assertTrue(calls == std::vector<int>({1}));
+  assertEqual(std::string("A"), messages);
+  ws.poll();
+  assertTrue(ws.connected(0));
+  assertEqual(0, client.available());
+  assertTrue(calls == std::vector<int>({1, 2}));
+  assertEqual(std::string("AB"), messages);
+  client.feed(frame(1, {'C'}));
+  ws.poll();
+  assertTrue(calls == std::vector<int>({1, 2, 3}));
+  assertEqual(std::string("ABC"), messages);
+}
+
+unittest(throwing_message_callback_preserves_registration_updates) {
+  for (int replace = 0; replace < 2; ++replace) {
+    Channel ws;
+    SharedClient client;
+    assertTrue(handshake(ws, client));
+    const std::string captured(256, 'm');
+    std::string observed;
+    int originalCalls = 0;
+    messageCount = 0;
+    lastData.clear();
+    ws.onMessage([&, captured](WsMessage&) {
+      ++originalCalls;
+      if (replace)
+        ws.onMessage(messageHandler);
+      else
+        ws.onMessage(nullptr);
+      observed = captured;
+      throw std::runtime_error("updated message failed");
+    });
+    client.feed(frame(1, {'A'}));
+
+    bool caught = false;
+    try {
+      ws.poll();
+    } catch (const std::runtime_error&) {
+      caught = true;
+    }
+    assertTrue(caught);
+    assertEqual(captured, observed);
+    client.feed(frame(1, {'B'}));
+    ws.poll();
+    assertTrue(ws.connected(0));
+    assertEqual(0, client.available());
+    assertEqual(1, originalCalls);
+    assertEqual(replace, messageCount);
+    if (replace) assertTrue(lastData == std::vector<uint8_t>({'B'}));
+  }
 }
 #endif
 
@@ -1208,6 +1386,38 @@ unittest(message_stream_peek_and_exhaustion) {
   assertEqual((size_t)0, msg.write('x'));
   assertTrue(msg.isText());
   assertEqual(7, msg.socketId());
+}
+
+unittest(message_stream_string_reads_finish_at_end_of_message) {
+  uint8_t data[] = {'A', 'B'};
+  WsMessage msg(data, sizeof(data), WsMessage::TEXT, 0);
+  const auto start = std::chrono::steady_clock::now();
+  String value = msg.readString();
+  String remaining = msg.readString();
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+
+  assertEqual("AB", value.c_str());
+  assertEqual("", remaining.c_str());
+  assertEqual(0, msg.available());
+  assertTrue(elapsed < std::chrono::milliseconds(500));
+}
+
+unittest(message_stream_bulk_reads_finish_at_end_of_message) {
+  uint8_t data[] = {'A', 'B'};
+  WsMessage msg(data, sizeof(data), WsMessage::BINARY, 0);
+  uint8_t buffer[4] = {};
+  const auto start = std::chrono::steady_clock::now();
+  const size_t count = msg.readBytes(buffer, sizeof(buffer));
+  const size_t remaining =
+      msg.readBytes(buffer + count, sizeof(buffer) - count);
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+
+  assertEqual((size_t)2, count);
+  assertEqual((size_t)0, remaining);
+  assertEqual((uint8_t)'A', buffer[0]);
+  assertEqual((uint8_t)'B', buffer[1]);
+  assertEqual(0, msg.available());
+  assertTrue(elapsed < std::chrono::milliseconds(500));
 }
 
 unittest_main()

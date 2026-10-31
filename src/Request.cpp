@@ -61,6 +61,8 @@ char* Request::get(const char* name) {
 void Request::flush() { return m_response->flush(); }
 
 namespace {
+P(lineEnd) = CRLF;
+
 int hexDigit(int ch) {
   if (ch >= '0' && ch <= '9') return ch - '0';
   if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
@@ -139,7 +141,8 @@ int Request::left() {
     m_bodyAvailable();
     if (m_bodyState != BODY_DONE) return -1;
   }
-  return (int)m_left + m_pushbackDepth;
+  const int remaining = static_cast<int>(m_left);
+  return remaining + min(m_pushbackDepth, INT_MAX - remaining);
 }
 
 Request::MethodType Request::method() { return m_method; }
@@ -469,7 +472,7 @@ bool Request::m_readVersion() {
     if (m_timedRead() != pgm_read_byte(HTTP_VERSION + i)) return false;
   }
   int minor = m_timedRead();
-  if ((minor != '0' && minor != '1') || !m_expect(CRLF)) return false;
+  if ((minor != '0' && minor != '1') || !m_expectP(lineEnd)) return false;
   m_minorVersion = minor - '0';
   return true;
 }
@@ -495,13 +498,13 @@ int Request::m_processHeaders() {
   bool canEnd = true;
   bool lengthSeen = false;
 
-  while (!(canEnd && m_expect(CRLF))) {
+  while (!(canEnd && m_expectP(lineEnd))) {
     canEnd = false;
     P(ContentLength) = "Content-Length:";
     if (m_expectP(ContentLength)) {
       int length;
       if (m_bodyState != CONTENT_LENGTH || !m_readInt(length) ||
-          !m_skipSpace() || !m_expect(CRLF) ||
+          !m_skipSpace() || !m_expectP(lineEnd) ||
           (lengthSeen && (uint32_t)length != m_left)) {
         return 400;
       }
@@ -514,7 +517,7 @@ int Request::m_processHeaders() {
         P(chunked) = "chunked";
         if (lengthSeen || m_bodyState != CONTENT_LENGTH ||
             m_minorVersion != 1 || !m_skipSpace() || !m_expectP(chunked) ||
-            !m_skipSpace() || !m_expect(CRLF)) {
+            !m_skipSpace() || !m_expectP(lineEnd)) {
           return 400;
         }
         m_bodyState = CHUNK_START;
@@ -620,7 +623,7 @@ bool Request::m_headerValue(Header* header, bool connection) {
   bool valid = true;
   char* valueEnd = buffer;
   detail::ConnectionParser connectionValue;
-  while (!m_expect(CRLF)) {
+  while (!m_expectP(lineEnd)) {
     int ch = m_timedRead();
     if (ch < 0) return false;
     if (!headerValueChar(ch)) return false;
@@ -668,29 +671,6 @@ bool Request::m_readInt(int& number) {
 void Request::m_setRoute(const char* route, const char* pattern) {
   m_route = route;
   m_pattern = pattern;
-}
-
-bool Request::m_expect(const char* expected) {
-  const char* candidate = expected;
-
-  while (*candidate != 0) {
-    int ch = m_timedRead();
-    if (ch == -1) {
-      return false;
-    }
-
-    if (tolower(ch) != tolower(*candidate++)) {
-      push(ch);
-
-      while (--candidate != expected) {
-        push(candidate[-1]);
-      }
-
-      return false;
-    }
-  }
-
-  return true;
 }
 
 bool Request::m_expectP(const unsigned char* expected) {

@@ -14,7 +14,10 @@ class WsMessage : public Stream {
         m_length(length),
         m_pos(0),
         m_opcode(opcode),
-        m_socketId(socketId) {}
+        m_socketId(socketId) {
+    // The complete message is buffered; no more bytes can arrive.
+    setTimeout(0);
+  }
 
   int available() { return (int)(m_length - m_pos); }
 

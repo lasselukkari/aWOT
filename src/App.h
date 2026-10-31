@@ -177,6 +177,7 @@ class App {
 #endif
 
  private:
+  void m_sendError(Request& request, Response& response, int code);
   void m_process(Request& req, Response& res);
 #if defined(__GNUC__)
   __attribute__((noinline))

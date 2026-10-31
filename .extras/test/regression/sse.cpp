@@ -2,6 +2,8 @@
 #include <SseChannel.h>
 #include <aWOT.h>
 
+#include <stdexcept>
+
 #include "mocks/SharedClient.h"
 
 using namespace awot;
@@ -183,6 +185,63 @@ unittest(sse_callback_replacement_survives_nested_connections) {
   assertEqual(1, events.add(third));
   assertEqual(1, originalCalls);
   assertTrue(replacementCalls == std::vector<int>({1, 2}));
+}
+
+unittest(throwing_sse_connect_callback_retains_registration_and_state) {
+  Events events;
+  SharedClient first, second;
+  std::vector<int> calls;
+  int state = 0;
+  events.onConnect([&calls, state](int) mutable {
+    calls.push_back(++state);
+    if (state == 1) throw std::runtime_error("connect failed");
+  });
+
+  bool caught = false;
+  try {
+    events.add(first);
+  } catch (const std::runtime_error&) {
+    caught = true;
+  }
+  assertTrue(caught);
+  assertTrue(events.connected(0));
+  assertEqual(1, events.add(second));
+  assertTrue(calls == std::vector<int>({1, 2}));
+}
+
+unittest(throwing_sse_connect_callback_preserves_registration_updates) {
+  for (int replace = 0; replace < 2; ++replace) {
+    Events events;
+    SharedClient first, second, third;
+    const std::string captured(256, 's');
+    std::string observed;
+    int originalCalls = 0;
+    std::vector<int> replacementCalls;
+    events.onConnect([&, captured](int) {
+      ++originalCalls;
+      if (replace)
+        events.onConnect(StatefulSseConnectCallback(&replacementCalls));
+      else
+        events.onConnect(nullptr);
+      observed = captured;
+      throw std::runtime_error("updated connect failed");
+    });
+
+    bool caught = false;
+    try {
+      events.add(first);
+    } catch (const std::runtime_error&) {
+      caught = true;
+    }
+    assertTrue(caught);
+    assertEqual(captured, observed);
+    assertEqual(1, events.add(second));
+    events.close(0);
+    assertEqual(0, events.add(third));
+    assertEqual(1, originalCalls);
+    assertTrue(replacementCalls ==
+               (replace ? std::vector<int>({1, 2}) : std::vector<int>()));
+  }
 }
 #endif
 

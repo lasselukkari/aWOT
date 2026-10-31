@@ -208,64 +208,36 @@ void App::use(const char* path, Router* router) {
 
 void App::use(Router* router) { use(NULL, router); }
 
+void App::m_sendError(Request& request, Response& response, int code) {
+  if (m_errorHandler) m_errorHandler(request, response, code);
+  if (!response.ended()) response.sendStatus(code);
+}
+
 void App::m_process(Request& request, Response& response) {
   if (!request.m_processMethod()) {
-    if (request.m_timedout()) {
-      if (m_errorHandler) m_errorHandler(request, response, 408);
-      if (!response.ended()) return response.sendStatus(408);
-      return;
-    }
-
-    if (m_errorHandler) m_errorHandler(request, response, 400);
-    if (!response.ended()) return response.sendStatus(400);
-    return;
+    return m_sendError(request, response, request.m_timedout() ? 408 : 400);
   }
 
   response.m_head = request.method() == Request::HEAD;
 
   if (!request.m_readURL()) {
-    if (request.m_timedout()) {
-      if (m_errorHandler) m_errorHandler(request, response, 408);
-      if (!response.ended()) return response.sendStatus(408);
-      return;
-    }
-
-    if (m_errorHandler) m_errorHandler(request, response, 414);
-    if (!response.ended()) return response.sendStatus(414);
-    return;
+    return m_sendError(request, response, request.m_timedout() ? 408 : 414);
   }
 
   if (!request.m_processURL()) {
-    if (m_errorHandler) m_errorHandler(request, response, 400);
-    if (!response.ended()) return response.sendStatus(400);
-    return;
+    return m_sendError(request, response, 400);
   }
 
   if (!request.m_readVersion()) {
-    if (request.m_timedout()) {
-      if (m_errorHandler) m_errorHandler(request, response, 408);
-      if (!response.ended()) return response.sendStatus(408);
-      return;
-    }
-
-    if (m_errorHandler) m_errorHandler(request, response, 505);
-    if (!response.ended()) return response.sendStatus(505);
-    return;
+    return m_sendError(request, response, request.m_timedout() ? 408 : 505);
   }
 
   response.m_chunkingAllowed = request.minorVersion() == 1;
 
   int headerError = request.m_processHeaders();
   if (headerError) {
-    if (request.m_timedout()) {
-      if (m_errorHandler) m_errorHandler(request, response, 408);
-      if (!response.ended()) return response.sendStatus(408);
-      return;
-    }
-
-    if (m_errorHandler) m_errorHandler(request, response, headerError);
-    if (!response.ended()) return response.sendStatus(headerError);
-    return;
+    return m_sendError(request, response,
+                       request.m_timedout() ? 408 : headerError);
   }
 
   response.m_requestKeepAlive = request.m_allowsKeepAlive();
@@ -277,8 +249,7 @@ void App::m_process(Request& request, Response& response) {
   if (bodyError) {
     response.m_requestKeepAlive = false;
     if (!response.statusSent()) {
-      if (m_errorHandler) m_errorHandler(request, response, bodyError);
-      if (!response.ended()) response.sendStatus(bodyError);
+      m_sendError(request, response, bodyError);
     }
     return;
   }
@@ -289,9 +260,7 @@ void App::m_process(Request& request, Response& response) {
       return m_notFound(request, response);
     }
 
-    if (m_errorHandler) m_errorHandler(request, response, 404);
-    if (!response.ended()) return response.sendStatus(404);
-    return;
+    return m_sendError(request, response, 404);
   }
 
   if (!response.headersSent()) {

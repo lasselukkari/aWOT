@@ -3,6 +3,12 @@
 
 #include "aWOT_common.h"
 
+#ifdef STD_FUNCTION_MIDDLEWARE
+#include <atomic>
+#include <memory>
+#include <utility>
+#endif
+
 namespace awot {
 namespace detail {
 
@@ -10,46 +16,38 @@ namespace detail {
 template <typename Callback>
 class CallbackSlot {
  public:
-  CallbackSlot() : m_revision(0), m_active(NULL), m_activeRevision(0) {}
+  CallbackSlot() : m_callback() {}
   CallbackSlot(const CallbackSlot&) = delete;
   CallbackSlot& operator=(const CallbackSlot&) = delete;
 
   CallbackSlot& operator=(Callback callback) {
-    ++m_revision;
-    callback.swap(m_callback);
+    std::shared_ptr<Callback> replacement;
+    if (callback) {
+      replacement = std::make_shared<Callback>(std::move(callback));
+    }
+    std::atomic_store(&m_callback, std::move(replacement));
     return *this;
   }
 
   explicit operator bool() const {
-    return m_callback || (m_active != NULL && m_activeRevision == m_revision);
+    return static_cast<bool>(std::atomic_load(&m_callback));
   }
 
   template <typename... Args>
   void operator()(Args&... args) {
-    if (m_active != NULL && m_activeRevision == m_revision) {
-      (*m_active)(args...);
-      return;
-    }
-    if (!m_callback) return;
-
-    uint32_t revision = m_revision;
-    Callback callback;
-    callback.swap(m_callback);
-    Callback* previousActive = m_active;
-    uint32_t previousActiveRevision = m_activeRevision;
-    m_active = &callback;
-    m_activeRevision = revision;
-    callback(args...);
-    m_active = previousActive;
-    m_activeRevision = previousActiveRevision;
-    if (revision == m_revision) callback.swap(m_callback);
+    // Keep this callback alive independently of concurrent or nested updates.
+    // Atomic publication protects the slot; user code runs without its lock.
+    std::shared_ptr<Callback> callback = std::atomic_load(&m_callback);
+    if (callback) (*callback)(args...);
   }
 
  private:
-  Callback m_callback;
-  uint32_t m_revision;
-  Callback* m_active;
-  uint32_t m_activeRevision;
+#if defined(__cpp_lib_atomic_shared_ptr) && \
+    __cpp_lib_atomic_shared_ptr >= 201711L
+  std::atomic<std::shared_ptr<Callback>> m_callback;
+#else
+  std::shared_ptr<Callback> m_callback;
+#endif
 };
 #endif
 
