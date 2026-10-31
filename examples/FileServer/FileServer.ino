@@ -8,12 +8,13 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-Application app;
+App app;
 
 const char * indexFile = "/index.htm";
 
 void fileServer(Request &req, Response &res) {
   if (req.method() != Request::GET) {
+    req.next();
     return;
   }
 
@@ -24,12 +25,14 @@ void fileServer(Request &req, Response &res) {
   }
 
   if (!SPIFFS.exists(path)) {
+    req.next();
     return;
   }
 
   File file = SPIFFS.open(path);
 
   if (file.isDirectory()) {
+    req.next();
     return;
   }
 

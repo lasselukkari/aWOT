@@ -1,0 +1,119 @@
+# macOS Native aWOT Example
+
+This example demonstrates running the aWOT web server library on macOS without Arduino hardware, using native BSD sockets and multithreading.
+
+## Prerequisites
+
+- macOS with Xcode Command Line Tools (`xcode-select --install`)
+- clang++ (comes with Xcode CLT)
+
+## Setup
+
+The ArduinoCore-API sources are bundled in [`../ArduinoCore-API`](../ArduinoCore-API/README.md)
+and shared by all native examples. Its String files use
+`WString.h` / `WString.cpp` to avoid the macOS case-insensitive `string.h`
+collision. No additional download or renaming is needed.
+
+## Build & Run
+
+```bash
+make        # Build the example
+make run    # Run the server
+make test   # Run socket/shim regressions and an HTTP smoke test
+make clean  # Clean build artifacts
+```
+
+## Test
+
+`make test` exercises shared socket ownership, buffered reads, WebSocket and SSE
+handoffs, disconnect handling, request timeouts, address conversion, and numeric
+formatting before starting its own HTTP server.
+Port 8080 must be free; startup fails if another process already owns it.
+
+Once running, visit http://localhost:8080/ in your browser or:
+
+```bash
+curl http://127.0.0.1:8080/
+```
+
+Expected output:
+```html
+<html>
+<head>
+<title>Hello World!</title>
+</head>
+<body>
+<h1>Greetings middle earth!</h1>
+</body>
+</html>
+```
+
+## Benchmarking
+
+```bash
+# Install wrk (modern HTTP benchmarking tool)
+brew install wrk
+
+# Run benchmark
+wrk -t4 -c10 -d10s http://localhost:8080/
+```
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `Arduino.h` | Compatibility shim providing `millis()`, `delay()`, `itoa()`, etc. |
+| `MacOSSocket.h/cpp` | BSD socket implementation of Arduino Client/Server API |
+| `HelloWorld.cpp` | The example application |
+| `Makefile` | Build system |
+| `tests/` | Native socket and compatibility regression tests |
+| `../NativeTests/` | Shared client ownership and channel checks used by all native adapters |
+| `../ArduinoCore-API/` | Arduino Core API shared by all native examples |
+
+## How It Works
+
+The example uses:
+
+1. **Arduino.h** - A thin shim that provides macOS implementations of Arduino functions (`millis()`, `delay()`, `yield()`, `itoa()` family, `dtostrf()`)
+
+2. **ArduinoCore-API** - The official Arduino API classes (`Print`, `Stream`, `Client`, `IPAddress`, `String`)
+
+3. **MacOSClient/MacOSServer** - BSD socket wrappers that implement the Arduino `Client` interface, allowing aWOT to work unchanged
+
+4. **Multithreading** - Each client connection is handled in a separate thread using `std::thread`
+
+The main thread waits for connections without polling continuously. Socket reads
+return immediately when no data is ready, allowing aWOT's request timeouts to
+expire. Servers close their listening sockets when destroyed.
+
+Client copies share their socket, connection status, and a 1 KiB receive buffer
+that avoids a socket call for every parsed byte. Buffered data stays available
+through both the request and raw client read APIs, including after the peer
+disconnects. Destroying or reassigning one handle releases only its reference;
+the last reference closes the socket. `stop()` closes the connection and clears
+buffered input for every copy. Reconnecting a handle closes its old shared
+connection and attaches that handle to a new one. Synchronize concurrent access
+to copies of the same connection.
+
+`WsChannel<MacOSClient, N>` and `SseChannel<MacOSClient, N>` can retain these
+shared handles. For channel routes, retain clients only when `app.process()`
+returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
+Let the local client leave scope without calling `stop()` after handing it to
+the channel. The Hello World worker deliberately stops every connection, so
+adapt its lifecycle before using channel routes.
+
+## Windows and Linux Portability
+
+The [Windows native example](../WindowsNative/README.md) provides a Winsock
+adapter, a CMake build with MinGW, and socket/shim/HTTP tests. The Unit Tests
+workflow runs those checks on a Windows runner.
+
+The [Linux native example](../LinuxNative/README.md) reuses this POSIX adapter
+and Arduino compatibility layer, with Linux-specific protection against
+`SIGPIPE`. It provides CMake builds and socket, shim, and HTTP tests that also
+run on an Ubuntu CI runner.
+
+## License
+
+The example follows the aWOT library's MIT license. The bundled ArduinoCore-API
+retains its own license notices in [`../ArduinoCore-API`](../ArduinoCore-API/LICENSE).

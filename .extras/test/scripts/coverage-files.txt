@@ -1,0 +1,4 @@
+# Include library definitions, including headers instantiated by HTTP examples.
+# Match both normalized paths and include paths containing ../../src/.
+[clang]
+src:*/src/*
