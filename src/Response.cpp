@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "App.h"
+#include "ChannelWrite.h"
 #include "ConnectionParser.h"
 
 using namespace awot;
@@ -322,16 +323,11 @@ void Response::m_failWrite() {
 }
 
 size_t Response::m_writeAll(const uint8_t* buffer, size_t length) {
-  size_t written = 0;
-  while (written < length && !getWriteError()) {
-    size_t count = m_stream->write(buffer + written, length - written);
-    if (count == 0 || count > length - written) {
-      m_failWrite();
-      break;
-    }
-    written += count;
-  }
-  return written;
+  if (getWriteError()) return 0;
+  detail::WriteResult result =
+      detail::writeAllResult(*m_stream, buffer, length);
+  if (!result.success) m_failWrite();
+  return result.written;
 }
 
 void Response::writeP(const unsigned char* data, size_t length) {
@@ -346,27 +342,6 @@ void Response::writeP(const unsigned char* data, size_t length) {
 
 void Response::m_printStatus(int code) {
   switch (code) {
-#ifndef LOW_MEMORY_MCU
-    case 100: {
-      P(Continue) = "Continue";
-      printP(Continue);
-      break;
-    }
-    case 101: {
-      P(SwitchingProtocols) = "Switching Protocols";
-      printP(SwitchingProtocols);
-      break;
-    }
-    case 102: {
-      P(Processing) = "Processing";
-      printP(Processing);
-      break;
-    }
-    case 103: {
-      P(EarlyHints) = "Early Hints";
-      printP(EarlyHints);
-      break;
-    }
     case 200: {
       P(OK) = "OK";
       printP(OK);
@@ -382,54 +357,9 @@ void Response::m_printStatus(int code) {
       printP(Accepted);
       break;
     }
-    case 203: {
-      P(NonAuthoritativeInformation) = "Non-Authoritative Information";
-      printP(NonAuthoritativeInformation);
-      break;
-    }
     case 204: {
       P(NoContent) = "No Content";
       printP(NoContent);
-      break;
-    }
-    case 205: {
-      P(ResetContent) = "Reset Content";
-      printP(ResetContent);
-      break;
-    }
-    case 206: {
-      P(PartialContent) = "Partial Content";
-      printP(PartialContent);
-      break;
-    }
-    case 207: {
-      P(MultiStatus) = "Multi-Status";
-      printP(MultiStatus);
-      break;
-    }
-    case 208: {
-      P(AlreadyReported) = "Already Reported";
-      printP(AlreadyReported);
-      break;
-    }
-    case 226: {
-      P(IMUsed) = "IM Used";
-      printP(IMUsed);
-      break;
-    }
-    case 300: {
-      P(MultipleChoices) = "Multiple Choices";
-      printP(MultipleChoices);
-      break;
-    }
-    case 301: {
-      P(MovedPermanently) = "Moved Permanently";
-      printP(MovedPermanently);
-      break;
-    }
-    case 302: {
-      P(Found) = "Found";
-      printP(Found);
       break;
     }
     case 303: {
@@ -440,26 +370,6 @@ void Response::m_printStatus(int code) {
     case 304: {
       P(NotModified) = "Not Modified";
       printP(NotModified);
-      break;
-    }
-    case 305: {
-      P(UseProxy) = "Use Proxy";
-      printP(UseProxy);
-      break;
-    }
-    case 306: {
-      P(Unused) = "(Unused)";
-      printP(Unused);
-      break;
-    }
-    case 307: {
-      P(TemporaryRedirect) = "Temporary Redirect";
-      printP(TemporaryRedirect);
-      break;
-    }
-    case 308: {
-      P(PermanentRedirect) = "Permanent Redirect";
-      printP(PermanentRedirect);
       break;
     }
     case 400: {
@@ -505,6 +415,107 @@ void Response::m_printStatus(int code) {
     case 408: {
       P(RequestTimeout) = "Request Timeout";
       printP(RequestTimeout);
+      break;
+    }
+    case 431: {
+      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
+      printP(RequestHeaderFieldsTooLarge);
+      break;
+    }
+    case 500: {
+      P(InternalServerError) = "Internal Server Error";
+      printP(InternalServerError);
+      break;
+    }
+    case 505: {
+      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
+      printP(HTTPVersionNotSupported);
+      break;
+    }
+#ifndef LOW_MEMORY_MCU
+    case 100: {
+      P(Continue) = "Continue";
+      printP(Continue);
+      break;
+    }
+    case 101: {
+      P(SwitchingProtocols) = "Switching Protocols";
+      printP(SwitchingProtocols);
+      break;
+    }
+    case 102: {
+      P(Processing) = "Processing";
+      printP(Processing);
+      break;
+    }
+    case 103: {
+      P(EarlyHints) = "Early Hints";
+      printP(EarlyHints);
+      break;
+    }
+    case 203: {
+      P(NonAuthoritativeInformation) = "Non-Authoritative Information";
+      printP(NonAuthoritativeInformation);
+      break;
+    }
+    case 205: {
+      P(ResetContent) = "Reset Content";
+      printP(ResetContent);
+      break;
+    }
+    case 206: {
+      P(PartialContent) = "Partial Content";
+      printP(PartialContent);
+      break;
+    }
+    case 207: {
+      P(MultiStatus) = "Multi-Status";
+      printP(MultiStatus);
+      break;
+    }
+    case 208: {
+      P(AlreadyReported) = "Already Reported";
+      printP(AlreadyReported);
+      break;
+    }
+    case 226: {
+      P(IMUsed) = "IM Used";
+      printP(IMUsed);
+      break;
+    }
+    case 300: {
+      P(MultipleChoices) = "Multiple Choices";
+      printP(MultipleChoices);
+      break;
+    }
+    case 301: {
+      P(MovedPermanently) = "Moved Permanently";
+      printP(MovedPermanently);
+      break;
+    }
+    case 302: {
+      P(Found) = "Found";
+      printP(Found);
+      break;
+    }
+    case 305: {
+      P(UseProxy) = "Use Proxy";
+      printP(UseProxy);
+      break;
+    }
+    case 306: {
+      P(Unused) = "(Unused)";
+      printP(Unused);
+      break;
+    }
+    case 307: {
+      P(TemporaryRedirect) = "Temporary Redirect";
+      printP(TemporaryRedirect);
+      break;
+    }
+    case 308: {
+      P(PermanentRedirect) = "Permanent Redirect";
+      printP(PermanentRedirect);
       break;
     }
     case 409: {
@@ -592,19 +603,9 @@ void Response::m_printStatus(int code) {
       printP(TooManyRequests);
       break;
     }
-    case 431: {
-      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
-      printP(RequestHeaderFieldsTooLarge);
-      break;
-    }
     case 451: {
       P(UnavailableForLegalReasons) = "Unavailable For Legal Reasons";
       printP(UnavailableForLegalReasons);
-      break;
-    }
-    case 500: {
-      P(InternalServerError) = "Internal Server Error";
-      printP(InternalServerError);
       break;
     }
     case 501: {
@@ -625,11 +626,6 @@ void Response::m_printStatus(int code) {
     case 504: {
       P(GatewayTimeout) = "Gateway Timeout";
       printP(GatewayTimeout);
-      break;
-    }
-    case 505: {
-      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
-      printP(HTTPVersionNotSupported);
       break;
     }
     case 506: {
@@ -655,98 +651,6 @@ void Response::m_printStatus(int code) {
     case 511: {
       P(NetworkAuthenticationRequired) = "Network Authentication Required";
       printP(NetworkAuthenticationRequired);
-      break;
-    }
-#else
-    case 200: {
-      P(OK) = "OK";
-      printP(OK);
-      break;
-    }
-    case 201: {
-      P(Created) = "Created";
-      printP(Created);
-      break;
-    }
-    case 202: {
-      P(Accepted) = "Accepted";
-      printP(Accepted);
-      break;
-    }
-    case 204: {
-      P(NoContent) = "No Content";
-      printP(NoContent);
-      break;
-    }
-    case 303: {
-      P(SeeOther) = "See Other";
-      printP(SeeOther);
-      break;
-    }
-    case 304: {
-      P(NotModified) = "Not Modified";
-      printP(NotModified);
-      break;
-    }
-    case 400: {
-      P(BadRequest) = "Bad Request";
-      printP(BadRequest);
-      break;
-    }
-    case 401: {
-      P(Unauthorized) = "Unauthorized";
-      printP(Unauthorized);
-      break;
-    }
-    case 402: {
-      P(PaymentRequired) = "Payment Required";
-      printP(PaymentRequired);
-      break;
-    }
-    case 403: {
-      P(Forbidden) = "Forbidden";
-      printP(Forbidden);
-      break;
-    }
-    case 404: {
-      P(NotFound) = "Not Found";
-      printP(NotFound);
-      break;
-    }
-    case 405: {
-      P(MethodNotAllowed) = "Method Not Allowed";
-      printP(MethodNotAllowed);
-      break;
-    }
-    case 406: {
-      P(NotAcceptable) = "Not Acceptable";
-      printP(NotAcceptable);
-      break;
-    }
-    case 407: {
-      P(ProxyAuthenticationRequired) = "Proxy Authentication Required";
-      printP(ProxyAuthenticationRequired);
-      break;
-    }
-    case 408: {
-      P(RequestTimeout) = "Request Timeout";
-      printP(RequestTimeout);
-      break;
-    }
-
-    case 431: {
-      P(RequestHeaderFieldsTooLarge) = "Request Header Fields Too Large";
-      printP(RequestHeaderFieldsTooLarge);
-      break;
-    }
-    case 500: {
-      P(InternalServerError) = "Internal Server Error";
-      printP(InternalServerError);
-      break;
-    }
-    case 505: {
-      P(HTTPVersionNotSupported) = "HTTP Version Not Supported";
-      printP(HTTPVersionNotSupported);
       break;
     }
 #endif

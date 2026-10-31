@@ -2,6 +2,7 @@
 #define AWOT_WS_CHANNEL_H_
 
 #include "App.h"
+#include "CallbackSlot.h"
 #include "ChannelRooms.h"
 #include "ChannelWrite.h"
 #include "Request.h"
@@ -42,19 +43,7 @@ class WsChannel {
 #endif
 
   WsChannel()
-      : m_polling(false),
-#ifdef STD_FUNCTION_MIDDLEWARE
-        m_connectRevision(0),
-        m_activeConnect(nullptr),
-        m_activeConnectRevision(0),
-        m_disconnectRevision(0),
-        m_activeDisconnect(nullptr),
-        m_activeDisconnectRevision(0),
-        m_messageChanged(false),
-#endif
-        m_onConnect(nullptr),
-        m_onDisconnect(nullptr),
-        m_onMessage(nullptr) {
+      : m_polling(false), m_onConnect(), m_onDisconnect(), m_onMessage() {
     for (int i = 0; i < N; i++) {
       m_slots[i].active = false;
       resetRxState(i);
@@ -107,7 +96,7 @@ class WsChannel {
     m_slots[slot].lastPingSentMs = now;
     m_slots[slot].awaitingPong = false;
 
-    callOnConnect(slot);
+    if (m_onConnect) m_onConnect(slot);
     return true;
   }
 
@@ -214,24 +203,9 @@ class WsChannel {
     closeSlot(socketId, validCloseCode(code) ? code : 1002);
   }
 
-  void onConnect(ConnectCb cb) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_connectRevision;
-#endif
-    m_onConnect = cb;
-  }
-  void onDisconnect(DisconnectCb cb) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    ++m_disconnectRevision;
-#endif
-    m_onDisconnect = cb;
-  }
-  void onMessage(MessageCb cb) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    m_messageChanged = true;
-#endif
-    m_onMessage = cb;
-  }
+  void onConnect(ConnectCb cb) { m_onConnect = cb; }
+  void onDisconnect(DisconnectCb cb) { m_onDisconnect = cb; }
+  void onMessage(MessageCb cb) { m_onMessage = cb; }
 
  private:
   struct Slot {
@@ -259,77 +233,14 @@ class WsChannel {
   bool m_polling;
 
 #ifdef STD_FUNCTION_MIDDLEWARE
-  uint32_t m_connectRevision;
-  ConnectCb* m_activeConnect;
-  uint32_t m_activeConnectRevision;
-  uint32_t m_disconnectRevision;
-  DisconnectCb* m_activeDisconnect;
-  uint32_t m_activeDisconnectRevision;
-  bool m_messageChanged;
-#endif
+  detail::CallbackSlot<ConnectCb> m_onConnect;
+  detail::CallbackSlot<DisconnectCb> m_onDisconnect;
+  detail::CallbackSlot<MessageCb> m_onMessage;
+#else
   ConnectCb m_onConnect;
   DisconnectCb m_onDisconnect;
   MessageCb m_onMessage;
-
-  void callOnConnect(int socketId) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    if (m_activeConnect && m_activeConnectRevision == m_connectRevision) {
-      (*m_activeConnect)(socketId);
-      return;
-    }
-    if (!m_onConnect) return;
-    uint32_t revision = m_connectRevision;
-    ConnectCb callback;
-    callback.swap(m_onConnect);
-    ConnectCb* previousActive = m_activeConnect;
-    uint32_t previousActiveRevision = m_activeConnectRevision;
-    m_activeConnect = &callback;
-    m_activeConnectRevision = revision;
-    callback(socketId);
-    m_activeConnect = previousActive;
-    m_activeConnectRevision = previousActiveRevision;
-    if (revision == m_connectRevision) callback.swap(m_onConnect);
-#else
-    if (m_onConnect) m_onConnect(socketId);
 #endif
-  }
-
-  void callOnDisconnect(int socketId) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    if (m_activeDisconnect &&
-        m_activeDisconnectRevision == m_disconnectRevision) {
-      (*m_activeDisconnect)(socketId);
-      return;
-    }
-    if (!m_onDisconnect) return;
-    uint32_t revision = m_disconnectRevision;
-    DisconnectCb callback;
-    callback.swap(m_onDisconnect);
-    DisconnectCb* previousActive = m_activeDisconnect;
-    uint32_t previousActiveRevision = m_activeDisconnectRevision;
-    m_activeDisconnect = &callback;
-    m_activeDisconnectRevision = revision;
-    callback(socketId);
-    m_activeDisconnect = previousActive;
-    m_activeDisconnectRevision = previousActiveRevision;
-    if (revision == m_disconnectRevision) callback.swap(m_onDisconnect);
-#else
-    if (m_onDisconnect) m_onDisconnect(socketId);
-#endif
-  }
-
-  void callOnMessage(WsMessage& message) {
-#ifdef STD_FUNCTION_MIDDLEWARE
-    if (!m_onMessage) return;
-    m_messageChanged = false;
-    MessageCb callback;
-    callback.swap(m_onMessage);
-    callback(message);
-    if (!m_messageChanged) callback.swap(m_onMessage);
-#else
-    if (m_onMessage) m_onMessage(message);
-#endif
-  }
 
   bool validRoom(int r) const { return m_rooms.validRoom(r); }
   bool validSocket(int s) const { return s >= 0 && s < N; }
@@ -370,7 +281,7 @@ class WsChannel {
     resetRxState(i);
     m_rooms.clearClient(i);
     m_slots[i].client.stop();
-    callOnDisconnect(i);
+    if (m_onDisconnect) m_onDisconnect(i);
   }
 
   void closeSlot(int i, uint16_t code) {
@@ -584,9 +495,11 @@ class WsChannel {
           closeSlot(i, 1007);
           return;
         }
+        // Retire the frame before user code can throw or reuse this slot.
+        resetRxFrame(i);
         if (m_onMessage) {
           WsMessage msg(s.rxPayload, length, opcode, i);
-          callOnMessage(msg);
+          m_onMessage(msg);
         }
         break;
       }
