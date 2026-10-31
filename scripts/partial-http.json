@@ -1,0 +1,83 @@
+[
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 1,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 15,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 18,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 21,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 25,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 35,
+    "wrapper": "decl",
+    "std_function": true
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 37,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 39,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 46,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 49,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 51,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 53,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 67,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 71,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 78,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 83,
+    "wrapper": "decl"
+  }
+]

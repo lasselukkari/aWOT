@@ -1,0 +1,89 @@
+---
+import { Code } from 'astro:components';
+import { codeThemes } from '~/utils/code-themes';
+import Layout from '~/layouts/Layout.astro';
+import Hero from '~/components/widgets/Hero.astro';
+import Features from '~/components/widgets/Features.astro';
+import Button from '~/components/ui/Button.astro';
+import BoardHeadline from '~/components/BoardHeadline.astro';
+
+const code = `#include <aWOT.h>
+
+App app;
+
+void hello(Request& req, Response& res) {
+  res.print("Hello from Arduino!");
+}
+
+// Register once in setup().
+app.get("/", hello);
+
+// Process a connected client in loop().
+app.process(&client);`;
+---
+<Layout title="aWOT — Arduino web server library">
+  <main id="main-content" tabindex="-1">
+    <Hero
+      subtitle="A portable HTTP server library for Arduino, with an API inspired by Express.js. Serve a website, app or API right from your device."
+      actions={[
+        { text: 'Start building', href: '/en/starter/hello-world.html', variant: 'primary', icon: 'tabler:arrow-right' },
+        { text: 'Explore the API', href: '/en/4x/api.html' },
+      ]}
+    >
+      <div slot="bg" class="hero-atmosphere"></div>
+      <div slot="badge" class="mb-4">
+        <Button
+          text="GitHub"
+          href="https://github.com/lasselukkari/aWOT"
+          icon="tabler:brand-github"
+          class="py-2.5 px-5.5 lg:px-6 font-semibold shadow-none text-sm w-auto"
+        />
+      </div>
+      <BoardHeadline slot="headline" />
+      <div slot="image" class="home-code">
+        <div class="code-caption"><span>HTTP routes, familiar Arduino code</span><span>C++</span></div>
+        <Code code={code} lang="cpp" themes={codeThemes} />
+        <p class="px-5 py-3 text-xs text-muted border-t border-gray-200 dark:border-slate-800">The <a class="text-link underline" href="/en/starter/hello-world.html">complete sketch</a> adds your Wi-Fi or Ethernet connection.</p>
+      </div>
+    </Hero>
+    <Features
+      title="Small board. Familiar building blocks."
+      subtitle="Bring the web to your device with routes, streams, and a frontend that runs in the browser."
+      columns={2}
+      items={[
+        { title: 'Straightforward HTTP', description: 'Define routes with App, read requests as Arduino Streams, and write responses with familiar Print methods.', icon: 'tabler:route' },
+        { title: 'Your choice of transport', description: 'Use the same handlers with Arduino Client transports, including Wi-Fi and Ethernet, or with a Stream such as Serial.', icon: 'tabler:plug-connected' },
+        { title: 'Memory you can configure', description: 'Choose request and output buffers for your board. Start with ESP32 Wi-Fi or Uno Ethernet, then tune the settings.', icon: 'tabler:cpu' },
+        { title: 'More than a request', description: 'Compose middleware, serve a browser interface, and add live updates with WebSockets or server-sent events.', icon: 'tabler:arrows-exchange' },
+      ]}
+    />
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 pb-16 md:pb-24">
+      <div class="text-center max-w-2xl mx-auto mb-10"><h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">From the first route to a full web app</h2><p class="text-muted">Pick a starting point and keep building.</p></div>
+      <div class="home-path">
+        <a href="/en/starter/hello-world.html"><p class="path-label">01 · Get started</p><h3>Say hello from your board →</h3><p>Install aWOT through Arduino Library Manager and run a complete Wi-Fi or Ethernet sketch.</p></a>
+        <a href="/en/guide/tutorial.html"><p class="path-label">02 · Build an interface</p><h3>Control an LED from React →</h3><p>Connect a Vite and TypeScript frontend to an ESP32, then serve the app from the device.</p></a>
+        <a href="/en/guide/websockets.html"><p class="path-label">03 · Go live</p><h3>Keep the browser connected →</h3><p>Explore WebSockets and server-sent events for messages, events, and streaming updates.</p></a>
+      </div>
+    </section>
+    <section class="border-t border-gray-200 dark:border-slate-800 py-12 px-6 text-center bg-primary/5"><h2 class="text-2xl font-bold mb-3">Already using aWOT 3?</h2><p class="text-muted mb-6">Bring your routes and middleware to the current API.</p><Button href="/en/guide/migrating-to-v4.html" text="Read the migration guide" icon="tabler:arrow-right" /></section>
+  </main>
+</Layout>
+
+<style>
+  .hero-atmosphere {
+    position: absolute;
+    inset: 0 0 auto;
+    height: min(44rem, 100%);
+    background:
+      radial-gradient(ellipse 35% 50% at 35% 30%, color-mix(in srgb, var(--aw-color-primary) 10%, transparent), transparent),
+      radial-gradient(ellipse 35% 50% at 65% 30%, color-mix(in srgb, var(--aw-color-accent) 9%, transparent), transparent);
+  }
+  .hero-atmosphere::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(color-mix(in srgb, var(--aw-color-accent) 25%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse 45% 55% at 50% 30%, black, transparent);
+  }
+</style>

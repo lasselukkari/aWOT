@@ -1,0 +1,107 @@
+/*
+ * shadcn/ui-compatible design tokens.
+ *
+ * shadcn/ui components (and libraries that follow its convention) style
+ * themselves with semantic CSS variables such as `--background`,
+ * `--foreground`, `--card`, `--border` or `--ring`, exposed to Tailwind as
+ * `bg-background`, `text-foreground`, `border-border`, `ring-ring`, etc.
+ *
+ * This file derives those variables from AstroWind's own `--aw-*` tokens
+ * (see `src/components/CustomStyles.astro`), so re-theming AstroWind also
+ * re-themes any shadcn-style component you drop in. Dark mode works through
+ * the same `.dark` class AstroWind already toggles.
+ *
+ * Three names collide with existing AstroWind tokens and keep AstroWind's
+ * meaning: `primary`, `secondary` and `accent` are brand colours here (in
+ * shadcn `secondary`/`accent` are subtle surfaces), and `muted` is a text
+ * colour (`text-muted`) rather than a surface. Their `-foreground` pairs are
+ * provided so `bg-primary text-primary-foreground` and friends work.
+ */
+
+:root,
+.dark {
+  --background: var(--aw-color-bg-page);
+  --foreground: var(--aw-color-text-default);
+
+  --card: var(--aw-color-bg-page);
+  --card-foreground: var(--aw-color-text-default);
+  --popover: var(--aw-color-bg-page);
+  --popover-foreground: var(--aw-color-text-default);
+
+  --primary: var(--aw-color-primary);
+  --primary-foreground: #fff;
+  --secondary: var(--aw-color-secondary);
+  --secondary-foreground: #fff;
+  --accent: var(--aw-color-accent);
+  --accent-foreground: #fff;
+
+  --muted: color-mix(in oklab, var(--aw-color-text-default) 6%, var(--aw-color-bg-page));
+  --muted-foreground: var(--aw-color-text-muted);
+
+  --destructive: oklch(57.7% 0.245 27.325);
+  --destructive-foreground: #fff;
+
+  --border: color-mix(in oklab, var(--aw-color-text-default) 15%, var(--aw-color-bg-page));
+  --input: color-mix(in oklab, var(--aw-color-text-default) 15%, var(--aw-color-bg-page));
+  --ring: var(--aw-color-primary);
+
+  --radius: 0.625rem;
+
+  --chart-1: var(--aw-color-primary);
+  --chart-2: var(--aw-color-accent);
+  --chart-3: var(--aw-color-secondary);
+  --chart-4: color-mix(in oklab, var(--aw-color-primary) 55%, var(--aw-color-bg-page));
+  --chart-5: color-mix(in oklab, var(--aw-color-accent) 55%, var(--aw-color-bg-page));
+
+  --sidebar: var(--aw-color-bg-page);
+  --sidebar-foreground: var(--aw-color-text-default);
+  --sidebar-primary: var(--aw-color-primary);
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: color-mix(in oklab, var(--aw-color-text-default) 6%, var(--aw-color-bg-page));
+  --sidebar-accent-foreground: var(--aw-color-text-default);
+  --sidebar-border: color-mix(in oklab, var(--aw-color-text-default) 15%, var(--aw-color-bg-page));
+  --sidebar-ring: var(--aw-color-primary);
+}
+
+/*
+ * Expose the variables as Tailwind theme tokens. `primary`, `secondary`,
+ * `accent` and `muted` are intentionally omitted: AstroWind already defines
+ * them in `tailwind.css`.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+ * shadcn's `--radius` scale is NOT mapped onto Tailwind's `rounded-*` scale on
+ * purpose: doing so would change the radius of every existing AstroWind
+ * component. `--radius` is still defined above for components that read it
+ * directly.
+ */

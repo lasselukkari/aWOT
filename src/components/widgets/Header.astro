@@ -1,0 +1,408 @@
+---
+import { Icon } from 'astro-icon/components';
+import Logo from '~/components/Logo.astro';
+import ToggleTheme from '~/components/common/ToggleTheme.astro';
+import ToggleMenu from '~/components/common/ToggleMenu.astro';
+import Button from '~/components/ui/Button.astro';
+
+import { getHomePermalink } from '~/utils/permalinks';
+import { trimSlash, getAsset } from '~/utils/permalinks';
+import type { CallToAction } from '~/types';
+
+interface Link {
+  text?: string;
+  href?: string;
+  ariaLabel?: string;
+  icon?: string;
+}
+
+interface MenuLink extends Link {
+  links?: Array<MenuLink>;
+}
+
+export interface Props {
+  id?: string;
+  links?: Array<MenuLink>;
+  actions?: Array<CallToAction>;
+  isSticky?: boolean;
+  isDark?: boolean;
+  isFullWidth?: boolean;
+  showToggleTheme?: boolean;
+  showRssFeed?: boolean;
+  position?: string;
+}
+
+const {
+  id = 'header',
+  links = [],
+  actions = [],
+  isSticky = false,
+  isDark = false,
+  isFullWidth = false,
+  showToggleTheme = false,
+  showRssFeed = false,
+  position = 'center',
+} = Astro.props;
+
+const currentPath = `/${trimSlash(new URL(Astro.url).pathname)}`;
+
+// Compare paths without trailing slashes so the active link is detected
+// regardless of the `trailingSlash` setting (`getPermalink()` emits `/contact/`
+// when it is enabled, while `currentPath` above never has one, see #557).
+const isActive = (href?: string) => typeof href === 'string' && `/${trimSlash(href)}` === currentPath;
+const navigationId = `${id || 'header'}-navigation`;
+const actionsId = `${id || 'header'}-actions`;
+---
+
+<aw-header class:list={['top-0 z-40 flex-none w-full', { sticky: isSticky }]}>
+  <header
+    class:list={[
+      { dark: isDark },
+      'relative mx-auto w-full border-b border-gray-50/0 transition-[opacity] ease-in-out',
+    ]}
+    {...isSticky ? { 'data-aw-sticky-header': true } : {}}
+    {...id ? { id } : {}}
+  >
+    <div class="absolute inset-0"></div>
+    <div
+      class:list={[
+        'relative text-default py-3 px-3 lg:px-6 mx-auto w-full',
+        {
+          'lg:flex lg:justify-between': position !== 'center',
+        },
+        {
+          'lg:grid lg:grid-cols-3 lg:items-center': position === 'center',
+        },
+        {
+          'max-w-7xl': !isFullWidth,
+        },
+      ]}
+    >
+      <div class:list={[{ 'mr-auto rtl:mr-0 rtl:ml-auto': position === 'right' }, 'flex justify-between']}>
+        <a class="flex items-center" href={getHomePermalink()}>
+          <Logo />
+        </a>
+        <div class="flex items-center lg:hidden">
+          <ToggleMenu controls={`${navigationId} ${actionsId}`} />
+        </div>
+      </div>
+      <nav
+        id={navigationId}
+        class="items-center w-full lg:w-auto hidden lg:flex lg:mx-5 text-default overflow-y-auto overflow-x-hidden lg:overflow-visible lg:justify-self-center"
+        aria-label="Main navigation"
+      >
+        <ul
+          class="flex flex-col lg:flex-row lg:self-center w-full lg:w-auto text-xl lg:text-[0.9375rem] tracking-[0.01rem] font-medium lg:justify-center"
+        >
+          {
+            links.map(({ text, href, links }, index) => (
+              <li>
+                {links?.length ? (
+                  <details class="header-dropdown" data-aw-submenu>
+                    <summary
+                      class:list={[
+                        'hover:text-link px-4 py-3 flex items-center whitespace-nowrap cursor-pointer list-none',
+                        { 'aw-link-active': links.some((link) => isActive(link.href?.split('#')[0])) },
+                      ]}
+                      aria-controls={`${navigationId}-submenu-${index}`}
+                    >
+                      {text}{' '}
+                      <Icon
+                        name="tabler:chevron-down"
+                        class="submenu-chevron w-3.5 h-3.5 ml-1.5 rtl:ml-0 rtl:mr-1.5"
+                      />
+                    </summary>
+                    <ul id={`${navigationId}-submenu-${index}`} class="header-submenu">
+                      {links.map(({ text: text2, href: href2 }) => (
+                        <li>
+                          <a
+                            class:list={[
+                              'submenu-link block rounded px-3 py-2',
+                              { 'aw-link-active': isActive(href2) },
+                            ]}
+                            href={href2}
+                            aria-current={isActive(href2) ? 'page' : undefined}
+                          >
+                            {text2}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  <a
+                    class:list={[
+                      'hover:text-link dark:hover:text-white px-4 py-3 flex items-center whitespace-nowrap',
+                      { 'aw-link-active': isActive(href) },
+                    ]}
+                    href={href}
+                    aria-current={isActive(href) ? 'page' : undefined}
+                  >
+                    {text}
+                  </a>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <div
+        id={actionsId}
+        data-aw-header-actions
+        class:list={[
+          { 'ml-auto rtl:ml-0 rtl:mr-auto': position === 'left' },
+          'hidden lg:self-center lg:flex items-center lg:mb-0 fixed w-full lg:w-auto lg:static justify-end left-0 rtl:left-auto rtl:right-0 bottom-0 p-3 lg:p-0 lg:justify-self-end',
+        ]}
+      >
+        <div class="items-center flex justify-between w-full lg:w-auto">
+          <div class="flex">
+            {showToggleTheme && <ToggleTheme iconClass="w-6 h-6 lg:w-5 lg:h-5 lg:inline-block" />}
+            {
+              showRssFeed && (
+                <a
+                  class="text-muted dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5 inline-flex items-center"
+                  aria-label="RSS Feed"
+                  href={getAsset('/rss.xml')}
+                >
+                  <Icon name="tabler:rss" class="w-5 h-5" />
+                </a>
+              )
+            }
+          </div>
+          {
+            actions?.length ? (
+              <span class="ml-4 rtl:ml-0 rtl:mr-4">
+                {actions.map((btnProps) => (
+                  <Button {...btnProps} class="ml-2 py-2.5 px-5.5 lg:px-6 font-semibold shadow-none text-sm w-auto" />
+                ))}
+              </span>
+            ) : (
+              ''
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </header>
+</aw-header>
+
+<style>
+  aw-header {
+    display: block;
+  }
+
+  .header-dropdown { position: relative; }
+  summary::-webkit-details-marker { display: none; }
+  .header-dropdown[open] .submenu-chevron { transform: rotate(180deg); }
+  .header-submenu {
+    margin: 0 1rem .75rem;
+    padding: .25rem;
+    border-inline-start: 1px solid color-mix(in srgb, var(--aw-color-text-default) 15%, transparent);
+    font-size: .9375rem;
+    line-height: 1.4;
+  }
+  .submenu-link:hover, .submenu-link:focus-visible, .submenu-link[aria-current] {
+    color: var(--aw-color-link);
+    background: color-mix(in srgb, var(--aw-color-primary) 8%, transparent);
+  }
+  @media (width >= 64rem) {
+    .header-submenu {
+      position: absolute;
+      inset-block-start: 100%;
+      inset-inline-start: 0;
+      z-index: 50;
+      width: max-content;
+      min-width: 14rem;
+      max-width: min(22rem, calc(100vw - 2rem));
+      max-height: calc(100dvh - 6rem);
+      overflow-y: auto;
+      margin: 0;
+      padding: .5rem;
+      border: 1px solid color-mix(in srgb, var(--aw-color-text-default) 15%, transparent);
+      border-radius: .65rem;
+      background: var(--aw-color-bg-page);
+      box-shadow: 0 12px 36px rgb(0 0 0 / 15%);
+    }
+  }
+
+  /* Navigation remains usable until the menu controller is available. */
+  @media (width < 64rem) {
+    aw-header:not([data-aw-enhanced]) nav {
+      display: block;
+    }
+    aw-header:not([data-aw-enhanced]) [data-aw-header-actions] {
+      display: flex;
+      position: static;
+    }
+  }
+</style>
+
+<script>
+  class AwHeader extends HTMLElement {
+    private events?: AbortController;
+
+    connectedCallback() {
+      this.events?.abort();
+      this.events = new AbortController();
+      const { signal } = this.events;
+      const header = this.querySelector<HTMLElement>('header');
+      const toggle = this.querySelector<HTMLButtonElement>('[data-aw-toggle-menu]');
+      const nav = this.querySelector<HTMLElement>('nav');
+      const actions = this.querySelector<HTMLElement>('[data-aw-header-actions]');
+      if (!header || !toggle || !nav || !actions) return;
+      const mobile = window.matchMedia('(max-width: 1023px)');
+      const dropdowns = Array.from(nav.querySelectorAll<HTMLDetailsElement>('[data-aw-submenu]'));
+      const openedByHover = new WeakSet<HTMLDetailsElement>();
+      let expanded = false;
+
+      const closeDropdowns = (except?: HTMLDetailsElement) => {
+        dropdowns.forEach((dropdown) => {
+          if (dropdown === except) return;
+          dropdown.open = false;
+          openedByHover.delete(dropdown);
+        });
+      };
+
+      dropdowns.forEach((dropdown) => {
+        const summary = dropdown.querySelector('summary');
+        dropdown.addEventListener('toggle', () => {
+          if (dropdown.open) closeDropdowns(dropdown);
+          else openedByHover.delete(dropdown);
+        }, { signal });
+        dropdown.addEventListener('pointerenter', (event) => {
+          if (mobile.matches || event.pointerType !== 'mouse' || dropdown.open) return;
+          closeDropdowns(dropdown);
+          openedByHover.add(dropdown);
+          dropdown.open = true;
+        }, { signal });
+        dropdown.addEventListener('pointerleave', () => {
+          if (openedByHover.has(dropdown) && !dropdown.contains(document.activeElement)) {
+            dropdown.open = false;
+            openedByHover.delete(dropdown);
+          }
+        }, { signal });
+        summary?.addEventListener('click', (event) => {
+          // A first click keeps a hover-opened menu open; another click closes it.
+          if (openedByHover.has(dropdown)) {
+            event.preventDefault();
+            openedByHover.delete(dropdown);
+          }
+        }, { signal });
+        dropdown.addEventListener('focusout', (event) => {
+          if (!(event.relatedTarget instanceof Node) || !dropdown.contains(event.relatedTarget)) {
+            dropdown.open = false;
+            openedByHover.delete(dropdown);
+          }
+        }, { signal });
+      });
+
+      document.addEventListener('pointerdown', (event) => {
+        if (!dropdowns.some((dropdown) => event.target instanceof Node && dropdown.contains(event.target))) closeDropdowns();
+      }, { signal });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !event.defaultPrevented) closeDropdowns();
+      }, { signal });
+
+      const closeMenu = (returnFocus = false) => {
+        closeDropdowns();
+        expanded = false;
+        toggle.classList.remove('expanded');
+        toggle.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('overflow-hidden');
+        header.classList.remove('h-screen', 'expanded', 'bg-page');
+        nav.classList.add('hidden');
+        actions.classList.add('hidden');
+        if (returnFocus) toggle.focus();
+      };
+
+      closeMenu();
+      this.setAttribute('data-aw-enhanced', '');
+      toggle.hidden = false;
+
+      toggle.addEventListener('click', () => {
+        if (expanded) {
+          closeMenu();
+          return;
+        }
+        expanded = true;
+        toggle.classList.add('expanded');
+        toggle.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('overflow-hidden');
+        header.classList.add('h-screen', 'expanded', 'bg-page');
+        nav.classList.remove('hidden');
+        actions.classList.remove('hidden');
+        nav.querySelector<HTMLElement>('summary, a[href]')?.focus();
+      }, { signal });
+
+      this.addEventListener('click', (event) => {
+        if ((event.target as HTMLElement).closest('a[href]')) {
+          if (expanded) closeMenu();
+          else closeDropdowns();
+        }
+      }, { signal });
+
+      this.addEventListener('keydown', (event) => {
+        const activeDropdown = dropdowns.find((dropdown) => dropdown.open && dropdown.contains(document.activeElement));
+        if (event.key === 'Escape' && activeDropdown) {
+          event.preventDefault();
+          activeDropdown.open = false;
+          openedByHover.delete(activeDropdown);
+          activeDropdown.querySelector('summary')?.focus();
+          return;
+        }
+        if (!expanded || !mobile.matches) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeMenu(true);
+        } else if (event.key === 'Tab') {
+          const focusable = Array.from(header.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), summary'))
+            .filter((element) => element.getClientRects().length > 0);
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }
+      }, { signal });
+
+      // Keep the controller breakpoint aligned with the template's lg styles.
+      mobile.addEventListener('change', () => {
+        const active = document.activeElement;
+        closeMenu(mobile.matches && active instanceof HTMLElement && (nav.contains(active) || actions.contains(active)));
+      }, { signal });
+
+      // Sticky header: toggle the `scroll` class past a small threshold.
+      if (header.hasAttribute('data-aw-sticky-header')) {
+        let ticking = false;
+        const applyStyles = () => {
+          if (window.scrollY > 60) header.classList.add('scroll');
+          else header.classList.remove('scroll');
+          ticking = false;
+        };
+        const onScroll = () => {
+          if (!ticking) {
+            window.requestAnimationFrame(applyStyles);
+            ticking = true;
+          }
+        };
+        applyStyles();
+        document.addEventListener('scroll', onScroll, { passive: true, signal });
+      }
+
+      document.documentElement.classList.add('motion-safe:scroll-smooth');
+    }
+
+    disconnectedCallback() {
+      this.events?.abort();
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+
+  if (!customElements.get('aw-header')) {
+    customElements.define('aw-header', AwHeader);
+  }
+</script>

@@ -1,0 +1,47 @@
+[
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 87,
+    "wrapper": "decl",
+    "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 90,
+    "wrapper": "body",
+    "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 92,
+    "wrapper": "decl",
+    "preamble": "WsChannel<SharedClient, 4, 1> sockets;"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 99,
+    "wrapper": "decl"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 106,
+    "wrapper": "body",
+    "preamble": "SseChannel<SharedClient, 4> events;"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 108,
+    "wrapper": "decl",
+    "preamble": "SseChannel<SharedClient, 4> events;"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 111,
+    "wrapper": "body"
+  },
+  {
+    "file": "src/content/docs/4x/api.md",
+    "block": 113,
+    "wrapper": "body"
+  }
+]
