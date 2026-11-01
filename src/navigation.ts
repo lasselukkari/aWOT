@@ -1,10 +1,10 @@
 export const docsNavigation = [
-  { title: 'Get started', links: [
+  { title: 'Get started', sections: ['starter'], links: [
     { text: 'Hello world', href: '/en/starter/hello-world.html' },
     { text: 'Basic routing', href: '/en/starter/basic-routing.html' },
     { text: 'Serving static files', href: '/en/starter/static-files.html' },
   ] },
-  { title: 'Guides', links: [
+  { title: 'Guides', sections: ['guide'], links: [
     { text: 'Routing', href: '/en/guide/routing.html' },
     { text: 'Middleware', href: '/en/guide/middleware.html' },
     { text: 'Request data', href: '/en/guide/request-data.html' },
@@ -19,7 +19,7 @@ export const docsNavigation = [
     { text: 'Full stack tutorial', href: '/en/guide/tutorial.html' },
     { text: 'Migrating to v4', href: '/en/guide/migrating-to-v4.html' },
   ] },
-  { title: 'Reference', links: [
+  { title: 'Reference', sections: ['api', 'archive'], links: [
     { text: 'aWOT 4 API', href: '/en/4x/api.html' },
     { text: 'aWOT 3.x archive', href: '/en/3x/api.html' },
   ] },

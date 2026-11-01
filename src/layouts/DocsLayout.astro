@@ -6,6 +6,7 @@ import { docsNavigation } from '~/navigation';
 interface Props { title: string; description: string; section: string; apiVersion?: string; canonical?: string; source: string; toc: MarkdownHeading[]; }
 const { title, description, section, apiVersion, canonical, source, toc } = Astro.props;
 const current = Astro.url.pathname === '/en/api.html' ? '/en/4x/api.html' : Astro.url.pathname;
+const sidebarNavigation = docsNavigation.filter((group) => group.sections.includes(section));
 const editUrl = `https://github.com/lasselukkari/aWOT/edit/gh-pages/src/content/docs/${source}.md`;
 ---
 <Layout title={title} description={description} canonical={canonical}>
@@ -15,7 +16,7 @@ const editUrl = `https://github.com/lasselukkari/aWOT/edit/gh-pages/src/content/
         <summary>Documentation <span aria-hidden="true">⌄</span></summary>
         <nav aria-label="Documentation navigation">
           <p class="version-label">aWOT 4.0</p>
-          {docsNavigation.map((group) => <div class="nav-group">
+          {sidebarNavigation.map((group) => <div class="nav-group">
             <p>{group.title}</p>
             <ul>{group.links.map((link) => <li><a href={link.href} aria-current={current === link.href ? 'page' : undefined}>{link.text}</a></li>)}</ul>
           </div>)}
