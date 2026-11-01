@@ -66,7 +66,7 @@ const actionsId = `${id || 'header'}-actions`;
     <div class="absolute inset-0"></div>
     <div
       class:list={[
-        'relative text-default py-3 px-3 lg:px-6 mx-auto w-full',
+        'relative text-default py-3 px-5 lg:px-8 mx-auto w-full',
         {
           'lg:flex lg:justify-between': position !== 'center',
         },
@@ -74,7 +74,7 @@ const actionsId = `${id || 'header'}-actions`;
           'lg:grid lg:grid-cols-3 lg:items-center': position === 'center',
         },
         {
-          'max-w-7xl': !isFullWidth,
+          'max-w-[1440px]': !isFullWidth,
         },
       ]}
     >
