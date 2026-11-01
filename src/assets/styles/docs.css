@@ -14,7 +14,6 @@ body { overflow-wrap: break-word; }
 .docs-nav > summary { cursor: pointer; font-size: .875rem; font-weight: 600; }
 .docs-nav > summary span { float: right; }
 .docs-nav nav { padding-top: 1rem; }
-.version-label { color: var(--aw-color-link); font-size: .7rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1.5rem; }
 .nav-group { margin-bottom: 1.5rem; }
 .nav-group > p { font-size: .8rem; font-weight: 650; margin-bottom: .45rem; color: var(--aw-color-text-heading); }
 .nav-group ul { list-style: none; margin: 0; padding: 0; }
