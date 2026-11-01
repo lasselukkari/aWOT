@@ -15,7 +15,6 @@ const editUrl = `https://github.com/lasselukkari/aWOT/edit/gh-pages/src/content/
       <details class="docs-nav" open>
         <summary>Documentation <span aria-hidden="true">⌄</span></summary>
         <nav aria-label="Documentation navigation">
-          <p class="version-label">aWOT 4.0</p>
           {sidebarNavigation.map((group) => <div class="nav-group">
             <p>{group.title}</p>
             <ul>{group.links.map((link) => <li><a href={link.href} aria-current={current === link.href ? 'page' : undefined}>{link.text}</a></li>)}</ul>
