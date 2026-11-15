@@ -14,7 +14,7 @@
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress ip(192, 168, 1, 177);
 EthernetServer server(80);
-App app;
+HttpServer http;
 WsChannel<EthernetClient, 1, 1> sockets;
 
 void indexHandler(Request& req, Response& res) {
@@ -43,8 +43,8 @@ void setup() {
   Ethernet.begin(mac, ip);
   Serial.println(Ethernet.localIP());
   sockets.onMessage(onMessage);
-  app.get("/", indexHandler);
-  app.get("/ws", wsHandler);
+  http.get("/", indexHandler);
+  http.get("/ws", wsHandler);
   server.begin();
 }
 
@@ -58,7 +58,7 @@ void loop() {
         {"Connection", connection},
         {"Sec-WebSocket-Key", key},
         {"Sec-WebSocket-Version", version}};
-    App::ProcessResult result = app.process(&client, headers);
+    HttpServer::ProcessResult result = http.process(&client, headers);
     if (!result.responseOpen) client.stop();
   }
 

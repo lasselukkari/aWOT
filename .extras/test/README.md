@@ -6,7 +6,7 @@ in-memory transports. No board or listening network socket is required.
 ## Find an example
 
 `http/` contains small handlers, complete HTTP requests, and exact expected
-responses. They test the public API through `App::process()` and also serve as
+responses. They test the public API through `HttpServer::process()` and also serve as
 examples:
 
 | Example | What it demonstrates |
@@ -16,7 +16,7 @@ examples:
 | [authentication.cpp](http/authentication.cpp) | Capture an authorization header and allow or reject a protected request. |
 | [static-resource.cpp](http/static-resource.cpp) | Serve flash-backed HTML with GET, HEAD, and ETag-based conditional requests. |
 | [downloads.cpp](http/downloads.cpp) | Send a binary download larger than the output buffer and flush a chunked CSV response. |
-| [request-logging.cpp](http/request-logging.cpp) | Record request outcomes with per-request context and `app.finally()`. |
+| [request-logging.cpp](http/request-logging.cpp) | Record request outcomes with per-request context and `http.finally()`. |
 | [statuses.cpp](http/statuses.cpp) | Check complete responses for supported status codes, interim responses, protocol switching, and body suppression. |
 | [form-params.cpp](http/form-params.cpp) | Read form fields with bounded name/value storage. |
 | [chunked-form.cpp](http/chunked-form.cpp) | Decode a chunked form request using the ordinary request API. |
@@ -29,7 +29,7 @@ examples:
 | [error-handler.cpp](http/error-handler.cpp) | Handle parser errors and timeouts, write custom JSON errors, and reject requests before routing. |
 
 `regression/` contains focused API, parser, buffer, transport-failure, timeout,
-SSE, and WebSocket checks. Many of these also use `App::process()` to reach the
+SSE, and WebSocket checks. Many of these also use `HttpServer::process()` to reach the
 behavior under test. The folders separate readable HTTP examples from focused
 regressions; they do not imply that every regression isolates one class.
 

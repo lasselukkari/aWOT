@@ -39,7 +39,7 @@ unittest(nested_routers) {
   Router router1;
   Router router2;
   Router router3;
-  App app;
+  HttpServer http;
 
   router3.use(&beforeRouter);
   router3.get("/route/:test1", &handler);
@@ -47,10 +47,10 @@ unittest(nested_routers) {
   router2.use("/router3", &router3);
   router1.use("/router2", &router2);
 
-  app.use(&beforeAll);
-  app.use("/router1", &router1);
-  app.use(&afterAll);
-  app.process(&stream);
+  http.use(&beforeAll);
+  http.use("/router1", &router1);
+  http.use(&afterAll);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -64,10 +64,10 @@ unittest(use_route_with_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.use("/usepath", &testHandler);
-  app.process(&stream);
+  http.use("/usepath", &testHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -79,10 +79,10 @@ unittest(use_route_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.use(&testHandler);
-  app.process(&stream);
+  http.use(&testHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -94,10 +94,10 @@ unittest(get_route_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get(&testHandler);
-  app.process(&stream);
+  http.get(&testHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -109,12 +109,12 @@ unittest(router_with_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
   Router router;
 
   router.get("/route", &testHandler);
-  app.use("/router", &router);
-  app.process(&stream);
+  http.use("/router", &router);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -126,12 +126,12 @@ unittest(router_without_path) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
   Router router;
 
   router.get("/route", &testHandler);
-  app.use(&router);
-  app.process(&stream);
+  http.use(&router);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

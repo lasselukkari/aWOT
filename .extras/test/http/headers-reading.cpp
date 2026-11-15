@@ -30,11 +30,11 @@ unittest(headers_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
+  http.get("/", &handler);
 
-  app.process(&stream, headers);
+  http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
 }
@@ -55,13 +55,13 @@ unittest(same_header_multiple_times) {
                          "Connection: close" CRLF CRLF "test1,test1 test2";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
+  http.get("/", &handler);
 
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
-  app.process(&stream, options);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }
@@ -84,13 +84,13 @@ unittest(headers_field_too_large) {
       "Request Header Fields Too Large";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
+  http.get("/", &handler);
 
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
-  app.process(&stream, options);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }

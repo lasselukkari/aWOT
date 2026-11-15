@@ -19,7 +19,7 @@ const char* ssid = "YOUR_SSID";
 const char* password = "YOUR_PASSWORD";
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 WsChannel<WiFiClient, 4, 1> sockets;
 
 // HTML page stored in PROGMEM
@@ -200,8 +200,8 @@ void setup() {
   sockets.onConnect(onConnect);
   sockets.onDisconnect(onDisconnect);
 
-  app.get("/", &indexHandler);
-  app.get("/ws", &wsHandler);
+  http.get("/", &indexHandler);
+  http.get("/ws", &wsHandler);
 
   server.begin();
   Serial.println("Server started");
@@ -217,7 +217,7 @@ void loop() {
         {"Connection", connection},
         {"Sec-WebSocket-Key", key},
         {"Sec-WebSocket-Version", version}};
-    App::ProcessResult result = app.process(&client, headers);
+    HttpServer::ProcessResult result = http.process(&client, headers);
     if (!result.responseOpen) client.stop();
   }
 

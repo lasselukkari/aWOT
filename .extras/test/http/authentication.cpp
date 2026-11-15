@@ -30,12 +30,12 @@ unittest(valid_token_continues_to_protected_handler) {
   char authorization[32];
   Request::Header headers[] = {{"Authorization", authorization}};
   MockStream stream(request);
-  App app;
+  HttpServer http;
   protectedCalls = 0;
 
-  app.use(requireToken);
-  app.get("/private", privateResource);
-  app.process(&stream, headers);
+  http.use(requireToken);
+  http.get("/private", privateResource);
+  http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertEqual(1, protectedCalls);
@@ -51,12 +51,12 @@ unittest(valid_token_ignores_surrounding_optional_whitespace) {
   char authorization[sizeof("Bearer test-token")];
   Request::Header headers[] = {{"Authorization", authorization}};
   MockStream stream(request);
-  App app;
+  HttpServer http;
   protectedCalls = 0;
 
-  app.use(requireToken);
-  app.get("/private", privateResource);
-  app.process(&stream, headers);
+  http.use(requireToken);
+  http.get("/private", privateResource);
+  http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertEqual(1, protectedCalls);
@@ -73,12 +73,12 @@ unittest(missing_token_stops_before_protected_handler) {
   char authorization[32];
   Request::Header headers[] = {{"Authorization", authorization}};
   MockStream stream(request);
-  App app;
+  HttpServer http;
   protectedCalls = 0;
 
-  app.use(requireToken);
-  app.get("/private", privateResource);
-  app.process(&stream, headers);
+  http.use(requireToken);
+  http.get("/private", privateResource);
+  http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertEqual(0, protectedCalls);
@@ -96,12 +96,12 @@ unittest(invalid_token_stops_before_protected_handler) {
   char authorization[32];
   Request::Header headers[] = {{"Authorization", authorization}};
   MockStream stream(request);
-  App app;
+  HttpServer http;
   protectedCalls = 0;
 
-  app.use(requireToken);
-  app.get("/private", privateResource);
-  app.process(&stream, headers);
+  http.use(requireToken);
+  http.get("/private", privateResource);
+  http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertEqual(0, protectedCalls);

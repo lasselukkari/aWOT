@@ -27,12 +27,12 @@ unittest(absent_headers_are_null_and_present_empty_headers_are_strings) {
   MockStream stream("GET / HTTP/1.0" CRLF "X-Empty:" CRLF
                     "X-Whitespace: \t  " CRLF
                     "X-Unregistered: ignored" CRLF CRLF);
-  App app;
-  app.get("/", distinguishMissingAndEmptyHeaders);
+  HttpServer http;
+  http.get("/", distinguishMissingAndEmptyHeaders);
   missingIsNull = unregisteredIsNull = emptyIsPresent = whitespaceIsEmpty =
       false;
 
-  app.process(&stream, headers);
+  http.process(&stream, headers);
 
   assertTrue(missingIsNull);
   assertTrue(unregisteredIsNull);
@@ -64,12 +64,12 @@ unittest(repeated_headers_preserve_empty_values) {
   const char* expected[] = {"[,value]", "[value,]", "[,]"};
   char value[7];
   Request::Header headers[] = {{"X-Test", value}};
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
   for (int i = 0; i < 3; ++i) {
     MockStream stream(requests[i]);
-    app.process(&stream, headers);
+    http.process(&stream, headers);
     assertTrue(String(stream.response()).endsWith(expected[i]));
     assertEqual("", value);
   }
@@ -80,10 +80,10 @@ unittest(repeated_headers_trim_optional_whitespace_before_joining) {
   Request::Header headers[] = {{"X-Test", value}};
   MockStream stream("GET / HTTP/1.0" CRLF "X-Test: first \t" CRLF
                     "X-Test: \tsecond \t " CRLF CRLF);
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
-  app.process(&stream, headers);
+  http.process(&stream, headers);
 
   assertTrue(String(stream.response()).endsWith("[first,second]"));
   assertEqual("", value);
@@ -94,10 +94,10 @@ unittest(captured_headers_trim_ows_but_preserve_internal_whitespace) {
   Request::Header headers[] = {{"X-Test", value}};
   MockStream stream("GET / HTTP/1.0" CRLF
                     "X-Test: \talpha \t beta \t " CRLF CRLF);
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
-  app.process(&stream, headers);
+  http.process(&stream, headers);
 
   assertTrue(String(stream.response()).endsWith("[alpha \t beta]"));
   assertEqual("", value);
@@ -107,10 +107,10 @@ unittest(repeated_empty_headers_require_room_for_separator) {
   char value[1];
   Request::Header headers[] = {{"X-Test", value}};
   MockStream stream("GET / HTTP/1.0" CRLF "X-Test:" CRLF "X-Test:" CRLF CRLF);
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
-  app.process(&stream, headers);
+  http.process(&stream, headers);
 
   assertTrue(strstr(stream.response(), "HTTP/1.1 431 ") == stream.response());
   assertEqual("", value);
@@ -121,10 +121,10 @@ unittest(header_array_overload_preserves_client_lifecycle) {
   Request::Header headers[] = {{"X-Test", value}};
   SharedClient client;
   client.feed("GET / HTTP/1.0" CRLF "X-Test: client" CRLF CRLF);
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
-  App::ProcessResult result = app.process(&client, headers);
+  HttpServer::ProcessResult result = http.process(&client, headers);
 
   assertTrue(client.outputString().find("[client]") != std::string::npos);
   assertFalse(result.keepAlive);
@@ -134,7 +134,7 @@ unittest(header_array_overload_preserves_client_lifecycle) {
 
   client.feed("GET / HTTP/9.9" CRLF CRLF);
   client.clearOutput();
-  result = app.process(&client, headers);
+  result = http.process(&client, headers);
   assertTrue(client.outputString().find("HTTP/1.1 505 ") == 0);
   assertFalse(result.keepAlive);
   assertFalse(result.responseOpen);
@@ -154,12 +154,12 @@ unittest(reusing_headers_clears_values_and_presence_after_success_and_error) {
   };
   const char* expected[] = {"[first]", "MISSING", "[]", "Bad Request",
                             "MISSING"};
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
   for (int i = 0; i < 5; ++i) {
     MockStream stream(requests[i]);
-    app.process(&stream, headers);
+    http.process(&stream, headers);
     assertTrue(String(stream.response()).endsWith(expected[i]));
     assertEqual("", value);
   }
@@ -168,18 +168,18 @@ unittest(reusing_headers_clears_values_and_presence_after_success_and_error) {
 unittest(explicit_header_capacity_preserves_adjacent_storage) {
   char storage[7] = {'!', '!', '!', '!', '!', '!', '!'};
   Request::Header headers[] = {{"X-Test", storage + 1, 5}};
-  App app;
-  app.get("/", echoCapturedHeader);
+  HttpServer http;
+  http.get("/", echoCapturedHeader);
 
   MockStream fits("GET / HTTP/1.0" CRLF "X-Test: test \t " CRLF CRLF);
-  app.process(&fits, headers);
+  http.process(&fits, headers);
   assertTrue(String(fits.response()).endsWith("[test]"));
   assertEqual('!', storage[0]);
   assertEqual('!', storage[6]);
   assertEqual("", storage + 1);
 
   MockStream overflows("GET / HTTP/1.0" CRLF "X-Test: tests" CRLF CRLF);
-  app.process(&overflows, headers);
+  http.process(&overflows, headers);
   assertTrue(strstr(overflows.response(), "HTTP/1.1 431 ") ==
              overflows.response());
   assertEqual('!', storage[0]);
@@ -231,21 +231,21 @@ unittest(framing_headers_capture_normalized_values_and_decode_bodies) {
       {"Transfer-Encoding: chunked", "Transfer-Encoding", "chunked", true},
       {"tRaNsFeR-EnCoDiNg: \tChUnKeD \t", "transfer-encoding", "chunked", true},
   };
-  App app;
-  app.post("/", readCapturedFraming);
+  HttpServer http;
+  http.post("/", readCapturedFraming);
   for (const auto& test : cases) {
     char length[16], encoding[16];
     Request::Header headers[] = {{"Content-Length", length},
                                  {"Transfer-Encoding", encoding}};
     FramingCapture observation = {
         test.name, test.expected, test.chunked ? -1 : 4, false, false, false};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.headers = headers;
     options.context = &observation;
     SharedClient client;
     client.feed(framingRequest(test.fields, test.chunked));
 
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
 
     assertTrue(observation.called);
     assertTrue(observation.captured);
@@ -269,8 +269,8 @@ unittest(framing_header_capture_requires_space_for_the_complete_value) {
        false},
       {"Transfer-Encoding: chunked ", "Transfer-Encoding", "chunked", true},
   };
-  App app;
-  app.post("/", readCapturedFraming);
+  HttpServer http;
+  http.post("/", readCapturedFraming);
   for (const auto& test : cases) {
     for (int fits = 0; fits < 2; ++fits) {
       char storage[12];
@@ -279,13 +279,13 @@ unittest(framing_header_capture_requires_space_for_the_complete_value) {
       Request::Header headers[] = {{test.name, storage + 1, capacity}};
       FramingCapture observation = {
           test.name, test.expected, test.chunked ? -1 : 4, false, false, false};
-      App::ProcessOptions options;
+      HttpServer::ProcessOptions options;
       options.headers = headers;
       options.context = &observation;
       SharedClient client;
       client.feed(framingRequest(test.fields, test.chunked));
 
-      App::ProcessResult result = app.process(&client, options);
+      HttpServer::ProcessResult result = http.process(&client, options);
 
       assertEqual(fits != 0, observation.called);
       assertEqual(fits != 0, result.keepAlive);
@@ -305,8 +305,8 @@ unittest(framing_header_capture_requires_space_for_the_complete_value) {
 }
 
 unittest(captured_zero_content_length_is_distinct_from_an_absent_header) {
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     if (req.get("Transfer-Encoding") || req.left() != 0)
       return res.sendStatus(400);
     const char* length = req.get("Content-Length");
@@ -321,7 +321,7 @@ unittest(captured_zero_content_length_is_distinct_from_an_absent_header) {
                                {"Transfer-Encoding", encoding}};
   for (int i = 0; i < 2; ++i) {
     MockStream stream(requests[i]);
-    app.process(&stream, headers);
+    http.process(&stream, headers);
     assertTrue(String(stream.response()).endsWith(i == 0 ? "0" : "missing"));
   }
 }
@@ -345,21 +345,21 @@ unittest(capturing_framing_headers_does_not_bypass_validation) {
       "Transfer-Encoding: chunked" CRLF CRLF,
       "POST / HTTP/1.0" CRLF "Transfer-Encoding: chunked" CRLF CRLF,
   };
-  App app;
-  app.setTimeout(0);
-  app.post("/", readCapturedFraming);
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/", readCapturedFraming);
   for (const char* request : requests) {
     char length[32], encoding[32];
     Request::Header headers[] = {{"Content-Length", length},
                                  {"Transfer-Encoding", encoding}};
     FramingCapture observation = {"Content-Length", "", 0, false, false, false};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.headers = headers;
     options.context = &observation;
     SharedClient client;
     client.feed(request);
 
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
 
     assertFalse(observation.called);
     assertTrue(client.outputString().find("HTTP/1.1 400 ") == 0);

@@ -17,18 +17,18 @@ unittest(custom_headers_stack_allocation) {
   const char* expected = "HTTP/1.1 200 OK" CRLF "Content-Type: text/plain" CRLF
                          "Connection: close" CRLF CRLF "CustomValue";
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
   char valueBuffer[20];
   Request::Header headers[] = {
       {"X-Test", valueBuffer},
   };
 
-  app.get("/", &checkHeaderHandler);
+  http.get("/", &checkHeaderHandler);
 
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
-  app.process(&stream, options);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }

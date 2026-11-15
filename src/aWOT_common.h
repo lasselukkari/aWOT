@@ -94,7 +94,7 @@ namespace awot {
 class Response;
 class Request;
 class Router;
-class App;
+class HttpServer;
 
 }
 

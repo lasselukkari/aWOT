@@ -20,10 +20,10 @@ unittest(root_path) {
       "Connection: close" CRLF CRLF "Not Found";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
-  app.process(&stream);
+  http.get("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -36,11 +36,11 @@ unittest(custom_not_found) {
       "Connection: close" CRLF CRLF "Custom not found page";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
-  app.notFound(&notFound);
-  app.process(&stream);
+  http.get("/", &handler);
+  http.notFound(&notFound);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

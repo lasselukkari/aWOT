@@ -1,5 +1,5 @@
 # Datatypes
-App	KEYWORD1
+HttpServer	KEYWORD1
 ArrayView	KEYWORD1
 Callback	KEYWORD1
 ConnectCb	KEYWORD1

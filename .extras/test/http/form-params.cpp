@@ -27,10 +27,10 @@ unittest(form_params) {
       "Connection: close" CRLF CRLF "test1: test1" CRLF "test2: test2" CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &handler);
-  app.process(&stream);
+  http.post("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -44,10 +44,10 @@ unittest(form_params_name_too_long) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &handler);
-  app.process(&stream);
+  http.post("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -61,10 +61,10 @@ unittest(form_params_value_too_long) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &handler);
-  app.process(&stream);
+  http.post("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

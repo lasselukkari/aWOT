@@ -28,15 +28,15 @@ unittest(timeouts) {
       "HTTP/1.1 408 Request Timeout" CRLF "Content-Type: text/plain" CRLF
       "Connection: close" CRLF CRLF "Request Timeout";
 
-  App app;
+  HttpServer http;
 
-  app.setTimeout(10);
-  app.post("/", &handler);
+  http.setTimeout(10);
+  http.post("/", &handler);
   int requestLength = strlen(request);
 
   for (int length = requestLength; length >= 0; length--) {
     MockStream stream(request, length);
-    app.process(&stream);
+    http.process(&stream);
 
     if (length == requestLength) {
       assertEqual(okResponse, stream.response());
@@ -82,32 +82,32 @@ class CountingTimeoutStream : public MockStream {
 };
 
 unittest(parser_zero_timeout_accepts_ready_data) {
-  App app;
-  app.setTimeout(0);
-  app.get("/", [](Request&, Response& res) { res.print("ok"); });
+  HttpServer http;
+  http.setTimeout(0);
+  http.get("/", [](Request&, Response& res) { res.print("ok"); });
   MockStream stream("GET / HTTP/1.1" CRLF CRLF);
-  app.process(&stream);
+  http.process(&stream);
   assertTrue(strstr(stream.response(), "HTTP/1.1 200 OK") == stream.response());
 }
 
 unittest(parser_retries_empty_reads_only_with_a_timeout) {
   for (unsigned long timeout : {0UL, 10UL}) {
-    App app;
-    app.setTimeout(timeout);
-    app.get("/", [](Request&, Response& res) { res.print("ok"); });
+    HttpServer http;
+    http.setTimeout(timeout);
+    http.get("/", [](Request&, Response& res) { res.print("ok"); });
     InitiallyEmptyStream stream("GET / HTTP/1.1" CRLF CRLF);
-    app.process(&stream);
+    http.process(&stream);
     const char* expected = timeout ? "HTTP/1.1 200 OK" : "HTTP/1.1 408 ";
     assertTrue(strstr(stream.response(), expected) == stream.response());
   }
 }
 
 unittest(parser_charges_only_one_timeout_for_truncated_headers) {
-  App app;
-  app.setTimeout(1);
+  HttpServer http;
+  http.setTimeout(1);
   CountingTimeoutStream stream("GET / HTTP/1.1" CRLF);
 
-  app.process(&stream);
+  http.process(&stream);
 
   assertTrue(strstr(stream.response(), "HTTP/1.1 408 ") == stream.response());
   // m_timedRead() makes one immediate read and one timed read. Further header

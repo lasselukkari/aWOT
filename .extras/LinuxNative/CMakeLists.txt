@@ -23,7 +23,7 @@ add_library(LinuxNative STATIC
   "${ARDUINO_API}/WString.cpp"
   "${ARDUINO_API}/IPAddress.cpp"
   "${ARDUINO_API}/Common.cpp"
-  "${AWOT_SRC}/App.cpp"
+  "${AWOT_SRC}/HttpServer.cpp"
   "${AWOT_SRC}/Request.cpp"
   "${AWOT_SRC}/Response.cpp"
   "${AWOT_SRC}/Router.cpp"

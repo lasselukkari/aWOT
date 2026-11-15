@@ -7,7 +7,7 @@
 namespace awot {
 
 class Request : public Stream {
-  friend class App;
+  friend class HttpServer;
   friend class Router;
 
  public:
@@ -32,7 +32,7 @@ class Request : public Stream {
     ArrayView<char> buffer;
 
    private:
-    friend class App;
+    friend class HttpServer;
     friend class Request;
     bool m_present;
   };

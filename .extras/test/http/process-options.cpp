@@ -12,12 +12,12 @@ unittest(process_options_basic) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/test", &handler);
+  http.get("/test", &handler);
 
-  App::ProcessOptions options;
-  app.process(&stream, options);
+  HttpServer::ProcessOptions options;
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
 }
@@ -47,9 +47,9 @@ unittest(process_options_combines_inferred_buffers_headers_and_context) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/test", observeOptions);
+  http.get("/test", observeOptions);
 
   char urlBuffer[128];
   uint8_t writeBuffer[256];
@@ -57,13 +57,13 @@ unittest(process_options_combines_inferred_buffers_headers_and_context) {
   Request::Header headers[] = {{"X-Test", headerBuffer}};
   ProcessObservation observation = {false, false, urlBuffer, headerBuffer};
 
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.urlBuffer = urlBuffer;
   options.writeBuffer = writeBuffer;
   options.headers = headers;
   options.context = &observation;
 
-  app.process(&stream, options);
+  http.process(&stream, options);
 
   assertTrue(observation.called);
   assertTrue(observation.matched);

@@ -1,5 +1,5 @@
-#ifndef AWOT_APP_H_
-#define AWOT_APP_H_
+#ifndef AWOT_HTTP_SERVER_H_
+#define AWOT_HTTP_SERVER_H_
 
 #include "CallbackSlot.h"
 #include "Router.h"
@@ -7,10 +7,10 @@
 
 namespace awot {
 
-class App {
+class HttpServer {
  public:
-  App();
-  ~App();
+  HttpServer();
+  ~HttpServer();
 
   static int strcmpi(const char* s1, const char* s2);
   static int strcmpiP(const char* s1, const unsigned char* s2);

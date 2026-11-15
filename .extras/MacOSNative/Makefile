@@ -6,7 +6,7 @@ CXXFLAGS = -std=c++11 -Wall -Wextra -MMD -MP -I../../src -I. -isystem $(ARDUINO_
 
 ARDUINO_OBJECTS = Print.o Stream.o WString.o IPAddress.o Common.o
 APP_OBJECTS = HelloWorld.o MacOSSocket.o
-AWOT_OBJECTS = App.o Request.o Response.o Router.o
+AWOT_OBJECTS = HttpServer.o Request.o Response.o Router.o
 
 TARGET = HelloWorld
 TEST_TARGETS = SocketTests ShimTests
@@ -52,7 +52,7 @@ IPAddress.o: $(ARDUINO_API)/IPAddress.cpp
 Common.o: $(ARDUINO_API)/Common.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-App.o: ../../src/App.cpp
+HttpServer.o: ../../src/HttpServer.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 Request.o: ../../src/Request.cpp

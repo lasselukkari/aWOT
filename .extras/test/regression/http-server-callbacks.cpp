@@ -11,16 +11,17 @@
 #include "mocks/MockStream.h"
 
 #ifdef STD_FUNCTION_MIDDLEWARE
-struct StatefulAppCallback {
-  StatefulAppCallback(App* app, MockStream* nested, std::vector<int>* calls)
-      : app(app), nested(nested), calls(calls), count(0) {}
+struct StatefulHttpServerCallback {
+  StatefulHttpServerCallback(HttpServer* http, MockStream* nested,
+                             std::vector<int>* calls)
+      : http(http), nested(nested), calls(calls), count(0) {}
 
   void operator()(Request&, Response&) {
     calls->push_back(++count);
-    if (count == 1) app->process(nested);
+    if (count == 1) http->process(nested);
   }
 
-  App* app;
+  HttpServer* http;
   MockStream* nested;
   std::vector<int>* calls;
   int count;
@@ -32,17 +33,17 @@ unittest(finally_callback_can_clear_itself_and_use_captures) {
   std::string observed;
   MockStream first(request.c_str());
   MockStream nested(request.c_str());
-  App app;
+  HttpServer http;
   int calls = 0;
-  app.finally(
-      [&app, &nested, &observed, &calls, captured](Request&, Response&) {
+  http.finally(
+      [&http, &nested, &observed, &calls, captured](Request&, Response&) {
         ++calls;
-        app.finally(nullptr);
-        app.process(&nested);
+        http.finally(nullptr);
+        http.process(&nested);
         observed = captured;
       });
 
-  app.process(&first);
+  http.process(&first);
 
   assertEqual(1, calls);
   assertEqual(captured, observed);
@@ -54,43 +55,43 @@ unittest(not_found_callback_can_clear_itself_and_use_captures) {
   std::string observed;
   MockStream first(request.c_str());
   MockStream nested(request.c_str());
-  App app;
+  HttpServer http;
   int calls = 0;
-  app.notFound(
-      [&app, &nested, &observed, &calls, captured](Request&, Response&) {
+  http.notFound(
+      [&http, &nested, &observed, &calls, captured](Request&, Response&) {
         ++calls;
-        app.notFound(nullptr);
-        app.process(&nested);
+        http.notFound(nullptr);
+        http.process(&nested);
         observed = captured;
       });
 
-  app.process(&first);
+  http.process(&first);
 
   assertEqual(1, calls);
   assertEqual(captured, observed);
 }
 
-unittest(app_callbacks_preserve_mutable_state_during_nested_requests) {
+unittest(http_server_callbacks_preserve_mutable_state_during_nested_requests) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
   {
     MockStream first(request), nested(request), later(request);
-    App app;
+    HttpServer http;
     std::vector<int> calls;
-    app.finally(StatefulAppCallback(&app, &nested, &calls));
+    http.finally(StatefulHttpServerCallback(&http, &nested, &calls));
 
-    app.process(&first);
-    app.process(&later);
+    http.process(&first);
+    http.process(&later);
 
     assertTrue(calls == std::vector<int>({1, 2, 3}));
   }
   {
     MockStream first(request), nested(request), later(request);
-    App app;
+    HttpServer http;
     std::vector<int> calls;
-    app.notFound(StatefulAppCallback(&app, &nested, &calls));
+    http.notFound(StatefulHttpServerCallback(&http, &nested, &calls));
 
-    app.process(&first);
-    app.process(&later);
+    http.process(&first);
+    http.process(&later);
 
     assertTrue(calls == std::vector<int>({1, 2, 3}));
   }
@@ -99,20 +100,20 @@ unittest(app_callbacks_preserve_mutable_state_during_nested_requests) {
 unittest(callback_replacement_survives_nested_and_later_requests) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
   MockStream first(request), nested(request), later(request);
-  App app;
+  HttpServer http;
   int originalCalls = 0;
   int replacementCalls = 0;
   const std::string captured(256, 'r');
   std::string observed;
-  app.finally([&](Request&, Response&) {
+  http.finally([&](Request&, Response&) {
     ++originalCalls;
-    app.finally([&](Request&, Response&) { ++replacementCalls; });
-    app.process(&nested);
+    http.finally([&](Request&, Response&) { ++replacementCalls; });
+    http.process(&nested);
     observed = captured;
   });
 
-  app.process(&first);
-  app.process(&later);
+  http.process(&first);
+  http.process(&later);
 
   assertEqual(1, originalCalls);
   assertEqual(2, replacementCalls);
@@ -140,7 +141,7 @@ struct ConcurrentCallbackState {
 
 // Keep this functor small enough for std::function's inline storage: the
 // original bug moved that storage onto the first request's stack.
-struct ConcurrentAppCallback {
+struct ConcurrentHttpServerCallback {
   ConcurrentCallbackState* state;
   int marker;
 
@@ -158,25 +159,25 @@ struct ConcurrentAppCallback {
   }
 };
 
-typedef void (App::*AppCallbackSetter)(Router::Middleware);
+typedef void (HttpServer::*HttpServerCallbackSetter)(Router::Middleware);
 
-static bool overlappingRequestsRetainCallback(AppCallbackSetter setter) {
+static bool overlappingRequestsRetainCallback(HttpServerCallbackSetter setter) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
   ConcurrentCallbackState state;
-  App app;
-  (app.*setter)(ConcurrentAppCallback{&state, 42});
+  HttpServer http;
+  (http.*setter)(ConcurrentHttpServerCallback{&state, 42});
   std::thread first([&]() {
     MockStream stream(request);
-    app.process(&stream);
+    http.process(&stream);
     state.firstReturned = true;
     if (!waitForFlag(state.secondReturned)) state.timedOut = true;
   });
 
   bool started = waitForFlag(state.firstEntered);
   MockStream second(request);
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &state;
-  app.process(&second, options);
+  http.process(&second, options);
   state.secondReturned = true;
   first.join();
 
@@ -184,30 +185,30 @@ static bool overlappingRequestsRetainCallback(AppCallbackSetter setter) {
 }
 
 unittest(concurrent_finally_calls_retain_callback_after_first_request_returns) {
-  assertTrue(overlappingRequestsRetainCallback(&App::finally));
+  assertTrue(overlappingRequestsRetainCallback(&HttpServer::finally));
 }
 
 unittest(
     concurrent_not_found_calls_retain_callback_after_first_request_returns) {
-  assertTrue(overlappingRequestsRetainCallback(&App::notFound));
+  assertTrue(overlappingRequestsRetainCallback(&HttpServer::notFound));
 }
 
-unittest(concurrent_requests_can_replace_and_clear_app_callbacks) {
+unittest(concurrent_requests_can_replace_and_clear_http_server_callbacks) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
   const std::string expected(256, 'c');
   std::atomic<bool> start{false};
   std::atomic<bool> timedOut{false};
   std::atomic<bool> corrupted{false};
   std::atomic<int> calls{0};
-  App app;
+  HttpServer http;
   auto callback = [&, expected](Request&, Response&) {
     if (expected != std::string(256, 'c')) corrupted = true;
     ++calls;
   };
-  app.finally(callback);
-  app.notFound(callback);
+  http.finally(callback);
+  http.notFound(callback);
   MockStream initial(request);
-  app.process(&initial);
+  http.process(&initial);
 
   auto readRequests = [&]() {
     if (!waitForFlag(start)) {
@@ -216,17 +217,17 @@ unittest(concurrent_requests_can_replace_and_clear_app_callbacks) {
     }
     for (int i = 0; i < 1000; ++i) {
       MockStream stream(request);
-      app.process(&stream);
+      http.process(&stream);
     }
   };
   std::thread first(readRequests);
   std::thread second(readRequests);
   start = true;
   for (int i = 0; i < 1000; ++i) {
-    app.finally(nullptr);
-    app.notFound(callback);
-    app.finally(callback);
-    app.notFound(nullptr);
+    http.finally(nullptr);
+    http.notFound(callback);
+    http.finally(callback);
+    http.notFound(nullptr);
   }
   first.join();
   second.join();
@@ -236,51 +237,53 @@ unittest(concurrent_requests_can_replace_and_clear_app_callbacks) {
   assertMore(calls.load(), 0);
 }
 
-unittest(throwing_app_callbacks_remain_registered_for_later_requests) {
+unittest(throwing_http_server_callbacks_remain_registered_for_later_requests) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
-  const AppCallbackSetter setters[] = {&App::finally, &App::notFound};
-  for (AppCallbackSetter setter : setters) {
-    App app;
+  const HttpServerCallbackSetter setters[] = {&HttpServer::finally,
+                                              &HttpServer::notFound};
+  for (HttpServerCallbackSetter setter : setters) {
+    HttpServer http;
     int calls = 0;
-    (app.*setter)([&](Request&, Response&) {
+    (http.*setter)([&](Request&, Response&) {
       if (++calls == 1) throw std::runtime_error("callback failed");
     });
     bool caught = false;
     MockStream first(request);
     try {
-      app.process(&first);
+      http.process(&first);
     } catch (const std::runtime_error&) {
       caught = true;
     }
     MockStream later(request);
-    app.process(&later);
+    http.process(&later);
 
     assertTrue(caught);
     assertEqual(2, calls);
   }
 }
 
-unittest(throwing_app_callbacks_preserve_their_replacements) {
+unittest(throwing_http_server_callbacks_preserve_their_replacements) {
   const char* request = "GET / HTTP/1.1" CRLF CRLF;
-  const AppCallbackSetter setters[] = {&App::finally, &App::notFound};
-  for (AppCallbackSetter setter : setters) {
-    App app;
+  const HttpServerCallbackSetter setters[] = {&HttpServer::finally,
+                                              &HttpServer::notFound};
+  for (HttpServerCallbackSetter setter : setters) {
+    HttpServer http;
     int originalCalls = 0;
     int replacementCalls = 0;
-    (app.*setter)([&](Request&, Response&) {
+    (http.*setter)([&](Request&, Response&) {
       ++originalCalls;
-      (app.*setter)([&](Request&, Response&) { ++replacementCalls; });
+      (http.*setter)([&](Request&, Response&) { ++replacementCalls; });
       throw std::runtime_error("replaced callback failed");
     });
     bool caught = false;
     MockStream first(request);
     try {
-      app.process(&first);
+      http.process(&first);
     } catch (const std::runtime_error&) {
       caught = true;
     }
     MockStream later(request);
-    app.process(&later);
+    http.process(&later);
 
     assertTrue(caught);
     assertEqual(1, originalCalls);

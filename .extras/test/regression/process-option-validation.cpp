@@ -11,15 +11,15 @@ static void recordVisit(Request&, Response& res) {
 }
 
 unittest(invalid_options_close_client_without_touching_buffers) {
-  App app;
-  app.get("/", recordVisit);
+  HttpServer http;
+  http.get("/", recordVisit);
   char url[2] = {'!', '!'};
   uint8_t output[CHUNK_OVERHEAD + 1] = {};
   char headerValue[4] = "old";
   Request::Header header = {"X", headerValue};
 
   for (int testCase = 0; testCase < 12; ++testCase) {
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     switch (testCase) {
       case 0:
         options.urlBuffer = {url, 1};
@@ -56,7 +56,7 @@ unittest(invalid_options_close_client_without_touching_buffers) {
     SharedClient client;
     client.feed("GET / HTTP/1.1" CRLF CRLF);
     visited = false;
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
     assertFalse(visited);
     assertFalse(client.connected());
     assertFalse(result.keepAlive);
@@ -71,14 +71,14 @@ unittest(null_buffers_ignore_unused_lengths_and_zero_header_count) {
   SharedClient client;
   client.feed("GET / HTTP/1.1" CRLF CRLF);
   Request::Header ignored = {nullptr, nullptr, -1};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.urlBuffer = {nullptr, -1};
   options.writeBuffer = {nullptr, -1};
   options.headers = {&ignored, 0};
-  App app;
-  app.get("/", recordVisit);
+  HttpServer http;
+  http.get("/", recordVisit);
   visited = false;
-  app.process(&client, options);
+  http.process(&client, options);
   assertTrue(visited);
   assertTrue(client.outputString().find("200 OK") != std::string::npos);
 }
@@ -87,12 +87,12 @@ unittest(minimum_url_buffer_accepts_root) {
   SharedClient client;
   client.feed("GET / HTTP/1.1" CRLF CRLF);
   char url[4] = {'!', '!', '!', '!'};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.urlBuffer = {url + 1, 2};
-  App app;
-  app.get("/", recordVisit);
+  HttpServer http;
+  http.get("/", recordVisit);
   visited = false;
-  app.process(&client, options);
+  http.process(&client, options);
   assertTrue(visited);
   assertEqual('!', url[0]);
   assertEqual('!', url[3]);

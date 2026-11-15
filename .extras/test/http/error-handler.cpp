@@ -59,13 +59,13 @@ unittest(error_handler_not_found) {
 
   SharedClient client;
   client.feed(request);
-  App app;
+  HttpServer http;
   ErrorObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  app.onError(customErrorHandler);
-  App::ProcessResult result = app.process(&client, options);
+  http.onError(customErrorHandler);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(404, observation.code);
   assertEqual(1, observation.errorCalls);
@@ -82,14 +82,14 @@ unittest(malformed_url_uses_custom_json_error_response) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get(recordRoute);
-  app.onError(jsonErrorHandler);
+  HttpServer http;
+  http.get(recordRoute);
+  http.onError(jsonErrorHandler);
   ErrorObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string(expected), client.outputString());
   assertEqual(400, observation.code);
@@ -108,14 +108,14 @@ unittest(bodyless_custom_parser_error_completes_headers) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.use(recordRoute);
-  app.onError(emptyErrorHandler);
+  HttpServer http;
+  http.use(recordRoute);
+  http.onError(emptyErrorHandler);
   ErrorObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(400, observation.code);
   assertEqual(1, observation.errorCalls);
@@ -134,16 +134,16 @@ unittest(url_exceeding_supplied_buffer_returns_uri_too_long) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get(recordRoute);
+  HttpServer http;
+  http.get(recordRoute);
   ErrorObservation observation;
   // The supplied buffer sets the URL limit, independent of the board default.
   char urlBuffer[8];
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.urlBuffer = urlBuffer;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string(expected), client.outputString());
   assertEqual(0, observation.routeCalls);
@@ -161,13 +161,13 @@ unittest(unsupported_http_version_returns_version_not_supported) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get("/status", recordRoute);
+  HttpServer http;
+  http.get("/status", recordRoute);
   ErrorObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string(expected), client.outputString());
   assertEqual(0, observation.routeCalls);
@@ -184,17 +184,17 @@ unittest(incomplete_headers_use_custom_timeout_response_and_run_finally) {
 
   SharedClient client;
   client.feed(request);
-  App app;
+  HttpServer http;
   // Ready bytes are read normally; missing header bytes time out immediately.
-  app.setTimeout(0);
-  app.get("/status", recordRoute);
-  app.onError(jsonErrorHandler);
-  app.finally(recordFinal);
+  http.setTimeout(0);
+  http.get("/status", recordRoute);
+  http.onError(jsonErrorHandler);
+  http.finally(recordFinal);
   ErrorObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string(expected), client.outputString());
   assertEqual(408, observation.code);

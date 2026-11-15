@@ -29,7 +29,7 @@ This complete example uses an ESP32 with its Arduino board package installed:
 #include <aWOT.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 void hello(Request& req, Response& res) {
   res.print("Hello World!");
@@ -43,14 +43,14 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/", hello);
+  http.get("/", hello);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
   }
 }
 ```
@@ -61,15 +61,15 @@ the Serial Monitor at 115200 baud. The browser displays `Hello World!`.
 ## Your transport, the same application
 
 aWOT handles HTTP using the transport you provide. Any implementation of
-Arduino's `Client` or `Stream` interfaces can be passed to `app.process()`.
+Arduino's `Client` or `Stream` interfaces can be passed to `http.process()`.
 
 | Transport | Processing a request |
 | --- | --- |
-| Wi-Fi or Ethernet | `app.process(&client)` |
-| Serial, with a peer sending HTTP | `app.process(&Serial)` |
-| Native macOS sockets | `app.process(&client)` using the supplied adapter |
-| Native Windows sockets | `app.process(&client)` using the Winsock adapter |
-| Native Linux sockets | `app.process(&client)` using the POSIX adapter |
+| Wi-Fi or Ethernet | `http.process(&client)` |
+| Serial, with a peer sending HTTP | `http.process(&Serial)` |
+| Native macOS sockets | `http.process(&client)` using the supplied adapter |
+| Native Windows sockets | `http.process(&client)` using the Winsock adapter |
+| Native Linux sockets | `http.process(&client)` using the POSIX adapter |
 
 See the [Uno Ethernet example](examples/Ethernet/Ethernet.ino),
 [ESP32/ESP8266 Wi-Fi example](examples/WiFi/WiFi.ino),
@@ -102,16 +102,16 @@ void greet(Request& req, Response& res) {
 Add these registrations to `setup()`, before `server.begin()`:
 
 ```cpp
-app.use(logRequest);
-app.get("/hello/:name", greet);
+http.use(logRequest);
+http.get("/hello/:name", greet);
 ```
 
 Visiting `/hello/Arduino` returns `Hello, Arduino`. Handlers run in registration
 order; returning without `req.next()` finishes dispatch.
 
 Use `get`, `head`, `post`, `put`, `patch`, `del`, and `options` for method-specific
-routes. Group routes with `Router`, mount them with `app.use()`, and customize
-missing routes with `app.notFound()`.
+routes. Group routes with `Router`, mount them with `http.use()`, and customize
+missing routes with `http.notFound()`.
 
 ## Works with existing Arduino libraries
 
@@ -169,7 +169,7 @@ Include the generated header:
 Then mount the files in `setup()` after registering your API routes:
 
 ```cpp
-app.use(staticFiles());
+http.use(staticFiles());
 ```
 
 Build the frontend, generate the assets, and upload the sketch. Your device now

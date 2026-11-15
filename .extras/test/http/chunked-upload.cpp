@@ -44,11 +44,11 @@ unittest(chunked_upload_decodes_binary_payload_extensions_and_trailers) {
 
   SharedClient client;
   client.feed(std::string(request, sizeof(request) - 1));
-  App app;
-  app.setTimeout(0);
-  app.post("/upload", echoUpload);
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/upload", echoUpload);
 
-  App::ProcessResult result = app.process(&client);
+  HttpServer::ProcessResult result = http.process(&client);
 
   assertEqual(std::string(expected, sizeof(expected) - 1),
               client.outputString());
@@ -67,11 +67,11 @@ unittest(empty_chunked_upload_returns_a_complete_success_response) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.setTimeout(0);
-  app.post("/upload", echoUpload);
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/upload", echoUpload);
 
-  App::ProcessResult result = app.process(&client);
+  HttpServer::ProcessResult result = http.process(&client);
 
   assertEqual(std::string(expected), client.outputString());
   assertTrue(result.keepAlive);
@@ -95,12 +95,12 @@ unittest(chunked_upload_trailers_leave_next_request_ready_for_reuse) {
 
   SharedClient client;
   client.feed(std::string(upload) + next);
-  App app;
-  app.setTimeout(0);
-  app.post("/upload", echoUpload);
-  app.get("/status", uploadStatus);
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/upload", echoUpload);
+  http.get("/status", uploadStatus);
 
-  App::ProcessResult first = app.process(&client);
+  HttpServer::ProcessResult first = http.process(&client);
 
   assertEqual(std::string(expectedUpload), client.outputString());
   assertTrue(first.keepAlive);
@@ -110,8 +110,8 @@ unittest(chunked_upload_trailers_leave_next_request_ready_for_reuse) {
   assertEqual(static_cast<int>('G'), client.peek());
 
   // The server loop processes another request only when reuse is allowed.
-  App::ProcessResult second;
-  if (first.keepAlive) second = app.process(&client);
+  HttpServer::ProcessResult second;
+  if (first.keepAlive) second = http.process(&client);
   if (!second.keepAlive) client.stop();
 
   assertEqual(std::string(expectedUpload) + expectedStatus,
@@ -140,11 +140,11 @@ unittest(chunked_upload_rejects_malformed_sizes_extensions_and_trailers) {
   for (const char* body : bodies) {
     SharedClient client;
     client.feed(std::string(headers) + body);
-    App app;
-    app.setTimeout(0);
-    app.post("/upload", echoUpload);
+    HttpServer http;
+    http.setTimeout(0);
+    http.post("/upload", echoUpload);
 
-    App::ProcessResult result = app.process(&client);
+    HttpServer::ProcessResult result = http.process(&client);
 
     // No successful upload response may precede the error response.
     assertEqual(std::string(expected), client.outputString());
@@ -166,15 +166,15 @@ unittest(chunked_upload_trailers_do_not_replace_captured_headers) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.setTimeout(0);
-  app.post("/upload", echoUpload);
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/upload", echoUpload);
   char uploadId[16];
   Request::Header headers[] = {{"X-Upload-Id", uploadId}};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   // The handler reads the captured header after consuming all trailers.
   assertEqual(std::string(expected), client.outputString());

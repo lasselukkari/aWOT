@@ -33,10 +33,10 @@ unittest(buffered_read) {
                          "Connection: close" CRLF CRLF "4";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &readCountHandler);
-  app.process(&stream);
+  http.post("/", &readCountHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -49,10 +49,10 @@ unittest(buffered_read_count) {
                          "Connection: close" CRLF CRLF "body";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &handler);
-  app.process(&stream);
+  http.post("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -64,9 +64,9 @@ unittest(buffered_read_rejects_missing_body) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
-  app.post("/", handler);
-  app.process(&stream);
+  HttpServer http;
+  http.post("/", handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

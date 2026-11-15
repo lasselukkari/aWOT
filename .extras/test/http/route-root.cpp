@@ -15,10 +15,10 @@ unittest(root_path) {
                          "Connection: close" CRLF CRLF "/";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
-  app.process(&stream);
+  http.get("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

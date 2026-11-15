@@ -120,8 +120,8 @@ void testSseRetainsNativeClient() {
   using NativeClient = typename Pair::ClientType;
   Pair pair;
   awot::SseChannel<NativeClient, 1> events;
-  App app;
-  app.get("/events", [&events](Request&, Response& res) { events.open(res); });
+  HttpServer http;
+  http.get("/events", [&events](Request&, Response& res) { events.open(res); });
   events.onConnect([&events](int id) { events.send(id, "hello"); });
   const std::string input = "GET /events HTTP/1.1\r\nHost: localhost\r\n\r\n";
   CHECK(pair.peer.write(reinterpret_cast<const uint8_t*>(input.data()),
@@ -129,7 +129,7 @@ void testSseRetainsNativeClient() {
   pair.waitForInput(input.size());
   {
     NativeClient local(pair.client);
-    const auto result = app.process(&local);
+    const auto result = http.process(&local);
     CHECK(result.responseOpen && !result.keepAlive);
     CHECK(events.add(local) == 0);
   }
@@ -147,13 +147,13 @@ void testWebSocketRetainsBufferedFrame() {
   using NativeClient = typename Pair::ClientType;
   Pair pair;
   awot::WsChannel<NativeClient, 1> sockets;
-  App app;
+  HttpServer http;
   bool finalized = false;
   int messages = 0;
-  app.get("/ws", [&sockets](Request& req, Response& res) {
+  http.get("/ws", [&sockets](Request& req, Response& res) {
     CHECK(sockets.upgrade(req, res));
   });
-  app.finally([&finalized](Request& req, Response& res) {
+  http.finally([&finalized](Request& req, Response& res) {
     CHECK(req.client()->connected());
     CHECK(res.headersSent());
     finalized = true;
@@ -184,7 +184,7 @@ void testWebSocketRetainsBufferedFrame() {
                                  {"Connection", connection},
                                  {"Sec-WebSocket-Key", key},
                                  {"Sec-WebSocket-Version", version}};
-    const auto result = app.process(&local, headers);
+    const auto result = http.process(&local, headers);
     CHECK(result.responseOpen && !result.keepAlive);
     CHECK(finalized);
     CHECK(local.available() == sizeof(frame));

@@ -37,12 +37,12 @@ static void heartbeat(Print& out) { out.print(": heartbeat\n\n"); }
 unittest(sse_head_response_is_not_opened_or_retained) {
   Events events;
   SharedClient client;
-  App app;
+  HttpServer http;
   opening = &events;
-  app.head("/events", openEvents);
+  http.head("/events", openEvents);
   client.feed("HEAD /events HTTP/1.1\r\nHost: local\r\n\r\n");
 
-  App::ProcessResult result = app.process(&client);
+  HttpServer::ProcessResult result = http.process(&client);
 
   const std::string expected =
       "HTTP/1.1 200 OK\r\n"
@@ -62,14 +62,14 @@ unittest(sse_open_requires_capacity_for_every_response_header) {
        ++count) {
     Events events;
     SharedClient client;
-    App app;
+    HttpServer http;
     opening = &events;
-    app.use(queueHeaders);
-    app.get("/events", openEvents);
+    http.use(queueHeaders);
+    http.get("/events", openEvents);
     client.feed("GET /events HTTP/1.1\r\nHost: local\r\n\r\n");
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &count;
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
     bool fits = count == SERVER_MAX_HEADERS - 2;
     assertEqual(fits, result.responseOpen);
     assertFalse(result.keepAlive);

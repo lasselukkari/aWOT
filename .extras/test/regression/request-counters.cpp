@@ -66,11 +66,11 @@ unittest(request_byte_counter_saturates_for_scalar_and_buffered_reads) {
   for (int bytewise = 0; bytewise < 2; ++bytewise) {
     GeneratedBodyClient client;
     CounterObservation observation = {bytewise != 0, 0, 0, 0, -1};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &observation;
-    App app;
-    app.post("/", observeCounterSaturation);
-    app.process(&client, options);
+    HttpServer http;
+    http.post("/", observeCounterSaturation);
+    http.process(&client, options);
 
     assertEqual(INT_MAX - 1, observation.before);
     assertEqual(INT_MAX, observation.boundary);
@@ -110,10 +110,10 @@ unittest(remaining_body_count_saturates_and_recovers_as_pushback_is_read) {
     // Only the header is needed; pushback reads must not touch the transport.
     MockClient client((const uint8_t*)header, strlen(header));
     Observation observation = {};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &observation;
-    App app;
-    app.post("/", [](Request& req, Response& res) {
+    HttpServer http;
+    http.post("/", [](Request& req, Response& res) {
       Observation& o = *static_cast<Observation*>(req.context);
       o.initial = req.left();
       int before = req.bytesRead();
@@ -130,7 +130,7 @@ unittest(remaining_body_count_saturates_and_recovers_as_pushback_is_read) {
       res.sendStatus(200);
     });
 
-    app.process(&client, options);
+    http.process(&client, options);
 
     assertEqual(test.length, observation.initial);
     assertEqual((int)'C', observation.peeked);

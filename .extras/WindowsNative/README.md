@@ -106,7 +106,7 @@ timeouts work. Each shared connection has a 1 KiB receive buffer, including for
 raw `request.client()` reads. Listener waits sleep until a connection arrives.
 
 `WsChannel<WindowsClient, N>` and `SseChannel<WindowsClient, N>` can retain these
-shared handles. For channel routes, retain clients only when `app.process()`
+shared handles. For channel routes, retain clients only when `http.process()`
 returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
 Let the local client leave scope without calling `stop()` after handing it to
 the channel. The Hello World worker deliberately stops every connection, so

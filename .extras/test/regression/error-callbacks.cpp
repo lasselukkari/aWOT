@@ -29,18 +29,18 @@ unittest(early_parser_errors_have_an_empty_path_in_callbacks) {
   const char* requests[] = {"BOGUS / HTTP/1.1" CRLF CRLF, ""};
   const int codes[] = {400, 408};
   for (int i = 0; i < 2; ++i) {
-    App app;
-    app.setTimeout(0);
-    app.onError(observeEarlyError);
-    app.finally(observeEarlyFinal);
+    HttpServer http;
+    http.setTimeout(0);
+    http.onError(observeEarlyError);
+    http.finally(observeEarlyFinal);
     char url[8];
     memset(url, 'X', sizeof(url));
     EarlyErrorObservation observation = {0, false, false, false};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.urlBuffer = url;
     options.context = &observation;
     MockStream stream(requests[i]);
-    app.process(&stream, options);
+    http.process(&stream, options);
 
     assertEqual(codes[i], observation.code);
     assertTrue(observation.errorPathEmpty);

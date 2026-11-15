@@ -1,10 +1,10 @@
 #ifndef AWOT_WS_CHANNEL_H_
 #define AWOT_WS_CHANNEL_H_
 
-#include "App.h"
 #include "CallbackSlot.h"
 #include "ChannelRooms.h"
 #include "ChannelWrite.h"
+#include "HttpServer.h"
 #include "Request.h"
 #include "Response.h"
 #include "WsCrypto.h"

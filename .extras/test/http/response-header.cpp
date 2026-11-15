@@ -21,10 +21,10 @@ unittest(response_header) {
       "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF "Value";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &handler);
-  app.process(&stream);
+  http.get("/", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

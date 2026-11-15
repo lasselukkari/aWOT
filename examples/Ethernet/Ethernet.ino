@@ -5,7 +5,7 @@
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 EthernetServer server(80);
 
-App app;
+HttpServer http;
 
 void indexCmd(Request& req, Response& res) {
   // P macro for printing strings from program memory
@@ -34,13 +34,13 @@ void setup() {
 
   server.begin();
 
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
 }
 
 void loop() {
   EthernetClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }
