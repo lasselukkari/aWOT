@@ -1,8 +1,8 @@
-#include "App.h"
+#include "HttpServer.h"
 
 using namespace awot;
 
-int App::strcmpi(const char* s1, const char* s2) {
+int HttpServer::strcmpi(const char* s1, const char* s2) {
   int i;
 
   for (i = 0; s1[i] && s2[i]; ++i) {
@@ -18,7 +18,7 @@ int App::strcmpi(const char* s1, const char* s2) {
   return a < b ? -1 : 1;
 }
 
-int App::strcmpiP(const char* s1, const unsigned char* s2) {
+int HttpServer::strcmpiP(const char* s1, const unsigned char* s2) {
   int i = 0;
 
   for (i = 0; s1[i] && pgm_read_byte(s2 + i); ++i) {
@@ -34,18 +34,20 @@ int App::strcmpiP(const char* s1, const unsigned char* s2) {
   return a < b ? -1 : 1;
 }
 
-App::App() : m_final(), m_notFound(), m_errorHandler(NULL), m_timeout(1000) {}
+HttpServer::HttpServer()
+    : m_final(), m_notFound(), m_errorHandler(NULL), m_timeout(1000) {}
 
-App::~App() {}
+HttpServer::~HttpServer() {}
 
-void App::onError(ErrorHandler handler) { m_errorHandler = handler; }
+void HttpServer::onError(ErrorHandler handler) { m_errorHandler = handler; }
 
-App::ProcessResult App::process(Client* client) {
+HttpServer::ProcessResult HttpServer::process(Client* client) {
   ProcessOptions options;
   return process(client, options);
 }
 
-App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
+HttpServer::ProcessResult HttpServer::process(Client* client,
+                                              const ProcessOptions& options) {
   ProcessResult result;
 
   if (!client) {
@@ -114,26 +116,27 @@ App::ProcessResult App::process(Client* client, const ProcessOptions& options) {
   return result;
 }
 
-App::ProcessResult App::m_processWithDefaultUrl(Client* client,
-                                                ProcessOptions options) {
+HttpServer::ProcessResult HttpServer::m_processWithDefaultUrl(
+    Client* client, ProcessOptions options) {
   char buffer[SERVER_URL_BUFFER_SIZE];
   options.urlBuffer = buffer;
   return process(client, options);
 }
 
-App::ProcessResult App::m_processWithDefaultWrite(Client* client,
-                                                  ProcessOptions options) {
+HttpServer::ProcessResult HttpServer::m_processWithDefaultWrite(
+    Client* client, ProcessOptions options) {
   uint8_t buffer[SERVER_OUTPUT_BUFFER_SIZE];
   options.writeBuffer = buffer;
   return process(client, options);
 }
 
-App::ProcessResult App::process(Stream* stream) {
+HttpServer::ProcessResult HttpServer::process(Stream* stream) {
   ProcessOptions options;
   return process(stream, options);
 }
 
-App::ProcessResult App::process(Stream* stream, const ProcessOptions& options) {
+HttpServer::ProcessResult HttpServer::process(Stream* stream,
+                                              const ProcessOptions& options) {
   ProcessResult result;
 
   if (!stream) {
@@ -144,76 +147,93 @@ App::ProcessResult App::process(Stream* stream, const ProcessOptions& options) {
   return process(&client, options);
 }
 
-void App::del(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::del(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::DELETE, path, middleware);
 }
 
-void App::del(Router::MIDDLEWARE_PARAM middleware) { del(NULL, middleware); }
+void HttpServer::del(Router::MIDDLEWARE_PARAM middleware) {
+  del(NULL, middleware);
+}
 
-void App::finally(Router::MIDDLEWARE_PARAM final) { m_final = final; }
+void HttpServer::finally(Router::MIDDLEWARE_PARAM final) { m_final = final; }
 
-void App::get(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::get(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::GET, path, middleware);
 }
 
-void App::get(Router::MIDDLEWARE_PARAM middleware) { get(NULL, middleware); }
+void HttpServer::get(Router::MIDDLEWARE_PARAM middleware) {
+  get(NULL, middleware);
+}
 
-void App::head(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::head(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::HEAD, path, middleware);
 }
 
-void App::head(Router::MIDDLEWARE_PARAM middleware) { head(NULL, middleware); }
+void HttpServer::head(Router::MIDDLEWARE_PARAM middleware) {
+  head(NULL, middleware);
+}
 
-void App::notFound(Router::MIDDLEWARE_PARAM notFound) { m_notFound = notFound; }
+void HttpServer::notFound(Router::MIDDLEWARE_PARAM notFound) {
+  m_notFound = notFound;
+}
 
-void App::options(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::options(const char* path,
+                         Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::OPTIONS, path, middleware);
 }
 
-void App::options(Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::options(Router::MIDDLEWARE_PARAM middleware) {
   options(NULL, middleware);
 }
 
-void App::patch(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::patch(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PATCH, path, middleware);
 }
 
-void App::patch(Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::patch(Router::MIDDLEWARE_PARAM middleware) {
   patch(NULL, middleware);
 }
 
-void App::post(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::post(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::POST, path, middleware);
 }
 
-void App::post(Router::MIDDLEWARE_PARAM middleware) { post(NULL, middleware); }
+void HttpServer::post(Router::MIDDLEWARE_PARAM middleware) {
+  post(NULL, middleware);
+}
 
-void App::put(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::put(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::PUT, path, middleware);
 }
 
-void App::put(Router::MIDDLEWARE_PARAM middleware) { put(NULL, middleware); }
+void HttpServer::put(Router::MIDDLEWARE_PARAM middleware) {
+  put(NULL, middleware);
+}
 
-void App::use(const char* path, Router::MIDDLEWARE_PARAM middleware) {
+void HttpServer::use(const char* path, Router::MIDDLEWARE_PARAM middleware) {
   m_defaultRouter.m_addMiddleware(Request::ALL, path, middleware);
 }
 
-void App::use(Router::MIDDLEWARE_PARAM middleware) { use(NULL, middleware); }
+void HttpServer::use(Router::MIDDLEWARE_PARAM middleware) {
+  use(NULL, middleware);
+}
 
-void App::setTimeout(unsigned long timeoutMillis) { m_timeout = timeoutMillis; }
+void HttpServer::setTimeout(unsigned long timeoutMillis) {
+  m_timeout = timeoutMillis;
+}
 
-void App::use(const char* path, Router* router) {
+void HttpServer::use(const char* path, Router* router) {
   m_defaultRouter.use(path, router);
 }
 
-void App::use(Router* router) { use(NULL, router); }
+void HttpServer::use(Router* router) { use(NULL, router); }
 
-void App::m_sendError(Request& request, Response& response, int code) {
+void HttpServer::m_sendError(Request& request, Response& response, int code) {
   if (m_errorHandler) m_errorHandler(request, response, code);
   if (!response.ended()) response.sendStatus(code);
 }
 
-void App::m_process(Request& request, Response& response) {
+void HttpServer::m_process(Request& request, Response& response) {
   if (!request.m_processMethod()) {
     return m_sendError(request, response, request.m_timedout() ? 408 : 400);
   }

@@ -51,13 +51,13 @@ unittest(binary_download_larger_than_output_buffer) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get("/firmware.bin", downloadFirmware);
+  HttpServer http;
+  http.get("/firmware.bin", downloadFirmware);
   uint8_t writeBuffer[32];
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.writeBuffer = writeBuffer;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   // Construct with a length so the comparison includes bytes after the NUL.
   assertEqual(std::string(expected, sizeof(expected) - 1),
@@ -77,15 +77,15 @@ unittest(chunked_download_flushes_pieces_and_finishes_once) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get("/measurements.csv", downloadMeasurements);
+  HttpServer http;
+  http.get("/measurements.csv", downloadMeasurements);
   // Allow 16 payload bytes plus framing space. The first piece spans two
   // chunks; flush() sends the shorter pieces before the buffer fills.
   uint8_t writeBuffer[CHUNK_OVERHEAD + 16];
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.writeBuffer = writeBuffer;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string(expected), client.outputString());
   assertTrue(result.keepAlive);

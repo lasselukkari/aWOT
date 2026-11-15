@@ -38,11 +38,11 @@ unittest(get_flash_backed_home_page) {
   char ifNoneMatch[32];
   Request::Header headers[] = {{"If-None-Match", ifNoneMatch}};
   MockStream stream(request);
-  App app;
-  app.get("/", serveHomePage);
-  app.head("/", serveHomePage);
+  HttpServer http;
+  http.get("/", serveHomePage);
+  http.head("/", serveHomePage);
 
-  App::ProcessResult result = app.process(&stream, headers);
+  HttpServer::ProcessResult result = http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -60,11 +60,11 @@ unittest(head_returns_resource_headers_without_body) {
   char ifNoneMatch[32];
   Request::Header headers[] = {{"If-None-Match", ifNoneMatch}};
   MockStream stream(request);
-  App app;
-  app.get("/", serveHomePage);
-  app.head("/", serveHomePage);
+  HttpServer http;
+  http.get("/", serveHomePage);
+  http.head("/", serveHomePage);
 
-  App::ProcessResult result = app.process(&stream, headers);
+  HttpServer::ProcessResult result = http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -81,11 +81,11 @@ unittest(matching_etag_returns_not_modified_without_body) {
   char ifNoneMatch[32];
   Request::Header headers[] = {{"If-None-Match", ifNoneMatch}};
   MockStream stream(request);
-  App app;
-  app.get("/", serveHomePage);
-  app.head("/", serveHomePage);
+  HttpServer http;
+  http.get("/", serveHomePage);
+  http.head("/", serveHomePage);
 
-  App::ProcessResult result = app.process(&stream, headers);
+  HttpServer::ProcessResult result = http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -104,11 +104,11 @@ unittest(stale_etag_returns_current_resource_and_tag) {
   char ifNoneMatch[32];
   Request::Header headers[] = {{"If-None-Match", ifNoneMatch}};
   MockStream stream(request);
-  App app;
-  app.get("/", serveHomePage);
-  app.head("/", serveHomePage);
+  HttpServer http;
+  http.get("/", serveHomePage);
+  http.head("/", serveHomePage);
 
-  App::ProcessResult result = app.process(&stream, headers);
+  HttpServer::ProcessResult result = http.process(&stream, headers);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);

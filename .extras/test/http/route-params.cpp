@@ -27,10 +27,10 @@ unittest(route_params_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/route/:test1/params/:test2", &handler);
-  app.process(&stream);
+  http.get("/route/:test1/params/:test2", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -45,10 +45,10 @@ unittest(route_params_value_too_long) {
   ;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/route/:test1/params/:test2", &handler);
-  app.process(&stream);
+  http.get("/route/:test1/params/:test2", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -62,12 +62,12 @@ unittest(router_route_params) {
 
   MockStream stream(request);
   Router router;
-  App app;
+  HttpServer http;
 
   router.get("/route/:test1/params/:test2", &handler);
-  app.use("/router", &router);
+  http.use("/router", &router);
 
-  app.process(&stream);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

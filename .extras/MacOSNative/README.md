@@ -96,7 +96,7 @@ connection and attaches that handle to a new one. Synchronize concurrent access
 to copies of the same connection.
 
 `WsChannel<MacOSClient, N>` and `SseChannel<MacOSClient, N>` can retain these
-shared handles. For channel routes, retain clients only when `app.process()`
+shared handles. For channel routes, retain clients only when `http.process()`
 returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
 Let the local client leave scope without calling `stop()` after handing it to
 the channel. The Hello World worker deliberately stops every connection, so

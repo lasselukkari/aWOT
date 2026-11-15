@@ -340,15 +340,15 @@ void testServerOwnershipAndWaiting() {
   CHECK(replacement.begin());
 }
 
-void testAppTimeout() {
+void testHttpServerTimeout() {
   ClientPair pair;
   const char request[] = "GET / HTTP/1.1\r\nHost: localhost\r\n";
   CHECK(pair.peer.write((const uint8_t*)request, sizeof(request) - 1) ==
         sizeof(request) - 1);
-  App app;
-  app.setTimeout(40);
+  HttpServer http;
+  http.setTimeout(40);
   Clock::time_point start = Clock::now();
-  App::ProcessResult result = app.process(&pair.client);
+  HttpServer::ProcessResult result = http.process(&pair.client);
   CHECK(elapsedMillis(start) >= 30);
   CHECK(elapsedMillis(start) < 1000);
   CHECK(!result.keepAlive && !result.responseOpen);
@@ -371,15 +371,15 @@ void rawBodyHandler(Request& request, Response& response) {
   response.print("raw body received");
 }
 
-void testAppRawBody() {
+void testHttpServerRawBody() {
   ClientPair pair;
   const char request[] =
       "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 5\r\n\r\nhello";
   CHECK(pair.peer.write((const uint8_t*)request, sizeof(request) - 1) ==
         sizeof(request) - 1);
-  App app;
-  app.post("/", rawBodyHandler);
-  app.process(&pair.client);
+  HttpServer http;
+  http.post("/", rawBodyHandler);
+  http.process(&pair.client);
   waitReadable(pair.peer.getSocket());
   uint8_t response[1024] = {};
   CHECK(pair.peer.read(response, sizeof(response) - 1) > 0);
@@ -400,8 +400,8 @@ int main() {
   testSigpipe();
   testConnectAndReconnect();
   testServerOwnershipAndWaiting();
-  testAppTimeout();
-  testAppRawBody();
+  testHttpServerTimeout();
+  testHttpServerRawBody();
   alarm(0);
   std::puts("Socket regression tests passed");
   return 0;

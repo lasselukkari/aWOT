@@ -2,8 +2,8 @@
 
 #include <limits.h>
 
-#include "App.h"
 #include "ConnectionParser.h"
+#include "HttpServer.h"
 
 using namespace awot;
 
@@ -50,7 +50,7 @@ Client* Request::client() { return m_stream; }
 char* Request::get(const char* name) {
   for (int i = 0; i < m_headers.size(); ++i) {
     Header& header = m_headers[i];
-    if (header.m_present && App::strcmpi(header.name, name) == 0) {
+    if (header.m_present && HttpServer::strcmpi(header.name, name) == 0) {
       return header.buffer.data();
     }
   }
@@ -539,10 +539,10 @@ int Request::m_processHeaders() {
     Header& header = m_headers[i];
     char length[3 * sizeof(int) + 1];
     const char* value;
-    if (lengthSeen && App::strcmpiP(header.name, lengthName) == 0) {
+    if (lengthSeen && HttpServer::strcmpiP(header.name, lengthName) == 0) {
       value = itoa((int)m_left, length, 10);
     } else if (m_bodyState == CHUNK_START &&
-               App::strcmpiP(header.name, encodingName) == 0) {
+               HttpServer::strcmpiP(header.name, encodingName) == 0) {
       value = "chunked";
     } else {
       continue;

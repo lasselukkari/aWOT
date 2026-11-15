@@ -23,10 +23,10 @@ unittest(status_continue) {
       "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", continueRequest);
-  app.process(&stream);
+  http.post("/", continueRequest);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -115,13 +115,13 @@ unittest(final_statuses_send_expected_reason_and_body) {
     expected += testCase.body;
 
     int code = testCase.code;
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &code;
     MockStream stream(request);
-    App app;
-    app.get("/status", sendConfiguredStatus);
+    HttpServer http;
+    http.get("/status", sendConfiguredStatus);
 
-    App::ProcessResult result = app.process(&stream, options);
+    HttpServer::ProcessResult result = http.process(&stream, options);
 
     assertEqual(expected, std::string(stream.response()));
     assertFalse(result.keepAlive);
@@ -148,13 +148,13 @@ unittest(bodyless_statuses_omit_reason_body_and_later_writes) {
   for (const auto& testCase : cases) {
     const char* request = "GET /status HTTP/1.1" CRLF CRLF;
     int code = testCase.code;
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &code;
     MockStream stream(request);
-    App app;
-    app.get("/status", sendBodylessStatus);
+    HttpServer http;
+    http.get("/status", sendBodylessStatus);
 
-    App::ProcessResult result = app.process(&stream, options);
+    HttpServer::ProcessResult result = http.process(&stream, options);
 
     assertEqual(testCase.expected, stream.response());
     assertFalse(result.keepAlive);
@@ -169,13 +169,13 @@ unittest(head_status_omits_reason_body) {
       "Connection: close" CRLF CRLF;
 
   int code = 404;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &code;
   MockStream stream(request);
-  App app;
-  app.head("/status", sendConfiguredStatus);
+  HttpServer http;
+  http.head("/status", sendConfiguredStatus);
 
-  App::ProcessResult result = app.process(&stream, options);
+  HttpServer::ProcessResult result = http.process(&stream, options);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -201,10 +201,10 @@ unittest(interim_statuses_finish_with_one_final_response) {
       "Connection: close" CRLF CRLF "<p>ready</p>";
 
   MockStream stream(request);
-  App app;
-  app.get("/page", sendInterimStatuses);
+  HttpServer http;
+  http.get("/page", sendInterimStatuses);
 
-  App::ProcessResult result = app.process(&stream);
+  HttpServer::ProcessResult result = http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -228,10 +228,10 @@ unittest(switching_protocols_leaves_client_open_after_headers) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.get("/upgrade", switchProtocol);
+  HttpServer http;
+  http.get("/upgrade", switchProtocol);
 
-  App::ProcessResult result = app.process(&client);
+  HttpServer::ProcessResult result = http.process(&client);
 
   assertEqual(std::string(expected), client.outputString());
   // The caller retains the client for the upgraded protocol.
@@ -246,13 +246,13 @@ unittest(unknown_status_uses_numeric_reason_and_body) {
                          "Connection: close" CRLF CRLF "599";
 
   int code = 599;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &code;
   MockStream stream(request);
-  App app;
-  app.get("/status", sendConfiguredStatus);
+  HttpServer http;
+  http.get("/status", sendConfiguredStatus);
 
-  App::ProcessResult result = app.process(&stream, options);
+  HttpServer::ProcessResult result = http.process(&stream, options);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);

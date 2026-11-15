@@ -22,10 +22,10 @@ unittest(http_methods_get) {
   const char* request = "GET /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/test", &handler);
-  app.process(&stream);
+  http.get("/test", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -34,10 +34,10 @@ unittest(http_methods_post) {
   const char* request = "POST /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/test", &handler);
-  app.process(&stream);
+  http.post("/test", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -46,10 +46,10 @@ unittest(http_methods_put) {
   const char* request = "PUT /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.put("/test", &handler);
-  app.process(&stream);
+  http.put("/test", &handler);
+  http.process(&stream);
   assertEqual(expected, stream.response());
 }
 
@@ -57,10 +57,10 @@ unittest(http_methods_patch) {
   const char* request = "PATCH /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.patch("/test", &handler);
-  app.process(&stream);
+  http.patch("/test", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -69,10 +69,10 @@ unittest(http_methods_delete) {
   const char* request = "DELETE /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.del("/test", &handler);
-  app.process(&stream);
+  http.del("/test", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -81,10 +81,10 @@ unittest(http_methods_options) {
   const char* request = "OPTIONS /test HTTP/1.0" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.options("/test", &handler);
-  app.process(&stream);
+  http.options("/test", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -97,10 +97,10 @@ unittest(http_methods_head) {
       "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.head("/test", &handler);
-  app.process(&stream);
+  http.head("/test", &handler);
+  http.process(&stream);
 
   assertEqual(noBody, stream.response());
 }

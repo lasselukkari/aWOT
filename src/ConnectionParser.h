@@ -1,7 +1,7 @@
 #ifndef AWOT_CONNECTION_PARSER_H_
 #define AWOT_CONNECTION_PARSER_H_
 
-#include "App.h"
+#include "HttpServer.h"
 
 namespace awot {
 namespace detail {
@@ -30,8 +30,8 @@ class ConnectionParser {
     m_token[m_length] = '\0';
     P(closeToken) = "close";
     P(keepAliveToken) = "keep-alive";
-    close |= App::strcmpiP(m_token, closeToken) == 0;
-    keepAlive |= App::strcmpiP(m_token, keepAliveToken) == 0;
+    close |= HttpServer::strcmpiP(m_token, closeToken) == 0;
+    keepAlive |= HttpServer::strcmpiP(m_token, keepAliveToken) == 0;
   }
 
   bool close;

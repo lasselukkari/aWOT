@@ -5,7 +5,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 // https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
 bool str_iseq(const char *s1, const char *s2) {
@@ -78,8 +78,8 @@ void setup() {
 
   server.begin();
 
-  app.use(&auth);
-  app.get("/", &indexCmd);
+  http.use(&auth);
+  http.get("/", &indexCmd);
 }
 
 void loop() {
@@ -88,7 +88,7 @@ void loop() {
   if (client.connected()) {
     char authBuffer[64];
     Request::Header headers[] = {{"Authorization", authBuffer}};
-    app.process(&client, headers);
+    http.process(&client, headers);
     client.stop();
   }
 }

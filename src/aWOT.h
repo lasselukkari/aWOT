@@ -23,7 +23,7 @@
 #ifndef AWOT_H_
 #define AWOT_H_
 
-#include "App.h"
+#include "HttpServer.h"
 #include "Request.h"
 #include "Response.h"
 #include "Router.h"

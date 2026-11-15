@@ -13,7 +13,7 @@
 #define FREQUENCY 433E6
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 char body[16];
 int counter;
 
@@ -41,8 +41,8 @@ void setup() {
   LoRa.setPins(SS, RST, DIO0);
   LoRa.begin(FREQUENCY);
 
-  app.put("/counter", &updateCounter);
-  app.get("/counter", &getCounter);
+  http.put("/counter", &updateCounter);
+  http.get("/counter", &getCounter);
 
   server.begin();
 }
@@ -51,10 +51,10 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
   }
 
   if (LoRa.parsePacket()) {
-    app.process(&LoRa);
+    http.process(&LoRa);
   }
 }

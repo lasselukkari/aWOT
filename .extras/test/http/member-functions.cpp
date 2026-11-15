@@ -24,11 +24,11 @@ unittest(member_function_route) {
                          "Connection: close" CRLF CRLF "member function";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
   MyController controller;
 
-  app.get("/", &controller, &MyController::handle);
-  app.process(&stream);
+  http.get("/", &controller, &MyController::handle);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertTrue(controller.visited);

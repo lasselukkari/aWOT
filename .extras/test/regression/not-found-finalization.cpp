@@ -21,11 +21,11 @@ unittest(bodyless_custom_not_found_completes_headers_before_finally) {
       "Content-Type: text/plain" CRLF "Connection: close" CRLF CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
   finalSawCompleteHeaders = false;
-  app.notFound(emptyNotFound);
-  app.finally(observeCompleteHeaders);
-  app.process(&stream);
+  http.notFound(emptyNotFound);
+  http.finally(observeCompleteHeaders);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertTrue(finalSawCompleteHeaders);

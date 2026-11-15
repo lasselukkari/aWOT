@@ -8,7 +8,7 @@
 
 DNSServer dnsServer;
 WiFiServer server(80);
-App app;
+HttpServer http;
 char redirectURL[30];
 
 void redirect(Request &req, Response &res) {
@@ -34,9 +34,9 @@ void setup() {
   sprintf(redirectURL, "http://%d.%d.%d.%d/popup", ip[0], ip[1], ip[2], ip[3]);
   Serial.println(ip);
 
-  app.get("/", &indexHandler);
-  app.get("/popup", &popup);
-  app.use(&redirect);
+  http.get("/", &indexHandler);
+  http.get("/popup", &popup);
+  http.use(&redirect);
 
   server.begin();
 
@@ -47,7 +47,7 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 

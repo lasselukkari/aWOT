@@ -6,7 +6,7 @@
 namespace awot {
 
 class Router {
-  friend class App;
+  friend class HttpServer;
 
  public:
 #ifdef STD_FUNCTION_MIDDLEWARE

@@ -10,7 +10,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 class Counter {
  public:
@@ -41,9 +41,9 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/", &counter, &Counter::handleRequest);
+  http.get("/", &counter, &Counter::handleRequest);
 
-  app.get("/callback", callback);
+  http.get("/callback", callback);
   server.begin();
 }
 
@@ -51,7 +51,7 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }

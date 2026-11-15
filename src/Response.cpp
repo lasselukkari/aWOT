@@ -2,9 +2,9 @@
 
 #include <limits.h>
 
-#include "App.h"
 #include "ChannelWrite.h"
 #include "ConnectionParser.h"
+#include "HttpServer.h"
 
 using namespace awot;
 
@@ -69,9 +69,9 @@ void Response::beginHeaders() {
   bool connectionWritten = false;
   for (int i = 0; i < m_headersCount; i++) {
     const char* name = m_headers[i].name;
-    bool length = App::strcmpiP(name, lengthName) == 0;
-    bool encoding = App::strcmpiP(name, encodingName) == 0;
-    bool connection = App::strcmpiP(name, connectionName) == 0;
+    bool length = HttpServer::strcmpiP(name, lengthName) == 0;
+    bool encoding = HttpServer::strcmpiP(name, encodingName) == 0;
+    bool connection = HttpServer::strcmpiP(name, connectionName) == 0;
     if (streaming && (length || encoding || connection)) continue;
     if (encoding && !m_chunkingAllowed) continue;
     if ((m_statusSent < 200 || m_statusSent == 204) && (length || encoding))
@@ -80,7 +80,8 @@ void Response::beginHeaders() {
     if (length && m_chunkedEncoding) continue;
     if (m_statusSent >= 200 && connection && !m_keepAlive) {
       P(closeConnection) = "close";
-      if (App::strcmpiP(m_headers[i].value, closeConnection) != 0) continue;
+      if (HttpServer::strcmpiP(m_headers[i].value, closeConnection) != 0)
+        continue;
     }
     this->print(m_headers[i].name);
     printP(headerSeparator);
@@ -132,7 +133,7 @@ void Response::flush() {
 
 const char* Response::get(const char* name) {
   for (int i = 0; i < m_headersCount; i++) {
-    if (App::strcmpi(name, m_headers[i].name) == 0) {
+    if (HttpServer::strcmpi(name, m_headers[i].name) == 0) {
       return m_headers[i].value;
     }
   }
@@ -180,19 +181,19 @@ void Response::set(const char* name, const char* value) {
   m_headersCount++;
 
   P(contentType) = "Content-Type";
-  if (App::strcmpiP(name, contentType) == 0) {
+  if (HttpServer::strcmpiP(name, contentType) == 0) {
     m_contentTypeSet = true;
   }
 
   P(contentLength) = "Content-Length";
-  if (App::strcmpiP(name, contentLength) == 0) {
+  if (HttpServer::strcmpiP(name, contentLength) == 0) {
     m_contentLengthSet = true;
   }
 
   P(transferEncoding) = "Transfer-Encoding";
   P(chunked) = "chunked";
-  if (App::strcmpiP(name, transferEncoding) == 0 &&
-      App::strcmpiP(value, chunked) == 0) {
+  if (HttpServer::strcmpiP(name, transferEncoding) == 0 &&
+      HttpServer::strcmpiP(value, chunked) == 0) {
     m_chunkedEncoding = true;
   }
 }
@@ -210,7 +211,7 @@ bool Response::m_canKeepAlive() const {
   bool keepAlive = false;
   P(connection) = "Connection";
   for (int i = 0; i < m_headersCount; ++i) {
-    if (App::strcmpiP(m_headers[i].name, connection) != 0) continue;
+    if (HttpServer::strcmpiP(m_headers[i].name, connection) != 0) continue;
     detail::ConnectionParser value;
     for (const char* cursor = m_headers[i].value; *cursor; ++cursor) {
       value.read((unsigned char)*cursor);

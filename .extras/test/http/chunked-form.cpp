@@ -48,10 +48,10 @@ unittest(chunked_form_decodes_fields_and_percent_escapes_across_chunks) {
       "Connection: close" CRLF CRLF "name: Jose Doe" CRLF "note: A&B" CRLF;
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/form", submitForm);
-  app.process(&stream);
+  http.post("/form", submitForm);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -67,10 +67,10 @@ unittest(chunked_form_rejects_invalid_percent_escape) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/form", submitForm);
-  App::ProcessResult result = app.process(&stream);
+  http.post("/form", submitForm);
+  HttpServer::ProcessResult result = http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -87,10 +87,10 @@ unittest(chunked_form_rejects_malformed_chunk_delimiter) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/form", submitForm);
-  App::ProcessResult result = app.process(&stream);
+  http.post("/form", submitForm);
+  HttpServer::ProcessResult result = http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);
@@ -107,11 +107,11 @@ unittest(chunked_form_rejects_missing_final_chunk) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
-  app.setTimeout(0);
+  HttpServer http;
+  http.setTimeout(0);
 
-  app.post("/form", submitForm);
-  App::ProcessResult result = app.process(&stream);
+  http.post("/form", submitForm);
+  HttpServer::ProcessResult result = http.process(&stream);
 
   assertEqual(expected, stream.response());
   assertFalse(result.keepAlive);

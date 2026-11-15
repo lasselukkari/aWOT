@@ -120,21 +120,21 @@ static std::string request(const std::string& key = "dGhlIHNhbXBsZSBub25jZQ==",
 static bool handshake(Channel& ws, SharedClient& client,
                       const std::string& input = request(),
                       void (*prepare)(Request&, Response&) = nullptr) {
-  App app;
+  HttpServer http;
   upgrading = &ws;
   upgradeResult = false;
-  if (prepare) app.use(prepare);
-  app.use(upgradeHandler);
-  app.finally(inspectResponseHeaders);
+  if (prepare) http.use(prepare);
+  http.use(upgradeHandler);
+  http.finally(inspectResponseHeaders);
   client.feed(input);
   char upgrade[40], connection[40], key[64], version[16];
   Request::Header headers[] = {{"Upgrade", upgrade},
                                {"Connection", connection},
                                {"Sec-WebSocket-Key", key},
                                {"Sec-WebSocket-Version", version}};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
   return upgradeResult && result.responseOpen;
 }
 

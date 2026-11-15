@@ -12,7 +12,7 @@
 // You can also use cURL: curl http://192.168.1.1/update --data-binary "@sketch.bin"
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 bool shouldRestart = false;
 
@@ -103,8 +103,8 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.get("/", &indexHandler);
-  app.post("/update", &update);
+  http.get("/", &indexHandler);
+  http.post("/update", &update);
   server.begin();
 }
 
@@ -114,7 +114,7 @@ void loop() {
   if (client.connected()) {
     char expectHeader[20];
     Request::Header headers[] = {{"Expect", expectHeader}};
-    app.process(&client, headers);
+    http.process(&client, headers);
     client.stop();
   }
 

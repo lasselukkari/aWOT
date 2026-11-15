@@ -16,7 +16,7 @@
 #include "MacOSSocket.h"
 
 MacOSServer server(8080);
-App app;
+HttpServer http;
 std::atomic<int> activeConnections(0);
 
 void indexCmd(Request&, Response& res) {
@@ -33,7 +33,7 @@ void indexCmd(Request&, Response& res) {
 
 void handleClient(MacOSClient client) {
   activeConnections++;
-  app.process(&client);
+  http.process(&client);
   client.stop();
   activeConnections--;
 }
@@ -41,7 +41,7 @@ void handleClient(MacOSClient client) {
 bool startServer() {
   Serial.begin(115200);
 
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
   if (!server.begin()) return false;
 
   Serial.println("Server listening on port 8080 (multithreaded)");

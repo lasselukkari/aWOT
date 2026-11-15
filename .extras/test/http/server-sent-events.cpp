@@ -26,13 +26,13 @@ unittest(sse_open_after_keepalive_sends_close_delimited_events) {
   Events events;
   SharedClient client;
   client.feed(request);
-  App app;
-  app.use(keepAlive);
-  app.get("/events", openEvents);
+  HttpServer http;
+  http.use(keepAlive);
+  http.get("/events", openEvents);
 
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &events;
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
   assertTrue(result.responseOpen);
   assertFalse(result.keepAlive);
 

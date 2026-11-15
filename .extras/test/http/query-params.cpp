@@ -28,10 +28,10 @@ unittest(query_params_ok) {
                          "Connection: close" CRLF CRLF "test1 test2";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/query", &handler);
-  app.process(&stream);
+  http.get("/query", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -45,10 +45,10 @@ unittest(query_params_value_too_long) {
       "Connection: close" CRLF CRLF "Bad Request";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/query", &handler);
-  app.process(&stream);
+  http.get("/query", &handler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -62,12 +62,12 @@ unittest(router_query_params) {
 
   MockStream stream(request);
   Router router;
-  App app;
+  HttpServer http;
 
   router.get("/query", &handler);
-  app.use("/router", &router);
+  http.use("/router", &router);
 
-  app.process(&stream);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

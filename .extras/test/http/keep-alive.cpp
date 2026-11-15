@@ -39,20 +39,20 @@ unittest(reuse_connection_after_chunked_post_then_close_after_get) {
 
   SharedClient client;
   client.feed(request);
-  App app;
-  app.setTimeout(0);
-  app.use(allowKeepAlive);
-  app.post("/greeting", greet);
-  app.get("/status", readStatus);
+  HttpServer http;
+  http.setTimeout(0);
+  http.use(allowKeepAlive);
+  http.post("/greeting", greet);
+  http.get("/status", readStatus);
 
-  App::ProcessResult first = app.process(&client);
+  HttpServer::ProcessResult first = http.process(&client);
   assertTrue(first.keepAlive);
   assertFalse(first.responseOpen);
   assertTrue(client.connected());
 
   // The server loop reuses the client only when process() allows it.
-  App::ProcessResult second;
-  if (first.keepAlive) second = app.process(&client);
+  HttpServer::ProcessResult second;
+  if (first.keepAlive) second = http.process(&client);
   if (!second.keepAlive) client.stop();
 
   assertEqual(std::string(expected), client.outputString());

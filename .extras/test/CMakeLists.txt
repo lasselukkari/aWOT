@@ -106,10 +106,10 @@ foreach(TEST_GROUP http regression)
 endforeach()
 
 if(AWOT_ENABLE_SANITIZERS)
-  set_tests_properties(app-callbacks sse websocket PROPERTIES
+  set_tests_properties(http-server-callbacks sse websocket PROPERTIES
     ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=1")
 endif()
-set_tests_properties(app-callbacks PROPERTIES TIMEOUT 30)
+set_tests_properties(http-server-callbacks PROPERTIES TIMEOUT 30)
 
 add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure DEPENDS ${TEST_LIST})
 

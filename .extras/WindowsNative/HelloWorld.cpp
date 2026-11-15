@@ -12,7 +12,7 @@
 
 #include "WindowsSocket.h"
 
-App app;
+HttpServer http;
 
 void indexCmd(Request&, Response& res) {
   res.set("Content-Type", "text/html");
@@ -27,13 +27,13 @@ void indexCmd(Request&, Response& res) {
 }
 
 void handleClient(WindowsClient client) {
-  app.process(&client);
+  http.process(&client);
   client.stop();
 }
 
 int main() {
   Serial.begin(115200);
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
   WindowsServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
   Serial.println("Server listening on port 8080 (multithreaded)");

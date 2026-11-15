@@ -6,7 +6,7 @@
 namespace awot {
 
 class Response : public Print {
-  friend class App;
+  friend class HttpServer;
   friend class Router;
   template <typename TClient, int N, int MAX_ROOMS>
   friend class WsChannel;

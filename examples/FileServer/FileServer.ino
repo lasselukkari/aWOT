@@ -8,7 +8,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 const char * indexFile = "/index.htm";
 
@@ -61,7 +61,7 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.use(&fileServer);
+  http.use(&fileServer);
 
   server.begin();
 }
@@ -70,7 +70,7 @@ void loop() {
   WiFiClient client = server.available();
 
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }

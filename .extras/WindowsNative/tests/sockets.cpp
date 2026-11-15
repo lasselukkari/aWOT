@@ -477,15 +477,15 @@ std::string readResponse(WindowsClient& client) {
   return response;
 }
 
-void testAppTimeout() {
+void testHttpServerTimeout() {
   ClientPair pair;
   const char request[] = "GET / HTTP/1.1\r\nHost: localhost\r\n";
   CHECK(pair.peer.write(reinterpret_cast<const uint8_t*>(request),
                         sizeof(request) - 1) == sizeof(request) - 1);
-  App app;
-  app.setTimeout(60);
+  HttpServer http;
+  http.setTimeout(60);
   Clock::time_point start = Clock::now();
-  App::ProcessResult result = app.process(&pair.client);
+  HttpServer::ProcessResult result = http.process(&pair.client);
   CHECK(elapsedMillis(start) >= 40);
   CHECK(elapsedMillis(start) < 2000);
   CHECK(!result.keepAlive && !result.responseOpen);
@@ -506,16 +506,16 @@ void rawBodyHandler(Request& request, Response& response) {
   response.print("raw body received");
 }
 
-void testAppRawBody() {
+void testHttpServerRawBody() {
   ClientPair pair;
   const char request[] =
       "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 5\r\n\r\nhello";
   CHECK(pair.peer.write(reinterpret_cast<const uint8_t*>(request),
                         sizeof(request) - 1) == sizeof(request) - 1);
   waitQueued(pair.client.getSocket(), sizeof(request) - 1);
-  App app;
-  app.post("/", rawBodyHandler);
-  app.process(&pair.client);
+  HttpServer http;
+  http.post("/", rawBodyHandler);
+  http.process(&pair.client);
   pair.client.stop();
   std::string response = readResponse(pair.peer);
   CHECK(response.find("HTTP/1.1 200 OK") != std::string::npos);
@@ -539,8 +539,8 @@ int main() {
   testWriteBackpressureTimeout();
   testConnectAndReconnect();
   testServerOwnershipAndWaiting();
-  testAppTimeout();
-  testAppRawBody();
+  testHttpServerTimeout();
+  testHttpServerRawBody();
   CHECK(WSACleanup() == 0);
   std::puts("Windows socket regression tests passed");
   return 0;

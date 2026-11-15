@@ -10,7 +10,7 @@
 #define WIFI_PASSWORD ""
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 SseChannel<WiFiClient, 4, 1> events;
 unsigned long lastPush = 0;
 
@@ -36,15 +36,15 @@ void setup() {
   Serial.println(WiFi.localIP());
   events.defineRoom("uptime");
   events.onConnect(onConnect);
-  app.get("/", indexHandler);
-  app.get("/events", sseHandler);
+  http.get("/", indexHandler);
+  http.get("/events", sseHandler);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    App::ProcessResult result = app.process(&client);
+    HttpServer::ProcessResult result = http.process(&client);
     if (result.responseOpen) {
       events.add(client);
     } else {

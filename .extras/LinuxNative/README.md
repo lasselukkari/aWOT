@@ -101,7 +101,7 @@ Outgoing connections accept numeric IPv4 addresses; DNS and IPv6 connections
 are not implemented.
 
 `WsChannel<LinuxClient, N>` and `SseChannel<LinuxClient, N>` can retain these
-shared handles. For channel routes, retain clients only when `app.process()`
+shared handles. For channel routes, retain clients only when `http.process()`
 returns `responseOpen`; pass successful SSE connections to `events.add(client)`.
 Let the local client leave scope without calling `stop()` after handing it to
 the channel. The Hello World worker deliberately stops every connection, so

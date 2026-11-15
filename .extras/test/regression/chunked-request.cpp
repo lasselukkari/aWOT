@@ -55,15 +55,15 @@ static void recordError(Request& req, Response& res, int code) {
   res.end();
 }
 
-static App::ProcessResult process(SharedClient& client,
-                                  ReadObservation& observation) {
-  App app;
-  app.setTimeout(0);
-  app.post("/", readBody);
-  app.onError(recordError);
-  App::ProcessOptions options;
+static HttpServer::ProcessResult process(SharedClient& client,
+                                         ReadObservation& observation) {
+  HttpServer http;
+  http.setTimeout(0);
+  http.post("/", readBody);
+  http.onError(recordError);
+  HttpServer::ProcessOptions options;
   options.context = &observation;
-  return app.process(&client, options);
+  return http.process(&client, options);
 }
 
 unittest(chunked_scalar_buffered_and_stream_reads_return_only_payload) {
@@ -84,7 +84,7 @@ unittest(chunked_scalar_buffered_and_stream_reads_return_only_payload) {
     ReadObservation observation;
     observation.mode = mode;
 
-    App::ProcessResult result = process(client, observation);
+    HttpServer::ProcessResult result = process(client, observation);
 
     assertTrue(observation.called);
     assertEqual(-1, observation.before);
@@ -106,7 +106,7 @@ unittest(chunked_header_accepts_case_and_ows_and_dispatches_empty_bodies) {
     client.feed(request("0" CRLF CRLF, header));
     ReadObservation observation;
 
-    App::ProcessResult result = process(client, observation);
+    HttpServer::ProcessResult result = process(client, observation);
 
     assertTrue(observation.called);
     assertEqual(0, observation.before);
@@ -127,7 +127,7 @@ unittest(chunk_sizes_can_exceed_a_sixteen_bit_counter) {
     ReadObservation observation;
     observation.mode = mode;
 
-    App::ProcessResult result = process(client, observation);
+    HttpServer::ProcessResult result = process(client, observation);
 
     assertEqual(payload, observation.body);
     assertEqual(0, observation.after);
@@ -141,17 +141,17 @@ unittest(large_unsigned_chunk_size_with_partial_payload_is_not_a_syntax_error) {
   SharedClient client;
   client.feed(request("80000000" CRLF "x"));
   ReadObservation observation;
-  App app;
-  app.setTimeout(0);
-  app.onError(recordError);
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.setTimeout(0);
+  http.onError(recordError);
+  http.post("/", [](Request& req, Response& res) {
     readBody(req, res);
     res.print("incomplete");
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string("x"), observation.body);
   assertEqual(-1, observation.after);
@@ -199,8 +199,8 @@ unittest(
     uint8_t data[2];
   } observation = {};
   GeneratedChunkClient client;
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     Observation& o = *static_cast<Observation*>(req.context);
     o.peek = req.peek();
     o.available = req.available();
@@ -208,10 +208,10 @@ unittest(
     o.bytes = req.bytesRead();
     res.print("incomplete");
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual((int)'x', observation.peek);
   assertEqual(INT_MAX, observation.available);
@@ -239,7 +239,7 @@ unittest(unsupported_or_ambiguous_transfer_encodings_never_dispatch) {
     SharedClient client;
     client.feed(request("0" CRLF CRLF, header));
     ReadObservation observation;
-    App::ProcessResult result = process(client, observation);
+    HttpServer::ProcessResult result = process(client, observation);
     assertFalse(observation.called);
     assertEqual(400, observation.error);
     assertFalse(result.keepAlive);
@@ -256,32 +256,32 @@ unittest(unsupported_or_ambiguous_transfer_encodings_never_dispatch) {
 }
 
 unittest(exact_payload_read_consumes_ready_final_framing_without_next_request) {
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     ReadObservation& observation = *static_cast<ReadObservation*>(req.context);
     char data[5];
     observation.body.assign(data, req.readBytes(data, sizeof(data)));
     res.set("Connection", "keep-alive");
     res.print("first");
   });
-  app.get("/", [](Request&, Response& res) { res.print("second"); });
+  http.get("/", [](Request&, Response& res) { res.print("second"); });
   const std::string first = request("2" CRLF "he" CRLF "3" CRLF "llo" CRLF
                                     "0" CRLF "X-End: yes" CRLF CRLF);
   const std::string next = "GET / HTTP/1.1" CRLF CRLF;
   SharedClient client;
   client.feed(first + next);
   ReadObservation observation;
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string("hello"), observation.body);
   assertEqual(first.size(), client.state->position);
   assertTrue(result.keepAlive);
   assertEqual((int)next.size(), client.available());
   assertEqual((int)'G', client.peek());
-  app.process(&client);
+  http.process(&client);
   assertEqual(0, client.available());
   assertTrue(client.outputString().find("second") != std::string::npos);
 }
@@ -294,8 +294,8 @@ unittest(chunked_peek_and_pushback_do_not_duplicate_wire_bytes_or_end_early) {
     int secondCount;
     int finalCount;
   } observation;
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     Observation& o = *static_cast<Observation*>(req.context);
     o.values.push_back(req.left());
     o.values.push_back(req.available());
@@ -321,10 +321,10 @@ unittest(chunked_peek_and_pushback_do_not_duplicate_wire_bytes_or_end_early) {
       request("1" CRLF "a" CRLF "1" CRLF "b" CRLF "0" CRLF CRLF);
   SharedClient client;
   client.feed(input);
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertTrue(observation.values ==
              std::vector<int>({-1, 1, 'a', -1, 'a', 0, 1, 1, '!', 0}));
@@ -352,9 +352,9 @@ unittest(chunk_metadata_and_payload_resume_at_every_packet_boundary) {
     client.feed(input);
     client.visible = input.size() - body.size() + split;
     ReadObservation observation;
-    App app;
-    app.setTimeout(0);
-    app.post("/", [](Request& req, Response& res) {
+    HttpServer http;
+    http.setTimeout(0);
+    http.post("/", [](Request& req, Response& res) {
       ReadObservation& o = *static_cast<ReadObservation*>(req.context);
       readReadyBody(req, o.body, 1);
       static_cast<RevealedClient*>(req.client())->visible = (size_t)-1;
@@ -364,10 +364,10 @@ unittest(chunk_metadata_and_payload_resume_at_every_packet_boundary) {
       res.set("Connection", "keep-alive");
       res.print("ok");
     });
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &observation;
 
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
 
     assertEqual(std::string("abc"), observation.body);
     assertEqual(0, observation.after);
@@ -384,10 +384,10 @@ unittest(form_fields_and_percent_escapes_can_cross_chunk_boundaries) {
   ReadObservation observation;
   SharedClient client;
   client.feed(request(body));
-  App app;
-  app.setTimeout(0);
-  app.onError(recordError);
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.setTimeout(0);
+  http.onError(recordError);
+  http.post("/", [](Request& req, Response& res) {
     ReadObservation& o = *static_cast<ReadObservation*>(req.context);
     char name[8], value[8];
     while (req.left()) {
@@ -398,10 +398,10 @@ unittest(form_fields_and_percent_escapes_can_cross_chunk_boundaries) {
     res.set("Connection", "keep-alive");
     res.print("ok");
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string("name=A B;x=1&2;"), observation.body);
   assertEqual(0, observation.after);
@@ -419,8 +419,8 @@ unittest(trailers_are_discarded_without_overwriting_captured_request_headers) {
   char value[16];
   Request::Header headers[] = {{"X-Test", value}};
   ReadObservation observation;
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     ReadObservation& o = *static_cast<ReadObservation*>(req.context);
     readReadyBody(req, o.body, 0);
     o.body += req.get("X-Test");
@@ -428,11 +428,11 @@ unittest(trailers_are_discarded_without_overwriting_captured_request_headers) {
     res.set("Connection", "keep-alive");
     res.print("ok");
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
   options.headers = headers;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(std::string("xoriginal"), observation.body);
   assertEqual(0, observation.after);
@@ -462,7 +462,7 @@ unittest(malformed_chunks_and_trailers_close_with_one_bad_request_response) {
     client.feed(request(body));
     ReadObservation observation;
 
-    App::ProcessResult result = process(client, observation);
+    HttpServer::ProcessResult result = process(client, observation);
 
     assertTrue(observation.called);
     assertEqual(400, observation.error);
@@ -479,9 +479,9 @@ unittest(body_syntax_error_after_response_start_closes_without_second_status) {
   SharedClient client;
   client.feed(request("1" CRLF "x!"));
   ReadObservation observation;
-  App app;
-  app.onError(recordError);
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.onError(recordError);
+  http.post("/", [](Request& req, Response& res) {
     ReadObservation& o = *static_cast<ReadObservation*>(req.context);
     res.keepOpen();
     res.print("started");
@@ -490,10 +490,10 @@ unittest(body_syntax_error_after_response_start_closes_without_second_status) {
     int second = req.read();
     o.after = first == -1 && second == -1 ? -1 : 1;
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertEqual(-1, observation.after);
   assertEqual(0, observation.error);
@@ -510,16 +510,16 @@ unittest(
   SharedClient client;
   client.feed(request("1" CRLF "x!"));
   ReadObservation observation;
-  App app;
-  app.post("/", [](Request& req, Response& res) {
+  HttpServer http;
+  http.post("/", [](Request& req, Response& res) {
     res.set("Connection", "keep-alive");
     res.print("okay");
     readReadyBody(req, static_cast<ReadObservation*>(req.context)->body, 0);
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   const std::string output = client.outputString();
   size_t boundary = output.find(CRLF CRLF);
@@ -536,24 +536,24 @@ unittest(body_error_in_middleware_stops_dispatch_and_reaches_finally) {
   SharedClient client;
   client.feed(request("Z" CRLF));
   ReadObservation observation;
-  App app;
-  app.onError(recordError);
-  app.use([](Request& req, Response&) {
+  HttpServer http;
+  http.onError(recordError);
+  http.use([](Request& req, Response&) {
     readReadyBody(req, static_cast<ReadObservation*>(req.context)->body, 0);
     req.next();
   });
-  app.post("/", [](Request& req, Response& res) {
+  http.post("/", [](Request& req, Response& res) {
     static_cast<ReadObservation*>(req.context)->called = true;
     res.print("route");
   });
-  app.finally([](Request& req, Response&) {
+  http.finally([](Request& req, Response&) {
     ReadObservation& o = *static_cast<ReadObservation*>(req.context);
     o.before = o.error;
   });
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &observation;
 
-  App::ProcessResult result = app.process(&client, options);
+  HttpServer::ProcessResult result = http.process(&client, options);
 
   assertFalse(observation.called);
   assertEqual(400, observation.error);
@@ -569,9 +569,9 @@ unittest(truncated_chunk_framing_never_reuses_or_opens_the_connection) {
     SharedClient client;
     client.feed(request(body.substr(0, length)));
     ReadObservation observation;
-    App app;
-    app.setTimeout(0);
-    app.post("/", [](Request& req, Response& res) {
+    HttpServer http;
+    http.setTimeout(0);
+    http.post("/", [](Request& req, Response& res) {
       ReadObservation& o = *static_cast<ReadObservation*>(req.context);
       readReadyBody(req, o.body, 2);
       o.after = req.left();
@@ -579,10 +579,10 @@ unittest(truncated_chunk_framing_never_reuses_or_opens_the_connection) {
       res.keepOpen();
       res.print("incomplete");
     });
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &observation;
 
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
 
     assertEqual(-1, observation.after);
     assertFalse(result.keepAlive);

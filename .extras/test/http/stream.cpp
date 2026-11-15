@@ -29,10 +29,10 @@ unittest(req_available) {
                          "Connection: close" CRLF CRLF "4";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &availableHandler);
-  app.process(&stream);
+  http.post("/", &availableHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -45,10 +45,10 @@ unittest(req_available_less_than_content_length) {
                          "Connection: close" CRLF CRLF "2";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &availableHandler);
-  app.process(&stream);
+  http.post("/", &availableHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -62,10 +62,10 @@ unittest(req_read_string) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &readStringHandler);
-  app.process(&stream);
+  http.post("/", &readStringHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -79,10 +79,10 @@ unittest(req_read_bytes) {
                          "Connection: close" CRLF CRLF "test";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &readBytesHandler);
-  app.process(&stream);
+  http.post("/", &readBytesHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -95,10 +95,10 @@ unittest(req_read_bytes_timeout) {
                          "Connection: close" CRLF CRLF "te";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.post("/", &readBytesHandler);
-  app.process(&stream);
+  http.post("/", &readBytesHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -110,9 +110,9 @@ unittest(req_read_bytes_fills_buffer_without_string_terminator) {
                          "Connection: close" CRLF CRLF "hello";
 
   MockStream stream(request);
-  App app;
-  app.post("/", readBytesHandler);
-  app.process(&stream);
+  HttpServer http;
+  http.post("/", readBytesHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }
@@ -124,10 +124,10 @@ unittest(req_print) {
                          "Connection: close" CRLF CRLF "TEST";
 
   MockStream stream(request);
-  App app;
+  HttpServer http;
 
-  app.get("/", &reqPrintHandler);
-  app.process(&stream);
+  http.get("/", &reqPrintHandler);
+  http.process(&stream);
 
   assertEqual(expected, stream.response());
 }

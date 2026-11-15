@@ -9,7 +9,7 @@
 #define WIFI_PASSWORD ""
   
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 struct context {
   IPAddress ip;
@@ -51,9 +51,9 @@ void setup() {
   }
   Serial.println(WiFi.localIP());
 
-  app.use(&fillContext);
-  app.get("/", &indexHandler);
-  app.finally(&setStatus);
+  http.use(&fillContext);
+  http.get("/", &indexHandler);
+  http.finally(&setStatus);
   server.begin();
 }
 
@@ -64,9 +64,9 @@ void loop() {
     context ctx = {};
     ctx.ip = client.remoteIP();
     ctx.start = millis();
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.context = &ctx;
-    app.process(&client, options);
+    http.process(&client, options);
     client.stop();
 
     switch (ctx.method) {

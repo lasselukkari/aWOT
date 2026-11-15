@@ -51,15 +51,15 @@ unittest(log_successful_request_once) {
   RequestLog log = {};
   char authorization[32];
   Request::Header headers[] = {{"Authorization", authorization}};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
   options.context = &log;
   MockStream stream(request);
-  App app;
-  app.use(requireToken);
-  app.get("/private", privateStatus);
-  app.finally(logRequest);
-  app.process(&stream, options);
+  HttpServer http;
+  http.use(requireToken);
+  http.get("/private", privateStatus);
+  http.finally(logRequest);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
   assertEqual(1, log.calls);
@@ -80,15 +80,15 @@ unittest(log_rejected_request_once) {
   RequestLog log = {};
   char authorization[32];
   Request::Header headers[] = {{"Authorization", authorization}};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.headers = headers;
   options.context = &log;
   MockStream stream(request);
-  App app;
-  app.use(requireToken);
-  app.get("/private", privateStatus);
-  app.finally(logRequest);
-  app.process(&stream, options);
+  HttpServer http;
+  http.use(requireToken);
+  http.get("/private", privateStatus);
+  http.finally(logRequest);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
   assertEqual(1, log.calls);
@@ -105,13 +105,13 @@ unittest(log_unmatched_request_once) {
       "Connection: close" CRLF CRLF "Not Found";
 
   RequestLog log = {};
-  App::ProcessOptions options;
+  HttpServer::ProcessOptions options;
   options.context = &log;
   MockStream stream(request);
-  App app;
-  app.get("/private", privateStatus);
-  app.finally(logRequest);
-  app.process(&stream, options);
+  HttpServer http;
+  http.get("/private", privateStatus);
+  http.finally(logRequest);
+  http.process(&stream, options);
 
   assertEqual(expected, stream.response());
   assertEqual(1, log.calls);

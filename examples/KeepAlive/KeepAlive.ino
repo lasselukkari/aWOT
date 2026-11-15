@@ -8,7 +8,7 @@
 
 WiFiServer server(80);
 WiFiClient clients[MAX_CLIENTS];
-App app;
+HttpServer http;
 unsigned long lastActivity[MAX_CLIENTS] = {};
 
 void keepAlive(Request& req, Response& res) {
@@ -23,8 +23,8 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.use(keepAlive);
-  app.get("/", indexHandler);
+  http.use(keepAlive);
+  http.get("/", indexHandler);
   server.begin();
 }
 
@@ -46,7 +46,7 @@ void loop() {
 
   for (int i = 0; i < MAX_CLIENTS; ++i) {
     if (clients[i].available()) {
-      App::ProcessResult result = app.process(&clients[i]);
+      HttpServer::ProcessResult result = http.process(&clients[i]);
       if (!result.keepAlive) clients[i].stop();
       lastActivity[i] = millis();
     } else if (clients[i].connected() &&
