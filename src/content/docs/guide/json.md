@@ -12,7 +12,7 @@ with `deserializeJson(doc, req)` and write it with `serializeJson(doc, res)`;
 the request and response have different roles.
 
 Install **ArduinoJson 7.4.3** through Arduino Library Manager, alongside
-[aWOT 4.0.0](/en/starter/hello-world.html). The
+[aWOT 4.0.1](/en/starter/hello-world.html). The
 [ArduinoJson installation guide](https://arduinojson.org/v7/how-to/install-arduinojson/)
 describes version selection. Its official API documents
 [Stream input](https://arduinojson.org/v7/api/json/deserializejson/) and
@@ -35,7 +35,7 @@ before uploading.
 #include <string.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 char userName[33] = "John Smith";
 
 void readUser(Request& req, Response& res) {
@@ -97,8 +97,8 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.get("/user", readUser);
-  app.put("/user", updateUser);
+  http.get("/user", readUser);
+  http.put("/user", updateUser);
   server.begin();
 }
 
@@ -107,7 +107,7 @@ void loop() {
   if (client.connected()) {
     char contentType[48];
     Request::Header headers[] = { {"Content-Type", contentType} };
-    app.process(&client, headers);
+    http.process(&client, headers);
     client.stop();
   }
 }

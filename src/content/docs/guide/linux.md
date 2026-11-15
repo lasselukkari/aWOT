@@ -64,7 +64,7 @@ installation is required.
 
 #include "LinuxSocket.h"
 
-App app;
+HttpServer http;
 
 void indexCmd(Request&, Response& res) {
   res.set("Content-Type", "text/html");
@@ -79,13 +79,13 @@ void indexCmd(Request&, Response& res) {
 }
 
 void handleClient(LinuxClient client) {
-  app.process(&client);
+  http.process(&client);
   client.stop();
 }
 
 int main() {
   Serial.begin(115200);
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
   LinuxServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
   Serial.println("Server listening on port 8080 (multithreaded)");
@@ -135,7 +135,7 @@ Press **Control-C** in the server terminal to stop it.
 ## Use your own routes
 
 Edit `.extras/LinuxNative/HelloWorld.cpp`. Register additional handlers in
-`main()`, before `server.begin()`, using `app.get()`, `app.post()`, or the other
+`main()`, before `server.begin()`, using `http.get()`, `http.post()`, or the other
 [routing methods](/en/starter/basic-routing.html). Stop the running server,
 rebuild with `cmake --build .extras/LinuxNative/build --parallel 4`, and start it
 again after editing.
@@ -155,7 +155,7 @@ contains the application and CMake build. `LinuxSocket.h` aliases the shared
 the existing POSIX implementation and bundled ArduinoCore-API with aWOT.
 
 `server.available(-1)` waits in `poll` until a connection arrives. Each accepted
-client moves into a worker thread, which calls `app.process(&client)` and then
+client moves into a worker thread, which calls `http.process(&client)` and then
 `client.stop()`. The example handles one request per connection and closes it
 afterward. See [Connections](/en/guide/connections.html) before changing that
 lifecycle.

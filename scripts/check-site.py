@@ -80,7 +80,7 @@ def main():
         if documents.get(path) is None or documents[path].api_version != '4x':
             errors.append(f'{path}: default/current API must be v4')
         else:
-            for anchor in ('app', 'req', 'res', 'router', 'app-process', 'app-header', 'req-stream', 'ws', 'wsmessage', 'sse', 'storage', 'configuration'):
+            for anchor in ('httpserver', 'httpserver-process', 'httpserver-header', 'app', 'req', 'res', 'router', 'app-process', 'app-header', 'req-stream', 'ws', 'wsmessage', 'sse', 'storage', 'configuration'):
                 if anchor not in documents[path].ids:
                     errors.append(f'{path}: missing required API anchor {anchor}')
     archive = documents.get('en/3x/api.html')

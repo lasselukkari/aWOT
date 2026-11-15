@@ -33,7 +33,7 @@ def main():
             for block in case.get('preamble_blocks', []):
                 preamble += fences[block-1] + '\n'
             if case['wrapper'] == 'body':
-                preamble = 'App app;\nSharedClient client;\n' + preamble
+                preamble = 'HttpServer http;\nSharedClient client;\n' + preamble
                 code = 'void snippet(Request& req, Response& res) {\n' + code + '\n}\n'
             filename = f'snippet_{len(cases)}.cpp'
             (output/filename).write_text(includes+preamble+code)
@@ -56,34 +56,34 @@ void setup() {}
 void loop() {}
 int main(int, char**) {
   {
-    App app;
-    app.get("/search", search);
+    HttpServer http;
+    http.get("/search", search);
     SharedClient good=request("GET /search?q=Ada+Lovelace HTTP/1.0\\r\\n\\r\\n");
-    app.process(&good);
+    http.process(&good);
     assert(good.outputString().find("Ada Lovelace") != std::string::npos);
     SharedClient missing=request("GET /search HTTP/1.0\\r\\n\\r\\n");
-    app.process(&missing);
+    http.process(&missing);
     assert(missing.outputString().find("400 Bad Request") != std::string::npos);
   }
   {
-    App app;
-    app.get("/items/:id", item);
+    HttpServer http;
+    http.get("/items/:id", item);
     SharedClient good=request("GET /items/a+b HTTP/1.0\\r\\n\\r\\n");
-    app.process(&good);
+    http.process(&good);
     assert(good.outputString().find("a+b") != std::string::npos);
   }
   {
-    App app;
-    app.use(authenticate);
-    app.get("/search", search);
+    HttpServer http;
+    http.use(authenticate);
+    http.get("/search", search);
     char authorization[64];
     Request::Header captures[] = {{"Authorization", authorization}};
     SharedClient denied=request("GET /search?q=secret HTTP/1.0\\r\\n\\r\\n");
-    app.process(&denied, captures);
+    http.process(&denied, captures);
     assert(denied.outputString().find("401 Unauthorized") != std::string::npos);
     assert(denied.outputString().find("secret") == std::string::npos);
     SharedClient allowed=request("GET /search?q=public HTTP/1.0\\r\\nAuthorization: Bearer example\\r\\n\\r\\n");
-    app.process(&allowed, captures);
+    http.process(&allowed, captures);
     assert(allowed.outputString().find("public") != std::string::npos);
     assert(authorization[0] == '\\0');
   }

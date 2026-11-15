@@ -68,7 +68,7 @@ native examples. No separate Arduino installation or download is required.
 
 #include "WindowsSocket.h"
 
-App app;
+HttpServer http;
 
 void indexCmd(Request&, Response& res) {
   res.set("Content-Type", "text/html");
@@ -83,13 +83,13 @@ void indexCmd(Request&, Response& res) {
 }
 
 void handleClient(WindowsClient client) {
-  app.process(&client);
+  http.process(&client);
   client.stop();
 }
 
 int main() {
   Serial.begin(115200);
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
   WindowsServer server(8080);
   if (!server.begin()) return EXIT_FAILURE;
   Serial.println("Server listening on port 8080 (multithreaded)");
@@ -144,8 +144,8 @@ only needed for the build commands.
 ## Use your own routes
 
 Edit `.extras/WindowsNative/HelloWorld.cpp` to build your application. Register
-additional handlers in `main()`, before `server.begin()`, using `app.get()`,
-`app.post()`, or the other [routing methods](/en/starter/basic-routing.html).
+additional handlers in `main()`, before `server.begin()`, using `http.get()`,
+`http.post()`, or the other [routing methods](/en/starter/basic-routing.html).
 
 After editing, stop the running server, build again with
 `cmake --build .extras/WindowsNative/build --parallel 4`, and start the executable.
@@ -171,7 +171,7 @@ uses these pieces:
 
 `server.available(-1)` waits for connections without an idle polling loop. Each
 accepted `WindowsClient` is moved into a worker thread, which calls
-`app.process(&client)` and then `client.stop()`. The example handles one request
+`http.process(&client)` and then `client.stop()`. The example handles one request
 per connection and closes it afterward. See
 [Connections](/en/guide/connections.html) before changing that lifecycle.
 

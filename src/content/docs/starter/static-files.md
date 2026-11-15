@@ -9,7 +9,7 @@ section: "starter"
 
 The published `awot-static` command in **awot-scripts 3.1.2** converts a directory
 of browser assets into gzipped flash data and a `Router` in `StaticFiles.h`.
-Its output has been compiled with aWOT 4.0.0. The converter's package version is
+Its output has been compiled with aWOT 4.0.1. The converter's package version is
 independent of the library version; install the library with Arduino Library
 Manager and create the sketch manually as shown in
 [Hello world](/en/starter/hello-world.html).
@@ -62,7 +62,7 @@ credentials before uploading:
 #include "StaticFiles.h"
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 void health(Request& req, Response& res) {
   res.set("Content-Type", "text/plain");
@@ -74,22 +74,22 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.get("/api/health", health);
-  app.use(staticFiles());
+  http.get("/api/health", health);
+  http.use(staticFiles());
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }
 ```
 
 Mount `staticFiles()` **once in setup**, after the API routes. The generated
-function returns a pointer to a static router, which outlives its use by `app`.
+function returns a pointer to a static router, which outlives its use by `http`.
 Generate the header again whenever frontend assets change, then rebuild and
 upload the firmware. The assets occupy flash; their size must fit your board's
 application partition. This workflow does not measure or promise an AVR memory

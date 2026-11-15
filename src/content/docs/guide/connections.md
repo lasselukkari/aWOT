@@ -7,9 +7,9 @@ section: "guide"
 
 # Connections
 
-`app.process(&client)` handles one request. It parses the request, dispatches
+`http.process(&client)` handles one request. It parses the request, dispatches
 handlers, runs the final callback, and finalizes the response before returning
-an `App::ProcessResult`. aWOT borrows the client during processing; neither
+an `HttpServer::ProcessResult`. aWOT borrows the client during processing; neither
 result flag extends the client's lifetime. After a successful response,
 connection cleanup depends on the client implementation and whether your
 application keeps a client object alive.
@@ -36,7 +36,7 @@ for a close-after-response policy that works with either implementation. This
 partial loop fragment belongs after acquiring a connected client:
 
 ```cpp
-app.process(&client);
+http.process(&client);
 client.stop();
 ```
 
@@ -83,7 +83,7 @@ the caller to close that client.
 #include <aWOT.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 struct ClientState {
   WiFiClient client;
@@ -108,9 +108,9 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.setTimeout(1000);
-  app.use(allowReuse);
-  app.get("/", hello);
+  http.setTimeout(1000);
+  http.use(allowReuse);
+  http.get("/", hello);
   server.begin();
 }
 
@@ -124,7 +124,7 @@ void loop() {
     if (!slot.client.connected()) continue;
 
     if (slot.client.available()) {
-      App::ProcessResult result = app.process(&slot.client);
+      HttpServer::ProcessResult result = http.process(&slot.client);
       slot.lastActivity = millis();
       if (!result.keepAlive) slot.client.stop();
     } else if (millis() - slot.lastActivity >= maxIdle) {
@@ -145,7 +145,7 @@ Check that curl reports reusing the connection for its second request. Two
 separate curl processes establish separate connections.
 
 The connections stay open together, but this loop processes requests one at a
-time. `app.process()` is synchronous: an incomplete request or a slow handler
+time. `http.process()` is synchronous: an incomplete request or a slow handler
 can delay the other clients. The request timeout limits waits for missing
 input; handlers should return promptly.
 
@@ -182,7 +182,7 @@ Here is a complete ESP32 sketch that streams a few lines over five seconds:
 
 WiFiServer server(80);
 WiFiClient streamClient;
-App app;
+HttpServer http;
 unsigned long started = 0;
 unsigned long lastLine = 0;
 
@@ -197,7 +197,7 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.get("/stream", openStream);
+  http.get("/stream", openStream);
   server.begin();
 }
 
@@ -206,7 +206,7 @@ void loop() {
     streamClient.stop();
     WiFiClient incoming = server.available();
     if (incoming.connected()) {
-      App::ProcessResult result = app.process(&incoming);
+      HttpServer::ProcessResult result = http.process(&incoming);
       if (result.responseOpen) {
         streamClient = incoming;
         started = lastLine = millis();
@@ -250,7 +250,7 @@ upgrades, polling, and cleanup.
 <h2 id="errors">Errors, missing routes, and finally</h2>
 
 
-`app.onError(handler)` receives parser errors and the built-in missing-route
+`http.onError(handler)` receives parser errors and the built-in missing-route
 error. A custom response **must call `res.end()`**; otherwise aWOT supplies its
 built-in error response after the callback. This partial example goes at file
 scope, with the registration inside `setup()`:
@@ -268,16 +268,16 @@ void httpError(Request& req, Response& res, int statusCode) {
 
 ```cpp
 // Add inside setup().
-app.onError(httpError);
+http.onError(httpError);
 ```
 
-`app.notFound(handler)` handles missing routes separately and takes precedence
+`http.notFound(handler)` handles missing routes separately and takes precedence
 over `onError` for those requests. aWOT sets status 404 before calling it.
 The built-in missing-route decision occurs when no response status was sent
 and the response was not ended, so a handler that returns without output can
 still produce a 404.
 
-`app.finally(handler)` runs after routing or a parser error, before response
+`http.finally(handler)` runs after routing or a parser error, before response
 finalization, even when a handler ended the response. It may read context and
 record the status, but write errors can still occur during finalization after
 it returns. Invalid processing options bypass all callbacks and stop the client.
@@ -293,7 +293,7 @@ keep-alive reuse nor an open-response handoff.
 <h2 id="timeouts">Request and idle timeouts</h2>
 
 
-`app.setTimeout(milliseconds)` sets the timeout used by the parser and the
+`http.setTimeout(milliseconds)` sets the timeout used by the parser and the
 request's inherited Stream reads; the default is 1000 milliseconds. Parser
 timeouts produce 408 and close the client. Handlers must detect incomplete
 body reads themselves. This timeout applies to waiting for input during a

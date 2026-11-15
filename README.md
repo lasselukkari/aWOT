@@ -3,7 +3,7 @@
 This branch contains the Astro documentation for [awot.net](https://awot.net),
 hosted from the `gh-pages` branch of
 [lasselukkari/aWOT](https://github.com/lasselukkari/aWOT). The current pages
-describe **aWOT 4.0.0**. The previous API stays at `/en/3x/api.html`;
+describe **aWOT 4.0.1**. The previous API stays at `/en/3x/api.html`;
 `/en/api.html` and `/en/4x/api.html` render the same current reference.
 
 The design uses [AstroWind by arthelokyo](https://github.com/arthelokyo/astrowind),
@@ -61,7 +61,7 @@ Markdown is native Astro content, so C++ initializers do not need Liquid escapes
 ## Check the documented examples
 
 Keep a separate aWOT library checkout available. Use revision
-`26cc31a4a1b38dc4a28e7b8073f7d48562192e21` for local validation of the current
+`e5259df0b7f33ab75651d1dc2d2ab1ba14981946` for local validation of the current
 documentation, including chunked request parsing, shared native client ownership,
 and the bundled ArduinoCore-API directory. The script supports
 native tests in either `test/` or `.extras/test/` to accommodate their relocation.

@@ -7,7 +7,7 @@ section: "starter"
 
 # Basic routing
 
-A route pairs an HTTP method and a path with a handler. An `App` named `app`
+A route pairs an HTTP method and a path with a handler. An `HttpServer` named `http`
 registers routes in `setup()` and processes incoming clients in `loop()`, as in
 the [complete hello world sketches](/en/starter/hello-world.html).
 
@@ -35,16 +35,16 @@ void removeUser(Request& req, Response& res) {
 
 ```cpp
 // Add inside setup().
-app.get("/", readHome);
-app.post("/user", createUser);
-app.put("/user", updateUser);
-app.del("/user", removeUser);
+http.get("/", readHome);
+http.post("/user", createUser);
+http.put("/user", updateUser);
+http.del("/user", removeUser);
 ```
 
 Use `del()` for DELETE because `delete` is a C++ keyword. The supported route
 methods are `get`, `head`, `post`, `put`, `patch`, `del`, and `options`. HEAD
-needs its own registration; aWOT suppresses its response body. `app.use(handler)`
-runs for every supported method and path. `app.use("/user", handler)` matches
+needs its own registration; aWOT suppresses its response body. `http.use(handler)`
+runs for every supported method and path. `http.use("/user", handler)` matches
 that route pattern for every method.
 
 <h2 id="multiple-handlers">Multiple handlers and continuation</h2>
@@ -67,8 +67,8 @@ void readUser(Request& req, Response& res) {
 
 ```cpp
 // Add inside setup().
-app.get("/user", logUser);
-app.get("/user", readUser);
+http.get("/user", logUser);
+http.get("/user", readUser);
 ```
 
 Returning without `req.next()` stops routing. `res.end()` marks the response as

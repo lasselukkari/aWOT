@@ -9,17 +9,17 @@ import BoardHeadline from '~/components/BoardHeadline.astro';
 
 const code = `#include <aWOT.h>
 
-App app;
+HttpServer http;
 
 void hello(Request& req, Response& res) {
   res.print("Hello from Arduino!");
 }
 
 // Register once in setup().
-app.get("/", hello);
+http.get("/", hello);
 
 // Process a connected client in loop().
-app.process(&client);`;
+http.process(&client);`;
 ---
 <Layout title="aWOT — Arduino web server library">
   <main id="main-content" tabindex="-1">
@@ -51,7 +51,7 @@ app.process(&client);`;
       subtitle="Bring the web to your device with routes, streams, and a frontend that runs in the browser."
       columns={2}
       items={[
-        { title: 'Straightforward HTTP', description: 'Define routes with App, read requests as Arduino Streams, and write responses with familiar Print methods.', icon: 'tabler:route' },
+        { title: 'Straightforward HTTP', description: 'Define routes with HttpServer, read requests as Arduino Streams, and write responses with familiar Print methods.', icon: 'tabler:route' },
         { title: 'Your choice of transport', description: 'Use the same handlers with Arduino Client transports, including Wi-Fi and Ethernet, or with a Stream such as Serial.', icon: 'tabler:plug-connected' },
         { title: 'Memory you can configure', description: 'Choose request and output buffers for your board. Start with ESP32 Wi-Fi or Uno Ethernet, then tune the settings.', icon: 'tabler:cpu' },
         { title: 'More than a request', description: 'Compose middleware, serve a browser interface, and add live updates with WebSockets or server-sent events.', icon: 'tabler:arrows-exchange' },

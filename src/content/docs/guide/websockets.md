@@ -8,7 +8,7 @@ section: "guide"
 # WebSockets
 
 WebSockets let the browser and Arduino send messages over the same connection.
-Install aWOT **4.0.0** through Arduino Library Manager and use the explicit
+Install aWOT **4.0.1** through Arduino Library Manager and use the explicit
 `<WsChannel.h>` header. This complete ESP32 sketch serves a browser page and
 broadcasts each message to a room of up to four clients. Set your WiFi
 credentials, upload it, and open the IP address printed at 115200 baud.
@@ -19,7 +19,7 @@ credentials, upload it, and open the IP address printed at 115200 baud.
 #include <WsChannel.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 WsChannel<WiFiClient, 4, 1> sockets;
 
 P(page) =
@@ -81,8 +81,8 @@ void setup() {
   sockets.onConnect(onConnect);
   sockets.onDisconnect(onDisconnect);
   sockets.onMessage(onMessage);
-  app.get("/", indexHandler);
-  app.get("/ws", websocketHandler);
+  http.get("/", indexHandler);
+  http.get("/ws", websocketHandler);
   server.begin();
 }
 
@@ -95,7 +95,7 @@ void loop() {
         {"Connection", connection},
         {"Sec-WebSocket-Key", key},
         {"Sec-WebSocket-Version", version}};
-    App::ProcessResult result = app.process(&client, headers);
+    HttpServer::ProcessResult result = http.process(&client, headers);
     if (!result.responseOpen) client.stop();
   }
   sockets.poll();
