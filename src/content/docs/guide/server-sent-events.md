@@ -10,7 +10,7 @@ section: "guide"
 Server-sent events send a stream of text updates from the Arduino to a browser.
 Use a normal HTTP endpoint for commands sent in the other direction, or use
 [WebSockets](/en/guide/websockets.html) for bidirectional messages. Install
-aWOT **4.0.0** through Arduino Library Manager. This complete ESP32 sketch uses
+aWOT **4.0.1** through Arduino Library Manager. This complete ESP32 sketch uses
 the explicit `<SseChannel.h>` header and serves a page showing uptime and a
 named, multiline event from an updates room. Set your WiFi credentials and open
 the address printed at 115200 baud.
@@ -21,7 +21,7 @@ the address printed at 115200 baud.
 #include <SseChannel.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 SseChannel<WiFiClient, 4, 1> events;
 unsigned long lastPush = 0;
 
@@ -66,15 +66,15 @@ void setup() {
     while (true) delay(1000);
   }
   events.onConnect(onConnect);
-  app.get("/", indexHandler);
-  app.get("/events", eventsHandler);
+  http.get("/", indexHandler);
+  http.get("/events", eventsHandler);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    App::ProcessResult result = app.process(&client);
+    HttpServer::ProcessResult result = http.process(&client);
     if (result.responseOpen) {
       int clientId = events.add(client);
       if (clientId < 0) Serial.println("No event-stream capacity");
@@ -99,7 +99,7 @@ void loop() {
 Call `events.open(res)` before sending headers. It selects status 200,
 `text/event-stream`, and `Cache-Control: no-cache`, then calls `keepOpen()`.
 The HTTP body is close-delimited, without Content-Length or chunk framing.
-`App::process()` sends the headers and returns `responseOpen == true` after
+`HttpServer::process()` sends the headers and returns `responseOpen == true` after
 successful processing. Only then does the sketch call `events.add(client)`.
 
 `add()` copies the concrete client handle into one of the four slots, calls

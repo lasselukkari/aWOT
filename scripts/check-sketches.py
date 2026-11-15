@@ -42,8 +42,8 @@ def main():
             if page.relative_to(root).as_posix() == 'src/content/docs/guide/tutorial.md':
                 fragments = [text for _, text in blocks(page.read_text())]
                 include = next(text for text in fragments if text.strip() == '#include "StaticFiles.h"')
-                mount = next(text for text in fragments if 'app.use(staticFiles());' in text)
-                previous = '  app.get("/led", readLed);\n  app.put("/led", updateLed);\n  server.begin();'
+                mount = next(text for text in fragments if 'http.use(staticFiles());' in text)
+                previous = '  http.get("/led", readLed);\n  http.put("/led", updateLed);\n  server.begin();'
                 replacement = '\n'.join('  '+line for line in mount.strip().splitlines())
                 if previous not in code:
                     raise SystemExit('Tutorial setup changed: update static-stage assembly')

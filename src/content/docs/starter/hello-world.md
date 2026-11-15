@@ -7,9 +7,9 @@ section: "starter"
 
 # Hello world example
 
-Install **aWOT 4.0.0** in Arduino IDE: open **Tools → Manage Libraries**, search
-for **aWOT**, select version **4.0.0**, and click **Install**. Choose your board
-and port before uploading. The examples on this site use `App`, the v4
+Install **aWOT 4.0.1** in Arduino IDE: open **Tools → Manage Libraries**, search
+for **aWOT**, select version **4.0.1**, and click **Install**. Choose your board
+and port before uploading. The examples on this site use `HttpServer`, the v4
 application class. Existing applications can follow the
 [migration guide](/en/guide/migrating-to-v4.html).
 
@@ -34,7 +34,7 @@ before uploading.
 #include <aWOT.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 void hello(Request& req, Response& res) {
   res.print("Hello World!");
@@ -45,14 +45,14 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.get("/", hello);
+  http.get("/", hello);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }
@@ -62,7 +62,7 @@ Open the Serial Monitor at **115200 baud**, then visit the printed IP address,
 for example `http://192.168.1.140/`.
 Other paths receive `404 Not Found`.
 
-`app.process(&client)` handles one HTTP request and finalizes its response.
+`http.process(&client)` handles one HTTP request and finalizes its response.
 Both sketches own the transport and call `client.stop()` afterward. They
 close every connection; retaining one requires checking the
 [processing result](/en/guide/connections.html).
@@ -81,7 +81,7 @@ address using DHCP and serves the same response:
 
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 EthernetServer server(80);
-App app;
+HttpServer http;
 
 void hello(Request& req, Response& res) {
   P(message) = "Hello World!";
@@ -95,7 +95,7 @@ void setup() {
     while (true) delay(1000);
   }
   Serial.println(Ethernet.localIP());
-  app.get("/", hello);
+  http.get("/", hello);
   server.begin();
 }
 
@@ -103,7 +103,7 @@ void loop() {
   Ethernet.maintain();
   EthernetClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }

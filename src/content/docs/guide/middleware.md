@@ -17,7 +17,7 @@ was requested. The final callback still runs before aWOT finalizes the output.
 
 
 This complete ESP32 sketch logs each request and protects `/secret` with HTTP
-Basic authentication. Install [aWOT 4.0.0](/en/starter/hello-world.html) and set
+Basic authentication. Install [aWOT 4.0.1](/en/starter/hello-world.html) and set
 the Wi-Fi credentials. The demonstration credentials are `super` / `admin`.
 Basic authentication sends reusable credentials; use a protected transport or
 network for an application that relies on it.
@@ -28,7 +28,7 @@ network for an application that relies on it.
 #include <string.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 void logRequest(Request& req, Response& res) {
   Serial.println(req.path());
@@ -60,10 +60,10 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.use(logRequest);
-  app.use("/secret", authenticate);
-  app.get("/secret", secret);
-  app.get("/", home);
+  http.use(logRequest);
+  http.use("/secret", authenticate);
+  http.get("/secret", secret);
+  http.get("/", home);
   server.begin();
 }
 
@@ -74,7 +74,7 @@ void loop() {
     Request::Header headers[] = {
       {"Authorization", authorization}
     };
-    app.process(&client, headers);
+    http.process(&client, headers);
     client.stop();
   }
 }

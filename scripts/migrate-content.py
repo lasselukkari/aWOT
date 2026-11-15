@@ -26,7 +26,7 @@ DESCRIPTIONS = {
     'guide/server-sent-events.md': 'Stream server-sent events from an Arduino and manage clients, heartbeat, and event replay.',
     'guide/migrating-to-v4.md': 'Update aWOT 3 projects for the API, middleware, headers, and connection behavior in aWOT 4.',
     'guide/tutorial.md': 'Build a React and TypeScript LED controller with Vite and serve it from an ESP32 using aWOT.',
-    '4x/api.md': 'The aWOT 4 API reference for App, Router, Request, Response, WebSockets, server-sent events, and configuration.',
+    '4x/api.md': 'The aWOT 4 API reference for HttpServer, Router, Request, Response, WebSockets, server-sent events, and configuration.',
     '3x/api.md': 'Archived aWOT 3 API reference for Application, Request, Response, and Router.',
     '3x/starter/generator.md': 'Archived instructions for generating an aWOT 3 application.',
     '3x/starter/static-files.md': 'Archived instructions for serving static files with aWOT 3.',

@@ -58,7 +58,7 @@ also compiles the library from `../../src`.
 #include "MacOSSocket.h"
 
 MacOSServer server(8080);
-App app;
+HttpServer http;
 std::atomic<int> activeConnections(0);
 
 void indexCmd(Request&, Response& res) {
@@ -75,7 +75,7 @@ void indexCmd(Request&, Response& res) {
 
 void handleClient(MacOSClient client) {
   activeConnections++;
-  app.process(&client);
+  http.process(&client);
   client.stop();
   activeConnections--;
 }
@@ -83,7 +83,7 @@ void handleClient(MacOSClient client) {
 bool startServer() {
   Serial.begin(115200);
 
-  app.get("/", &indexCmd);
+  http.get("/", &indexCmd);
   if (!server.begin()) return false;
 
   Serial.println("Server listening on port 8080 (multithreaded)");
@@ -147,7 +147,7 @@ Press **Control-C** in the server terminal to stop it.
 Edit `HelloWorld.cpp` to build your application. The `indexCmd` handler writes
 the example page; its `Request` and `Response` arguments are the same ones used
 on Arduino. Register additional handlers in `startServer()`, before
-`server.begin()`, using `app.get()`, `app.post()`, or the other
+`server.begin()`, using `http.get()`, `http.post()`, or the other
 [routing methods](/en/starter/basic-routing.html).
 
 After changing the file, stop the running server and run `make run` again. The
@@ -175,7 +175,7 @@ uses these pieces:
 | `Makefile` | Builds the example, adapter, Arduino API, and aWOT sources together as C++11. |
 
 The main loop waits for connections with `server.available(-1)`. Each accepted
-`MacOSClient` is moved into a worker thread, which calls `app.process(&client)`
+`MacOSClient` is moved into a worker thread, which calls `http.process(&client)`
 and then `client.stop()`. The example handles one request per connection and
 closes it afterward. See [Connections](/en/guide/connections.html)
 before changing that lifecycle.

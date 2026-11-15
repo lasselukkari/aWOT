@@ -7,7 +7,7 @@ should target `gh-pages`, with v4 release preparation on `docs/v4`.
 ## Write against the library
 
 Use public headers, implementation behavior, focused native tests, and verified
-repository examples as the authority. Current examples use `App`, explicit
+repository examples as the authority. Current examples use `HttpServer`, explicit
 `req.next()`, per-request `Request::Header` capture, `ProcessOptions`, and
 caller-managed connection closure. Check boolean query/form/route results and
 body read counts. Keep contexts, borrowed header values, and URL/output storage
@@ -29,7 +29,7 @@ Before review:
 2. Compile changed complete sketches and register new partial examples in a
    `scripts/partial-*.json` manifest. Block numbers count `arduino` and `cpp`
    fences together. A `decl` wrapper compiles file-scope code; a `body` wrapper
-   supplies `Request& req`, `Response& res`, `App app`, and a concrete mock client.
+   supplies `Request& req`, `Response& res`, `HttpServer http`, and a concrete mock client.
    `preamble_blocks` reuses earlier code blocks in the same file. Set
    `std_function: true` for member/capturing callback registrations.
 3. Run native, sanitizer, and small-buffer/function-pointer configurations when

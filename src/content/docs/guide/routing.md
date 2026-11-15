@@ -7,7 +7,7 @@ section: "guide"
 
 # Routing
 
-An `App` selects handlers using an HTTP method and the decoded URL path.
+An `HttpServer` selects handlers using an HTTP method and the decoded URL path.
 Registrations run in order. Call `req.next()` to continue to the next matching
 handler; returning without it stops dispatch. See
 [basic routing](/en/starter/basic-routing.html) and
@@ -21,7 +21,7 @@ at file scope and put registrations in `setup()` before `server.begin()`.
 
 
 Use `get`, `head`, `post`, `put`, `patch`, `del`, and `options` for the
-corresponding methods. There is no `app.all()` method: use `app.use()` for all
+corresponding methods. There is no `http.all()` method: use `http.use()` for all
 supported methods. A registration without a path matches every path for that
 method. HEAD requires an explicit `head()` route and suppresses payload output.
 
@@ -44,9 +44,9 @@ void headIndex(Request& req, Response& res) {
 
 ```cpp
 // Add inside setup().
-app.get("/", readIndex);
-app.post("/", createItem);
-app.head("/", headIndex);
+http.get("/", readIndex);
+http.post("/", createItem);
+http.head("/", headIndex);
 ```
 
 <h2 id="route-paths">Route paths</h2>
@@ -58,8 +58,8 @@ path; `req.query()` returns the raw query without `?`. A literal `+` remains
 `+` in the path. See [request data](/en/guide/request-data.html) for decoding.
 
 Callback registrations use a complete route pattern. For example,
-`app.use("/secret", handler)` matches `/secret` and `/secret/`, but does not
-match `/secret/page`. `app.use(handler)` has no path restriction. A single
+`http.use("/secret", handler)` matches `/secret` and `/secret/`, but does not
+match `/secret/page`. `http.use(handler)` has no path restriction. A single
 trailing slash on the request is accepted for a pattern without one:
 `/about` matches `/about/`. A pattern ending in `/` requires that slash.
 The root patterns `""` and `"/"` also match the root of a mounted router.
@@ -92,7 +92,7 @@ void usersBook(Request& req, Response& res) {
 
 ```cpp
 // Add inside setup().
-app.get("/users/:userId/books/:bookId", usersBook);
+http.get("/users/:userId/books/:bookId", usersBook);
 ```
 
 Route values come from the decoded path. Encoded slashes become segment
@@ -101,7 +101,7 @@ separators during decoding; they cannot hide a slash inside a parameter.
 <h2 id="aWOT-router">Router</h2>
 
 
-`Router` groups registrations. Mount a router with `app.use("/prefix", &router)`.
+`Router` groups registrations. Mount a router with `http.use("/prefix", &router)`.
 Mount matching uses a literal prefix at a path segment boundary, rather than a
 callback route pattern. `/cats` matches `/cats`, `/cats/`, and `/cats/long`, but
 not `/catsup`. Trailing slashes on a mount are ignored. Mounts do not capture
@@ -137,7 +137,7 @@ cats.get("/", catIndex);
 cats.get("/long", longCat);
 details.get("/:name", catDetails);
 cats.use("/details", &details);
-app.use("/cats", &cats);
+http.use("/cats", &cats);
 ```
 
 Nested mounts accumulate prefixes: `catDetails` handles
@@ -146,7 +146,7 @@ Nested mounts accumulate prefixes: `catDetails` handles
 handler that calls `req.next()` allows matching registrations after the mount
 to run too.
 
-Apps and routers cannot be copied. They own their registration nodes but
+HttpServer instances and routers cannot be copied. They own their registration nodes but
 borrow mounted routers and registered path strings. Keep routers and path
 strings alive while requests may use them; file-scope declarations and string
 literals satisfy that requirement.
@@ -173,7 +173,7 @@ Counter counter;
 
 ```cpp
 // Add inside setup() on a std::function build.
-app.get("/count", &counter, &Counter::handle);
+http.get("/count", &counter, &Counter::handle);
 ```
 
 Keep the instance alive as long as its registration. Function-pointer builds

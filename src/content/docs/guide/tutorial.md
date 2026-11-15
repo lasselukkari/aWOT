@@ -15,11 +15,11 @@ React app on your computer and forwards API requests to the board. For deploymen
 we compile the TypeScript, build the frontend, and embed the resulting files in
 the firmware as compressed assets.
 
-This tutorial uses **aWOT 4.0.0**, React, and Vite's `react-ts` template. The
-firmware uses `App` and closes each connection after processing its request.
+This tutorial uses **aWOT 4.0.1**, React, and Vite's `react-ts` template. The
+firmware uses `HttpServer` and closes each connection after processing its request.
 
 The complete project is available in
-[LedBlink](https://github.com/lasselukkari/LedBlink/tree/2ed08c5c989bacea1d5542a0d1c65f22d4745312).
+[LedBlink](https://github.com/lasselukkari/LedBlink/tree/25e5ab7505f60480030e0ca82d2710e21587a56c).
 Its README explains how to build and upload the finished application if you
 want to try it before following the walkthrough.
 
@@ -45,8 +45,8 @@ Install:
 - [Arduino IDE](https://www.arduino.cc/en/software).
 - The [Arduino ESP32 board package](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
   Select your board and serial port in the Arduino IDE.
-- **aWOT 4.0.0**. Open Library Manager in the Arduino IDE, search for `aWOT`,
-  select version **4.0.0**, and choose **Install**.
+- **aWOT 4.0.1**. Open Library Manager in the Arduino IDE, search for `aWOT`,
+  select version **4.0.1**, and choose **Install**.
 
 Check your Node.js installation:
 
@@ -141,7 +141,7 @@ const int LED_PIN = 2;
 const bool LED_ACTIVE_LOW = false;
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 bool ledOn = false;
 
 void writeLed() {
@@ -179,15 +179,15 @@ void setup() {
   Serial.print("Open http://");
   Serial.println(WiFi.localIP());
 
-  app.get("/led", readLed);
-  app.put("/led", updateLed);
+  http.get("/led", readLed);
+  http.put("/led", updateLed);
   server.begin();
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client.connected()) {
-    app.process(&client);
+    http.process(&client);
     client.stop();
   }
 }
@@ -199,7 +199,7 @@ uses the first byte and ignores any remaining body. `Response` is a `Print`:
 set headers before writing the body with `print()`.
 
 Returning from a handler without calling `req.next()` finishes route dispatch
-in v4. `app.process()` finalizes an ordinary response, and the caller owns the
+in v4. `http.process()` finalizes an ordinary response, and the caller owns the
 connection. This sketch calls `client.stop()` after every request; it does not
 request connection reuse or leave responses open.
 
@@ -473,9 +473,9 @@ In `setup()`, mount the generated router after the API routes and before startin
 the server:
 
 ```cpp
-app.get("/led", readLed);
-app.put("/led", updateLed);
-app.use(staticFiles());
+http.get("/led", readLed);
+http.put("/led", updateLed);
+http.use(staticFiles());
 server.begin();
 ```
 

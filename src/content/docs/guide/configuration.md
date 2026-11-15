@@ -7,7 +7,7 @@ section: "guide"
 
 # Configuration
 
-aWOT provides URL and output buffers automatically. Use `App::ProcessOptions`
+aWOT provides URL and output buffers automatically. Use `HttpServer::ProcessOptions`
 to choose their sizes and where they are stored.
 
 <span id="per-request-storage-on-uno"></span>
@@ -35,7 +35,7 @@ and MAC for your network.
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress ip(192, 168, 1, 177);
 EthernetServer server(80);
-App app;
+HttpServer http;
 P(message) = "Hello from flash!";
 
 void hello(Request& req, Response& res) {
@@ -44,7 +44,7 @@ void hello(Request& req, Response& res) {
 
 void setup() {
   Ethernet.begin(mac, ip);
-  app.get("/", hello);
+  http.get("/", hello);
   server.begin();
 }
 
@@ -53,10 +53,10 @@ void loop() {
   if (client) {
     static char url[128];
     static uint8_t output[64];
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.urlBuffer = url;
     options.writeBuffer = output;
-    App::ProcessResult result = app.process(&client, options);
+    HttpServer::ProcessResult result = http.process(&client, options);
     if (!result.responseOpen && !result.keepAlive) client.stop();
   }
 }
@@ -102,7 +102,7 @@ Prefer `ProcessOptions` for URL/output storage. If you need to change the
 compiled defaults, pushback size, or response header capacity, supply compiler
 defines to **every library and sketch translation unit**. These settings affect
 object layout or library behavior. A define at the beginning of an `.ino`
-does not reconfigure separately compiled `App.cpp`, `Request.cpp`, and
+does not reconfigure separately compiled `HttpServer.cpp`, `Request.cpp`, and
 `Response.cpp`. Rebuild all affected files with consistent flags.
 
 For example, the following command assumes the board core is installed and
@@ -126,7 +126,7 @@ for all derived chunk macros.
 
 aWOT automatically uses `std::function` when supported by the platform, including
 ESP32 and ESP8266 or toolchains that can include `<functional>`. It accepts
-functions, capturing lambdas, and the App/Router member-binding overloads.
+functions, capturing lambdas, and the HttpServer/Router member-binding overloads.
 Keep referenced objects and bound instances alive for the lifetime of their
 registrations. Lambda captures can allocate additional memory through
 `std::function`, depending on the toolchain and capture size.
@@ -136,12 +136,12 @@ as above. Free/static functions and lambdas without captures work; capturing
 lambdas and member-binding overloads are unavailable. For example, the `hello`
 function in the complete sketch works in either configuration. Defining both
 `AWOT_NO_STD_FUNCTION_MIDDLEWARE` and `STD_FUNCTION_MIDDLEWARE` is an error.
-The choice also affects WebSocket and SSE callback types. `App::onError`
+The choice also affects WebSocket and SSE callback types. `HttpServer::onError`
 always accepts a function pointer.
 
 All types live in `namespace awot`. `<aWOT.h>` adds a convenience using-directive
 unless you define `ENABLE_AWOT_NAMESPACE` before including it. With that macro,
-write qualified names such as `awot::App` and `awot::Request`. This changes
+write qualified names such as `awot::HttpServer` and `awot::Request`. This changes
 name lookup in the including source, not the library's namespace or ABI.
 
 ## Channel capacity and heartbeat

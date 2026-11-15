@@ -1,6 +1,6 @@
 ---
 title: "aWOT 4.x - API Reference"
-description: "The aWOT 4 API reference for App, Router, Request, Response, WebSockets, server-sent events, and configuration."
+description: "The aWOT 4 API reference for HttpServer, Router, Request, Response, WebSockets, server-sent events, and configuration."
 route: "/en/4x/api.html"
 section: "api"
 apiVersion: "4x"
@@ -10,46 +10,50 @@ canonical: "/en/4x/api.html"
 
 # aWOT 4 API
 
-This reference targets **aWOT 4.0.0**. Install it through Arduino Library Manager.
+This reference targets **aWOT 4.0.1**. Install it through Arduino Library Manager.
 For existing projects, read [Migrating to v4](/en/guide/migrating-to-v4.html).
 The [3.x reference](/en/3x/api.html) remains available for older installations.
 
-<h2 id="app">App</h2>
+<span id="app"></span>
+<h2 id="httpserver">HttpServer</h2>
 
 
-`App` registers routes and synchronously processes one HTTP request at a time.
+`HttpServer` registers routes and synchronously processes one HTTP request at a time.
 Include `<aWOT.h>`. The examples below use its default namespace imports; when
 `ENABLE_AWOT_NAMESPACE` is defined, qualify types with `awot::`.
 
 ```cpp
-App app;
+HttpServer http;
 
 void home(Request& req, Response& res) {
   res.print("Hello World!");
 }
 
-// Register once in setup(): app.get("/", home);
+// Register once in setup(): http.get("/", home);
 // With a connected Client in loop():
-// app.process(&client);
+// http.process(&client);
 // client.stop();
 ```
 
-<h3 id="app-App">Construction and ownership</h3>
+<span id="app-App"></span>
+<h3 id="httpserver-HttpServer">Construction and ownership</h3>
 
 
 ```cpp
-App();
-~App();
+HttpServer();
+~HttpServer();
 ```
 
-Apps cannot be copied or assigned: their owned default `Router` is noncopyable.
-Destroying an App releases its route registrations, but does not destroy mounted
+HttpServer instances cannot be copied or assigned: their owned default `Router` is noncopyable.
+Destroying an HttpServer releases its route registrations, but does not destroy mounted
 routers, callback instances, or network clients. Keep registered path strings,
-mounted routers, and bound callback instances alive while the App uses them.
+mounted routers, and bound callback instances alive while the HttpServer uses them.
 Registration methods return `void`; they provide no allocation-failure result.
 
 <span id="app-methods"></span>
-<h3 id="app-get">App::get</h3>
+<span id="httpserver-methods"></span>
+<span id="app-get"></span>
+<h3 id="httpserver-get">HttpServer::get</h3>
 
 
 ```cpp
@@ -62,7 +66,8 @@ Handlers run in registration order. Call [`req.next()`](#req-next) to continue;
 returning without it stops dispatch. See
 [`Router::Middleware`](#router-Middleware) for callback configuration.
 
-<h3 id="app-head">App::head</h3>
+<span id="app-head"></span>
+<h3 id="httpserver-head">HttpServer::head</h3>
 
 
 ```cpp
@@ -74,7 +79,8 @@ Register a HEAD handler. HEAD needs its own route; a GET registration does not
 handle HEAD. Status and headers are sent, while response payload and chunk
 terminators are suppressed. The pathless overload matches every HEAD path.
 
-<h3 id="app-post">App::post</h3>
+<span id="app-post"></span>
+<h3 id="httpserver-post">HttpServer::post</h3>
 
 
 ```cpp
@@ -84,7 +90,8 @@ void post(Router::MIDDLEWARE_PARAM middleware);
 
 Register a POST handler, optionally restricted to a route pattern.
 
-<h3 id="app-put">App::put</h3>
+<span id="app-put"></span>
+<h3 id="httpserver-put">HttpServer::put</h3>
 
 
 ```cpp
@@ -94,7 +101,8 @@ void put(Router::MIDDLEWARE_PARAM middleware);
 
 Register a PUT handler, optionally restricted to a route pattern.
 
-<h3 id="app-del">App::del</h3>
+<span id="app-del"></span>
+<h3 id="httpserver-del">HttpServer::del</h3>
 
 
 ```cpp
@@ -104,7 +112,8 @@ void del(Router::MIDDLEWARE_PARAM middleware);
 
 Register a DELETE handler. The C++ method name is `del`.
 
-<h3 id="app-patch">App::patch</h3>
+<span id="app-patch"></span>
+<h3 id="httpserver-patch">HttpServer::patch</h3>
 
 
 ```cpp
@@ -114,7 +123,8 @@ void patch(Router::MIDDLEWARE_PARAM middleware);
 
 Register a PATCH handler, optionally restricted to a route pattern.
 
-<h3 id="app-options">App::options</h3>
+<span id="app-options"></span>
+<h3 id="httpserver-options">HttpServer::options</h3>
 
 
 ```cpp
@@ -125,7 +135,8 @@ void options(Router::MIDDLEWARE_PARAM middleware);
 Register an OPTIONS handler. aWOT does not generate an OPTIONS or CORS response
 automatically.
 
-<h3 id="app-use">App::use</h3>
+<span id="app-use"></span>
+<h3 id="httpserver-use">HttpServer::use</h3>
 
 
 ```cpp
@@ -136,15 +147,16 @@ void use(Router::MIDDLEWARE_PARAM middleware);
 ```
 
 Callback overloads match every supported HTTP method. Their optional path is a
-route pattern, so `app.use("/api", handler)` matches `/api` and `/api/`, rather
+route pattern, so `http.use("/api", handler)` matches `/api` and `/api/`, rather
 than every descendant path. A pathless callback matches every path.
 
 Router overloads mount a borrowed Router at a path prefix with a segment
-boundary. `app.use("/api", &router)` mounts routes under `/api` and does not
+boundary. `http.use("/api", &router)` mounts routes under `/api` and does not
 match `/api2`. Mounting without a path preserves the whole path. See
 [`Router::use`](#router-use) for trailing slashes and nested mounts.
 
-<h3 id="app-memberCallbacks">Member callbacks</h3>
+<span id="app-memberCallbacks"></span>
+<h3 id="httpserver-memberCallbacks">Member callbacks</h3>
 
 
 With `STD_FUNCTION_MIDDLEWARE`, each method-specific registration and `use`
@@ -185,13 +197,14 @@ template <typename T>
 void use(T* instance, void (T::*method)(Request&, Response&));
 ```
 
-These bind a non-const member function to the supplied instance. The App stores
+These bind a non-const member function to the supplied instance. The HttpServer stores
 the binding, and the instance must outlive its registrations. Capturing lambdas
 are also available with this callback configuration. Function-pointer builds
 support free functions and noncapturing lambdas. See
 [`Router::Middleware`](#router-Middleware).
 
-<h3 id="app-notFound">App::notFound</h3>
+<span id="app-notFound"></span>
+<h3 id="httpserver-notFound">HttpServer::notFound</h3>
 
 
 ```cpp
@@ -211,7 +224,8 @@ With no custom fallback, aWOT invokes `onError` with 404 and sends its built-in
 404 response unless the error callback ends the response. A custom `notFound`
 callback takes precedence over that 404 error path.
 
-<h3 id="app-finally">App::finally</h3>
+<span id="app-finally"></span>
+<h3 id="httpserver-finally">HttpServer::finally</h3>
 
 
 ```cpp
@@ -228,7 +242,8 @@ chunk are finalized. It runs even after `res.end()`. On parser errors, request
 fields may be incomplete. Invalid processing options and null transports bypass
 all callbacks, including `finally`.
 
-<h3 id="app-onError">App::onError and ErrorHandler</h3>
+<span id="app-onError"></span>
+<h3 id="httpserver-onError">HttpServer::onError and ErrorHandler</h3>
 
 
 ```cpp
@@ -257,10 +272,11 @@ void errorResponse(Request& req, Response& res, int code) {
   res.print("{\"error\":true}");
   res.end();
 }
-// Register once: app.onError(errorResponse);
+// Register once: http.onError(errorResponse);
 ```
 
-<h3 id="app-setTimeout">App::setTimeout</h3>
+<span id="app-setTimeout"></span>
+<h3 id="httpserver-setTimeout">HttpServer::setTimeout</h3>
 
 
 ```cpp
@@ -274,7 +290,9 @@ a keep-alive idle timeout. Changing a current body's timeout uses
 [`req.setTimeout()`](#req-setTimeout).
 
 <span id="app-header"></span>
-<h3 id="app-process-options">App::ProcessOptions</h3>
+<span id="httpserver-header"></span>
+<span id="app-process-options"></span>
+<h3 id="httpserver-process-options">HttpServer::ProcessOptions</h3>
 
 
 ```cpp
@@ -306,20 +324,21 @@ char authorization[96];
 Request::Header headers[] = { {"Authorization", authorization} };
 int requestId = 7;
 
-App::ProcessOptions options;
+HttpServer::ProcessOptions options;
 options.urlBuffer = url;
 options.writeBuffer = output;
 options.headers = headers;
 options.context = &requestId;
 // For raw pointers: options.urlBuffer = {urlPointer, urlCapacity};
-// App::ProcessResult result = app.process(&client, options);
+// HttpServer::ProcessResult result = http.process(&client, options);
 ```
 
 Keep the options' arrays, header names and value buffers, and context object
 alive until `process()` returns. Concurrent requests need separate storage.
 Captured header buffers are cleared before and after processing.
 
-<h3 id="app-process-result">App::ProcessResult</h3>
+<span id="app-process-result"></span>
+<h3 id="httpserver-process-result">HttpServer::ProcessResult</h3>
 
 
 ```cpp
@@ -345,7 +364,8 @@ the last `WiFiClient` handle closes the socket, even if a flag was true. Keep
 the handle in persistent storage, or copy it into an owner such as a channel
 before the local handle leaves scope.
 
-<h3 id="app-process">App::process</h3>
+<span id="app-process"></span>
+<h3 id="httpserver-process">HttpServer::process</h3>
 
 
 ```cpp
@@ -367,7 +387,7 @@ invalid options, parser errors, and failed response writes stop a Client.
 
 ```cpp
 // client is a connected handle stored outside loop(), or in a persistent pool.
-App::ProcessResult result = app.process(&client);
+HttpServer::ProcessResult result = http.process(&client);
 if (!result.responseOpen && !result.keepAlive) {
   client.stop();
 }
@@ -387,7 +407,8 @@ or pass it to a long-lived channel. The adapter's `stop()` is a no-op and it
 reports itself connected, so the caller must manage the actual Stream lifecycle.
 Use a real concrete Client for WebSockets and SSE.
 
-<h3 id="app-strcmpi">App::strcmpi and App::strcmpiP</h3>
+<span id="app-strcmpi"></span>
+<h3 id="httpserver-strcmpi">HttpServer::strcmpi and HttpServer::strcmpiP</h3>
 
 
 ```cpp
@@ -402,8 +423,8 @@ second argument from program memory. Supply valid non-null pointers.
 <h2 id="router">Router</h2>
 
 
-`Router` groups handlers for mounting in an App or another Router. Registration
-and matching follow the same rules as App routes. Include `<aWOT.h>`.
+`Router` groups handlers for mounting in an HttpServer or another Router. Registration
+and matching follow the same rules as HttpServer routes. Include `<aWOT.h>`.
 
 <h3 id="router-Router">Construction and ownership</h3>
 
@@ -418,7 +439,7 @@ Router& operator=(const Router&) = delete;
 Construct an empty Router. It owns its registration nodes and releases them on
 destruction. It borrows mounted routers, path strings, and member-callback
 instances; those objects must remain alive while registrations can run. A Router
-cannot be copied or assigned. Mount with `app.use("/prefix", &router)`; the old
+cannot be copied or assigned. Mount with `http.use("/prefix", &router)`; the old
 path-taking constructor is unavailable. Registration methods return `void` and
 provide no allocation-failure result. Register routes once, usually in `setup()`.
 
@@ -474,7 +495,7 @@ Router api;
 // Register once:
 // api.use(logRequest);
 // api.get("/items/:id", showItem);
-// app.use("/api", &api);
+// http.use("/api", &api);
 ```
 
 <span id="router-methods"></span>
@@ -639,7 +660,7 @@ Router routes;
 
 
 `Request` extends Arduino `Stream` to read a bounded HTTP body and expose the
-parsed request. aWOT constructs it for each `App::process()` call and passes it
+parsed request. aWOT constructs it for each `HttpServer::process()` call and passes it
 to callbacks; its constructor is private. Do not retain a Request, its path or
 query pointers, or captured header pointers after processing returns.
 
@@ -667,7 +688,7 @@ Request::Header headers[] = {
   {"Authorization", authorization},
   {"Origin", origin}
 };
-// Process a connected client: app.process(&client, headers);
+// Process a connected client: http.process(&client, headers);
 ```
 
 `ProcessOptions.headers = headers` also infers the array's entry count. For raw
@@ -873,7 +894,7 @@ void item(Request& req, Response& res) {
   }
   res.print(id);
 }
-// Register once: app.get("/items/:id", item);
+// Register once: http.get("/items/:id", item);
 ```
 
 <h3 id="req-form">Request::form</h3>
@@ -1062,7 +1083,7 @@ helpers write the associated response.
 
 Inherited [`Stream::setTimeout(unsigned long)`](https://github.com/arduino/ArduinoCore-API/blob/master/api/Stream.h)
 sets the current request's timed-read timeout in milliseconds. `getTimeout()`
-reads it; `App::setTimeout()` initializes future Requests.
+reads it; `HttpServer::setTimeout()` initializes future Requests.
 
 <h3 id="req-find">Request::find</h3>
 
@@ -1136,7 +1157,7 @@ during that call. See the [migration guide](/en/guide/migrating-to-v4.html).
 
 `Response` extends Arduino `Print` and writes the HTTP response associated with
 one Request. aWOT constructs it privately and lends it to callbacks during
-`App::process()`. Do not retain it after processing. Use the retained Client for
+`HttpServer::process()`. Do not retain it after processing. Use the retained Client for
 later stream or protocol I/O when `ProcessResult.responseOpen` is true.
 
 By default, the first body write sends status 200 and ordinary headers.
@@ -1301,7 +1322,7 @@ well when successful transport output matters.
 void end();
 ```
 
-Mark dispatch as ended. Routers stop invoking further handlers, and App error
+Mark dispatch as ended. Routers stop invoking further handlers, and HttpServer error
 handling suppresses its built-in fallback response. This method does not flush,
 close the Client, or emit a terminal chunk immediately. `finally` still runs,
 and `process()` performs output finalization afterward. It does not prohibit
@@ -1480,7 +1501,7 @@ class WsChannel;
 WsChannel();
 ```
 
-`TClient` must be the exact concrete client type supplied to `App::process()`;
+`TClient` must be the exact concrete client type supplied to `HttpServer::process()`;
 `upgrade()` casts `req.client()` to that type. It must support default
 construction and copying a handle to the same underlying connection. For
 example, use `WsChannel<WiFiClient, 4, 1>` for requests delivered as `WiFiClient`.
@@ -1521,7 +1542,7 @@ Returns `false` for an invalid handshake, missing capture, no available slot,
 or failed handshake write. It can reclaim a disconnected slot, calling
 `onDisconnect`. A write failure may already have closed the transport, so a
 replacement response cannot be guaranteed. The caller must retain the connection
-only when `App::ProcessResult.responseOpen` is true, and stop other clients.
+only when `HttpServer::ProcessResult.responseOpen` is true, and stop other clients.
 
 ```cpp
 void websocketRoute(Request& req, Response& res) {
@@ -1805,7 +1826,7 @@ void open(Response& res);
 Sets status 200, `Content-Type: text/event-stream`, and `Cache-Control: no-cache`,
 then calls `res.keepOpen()`. Call before emitting HTTP headers. The response is
 close-delimited, without Content-Length or chunk framing. `open()` does not add
-the client. After `app.process()` succeeds with `responseOpen == true`, pass
+the client. After `http.process()` succeeds with `responseOpen == true`, pass
 the concrete client to `add()`; stop it otherwise. Do not retain a `Response`
 or the temporary client adapter made by `process(Stream*)`.
 
@@ -1972,7 +1993,7 @@ values. Indexing returns a reference without bounds checks, including on a
 const view. A view neither owns nor copies its storage and does not validate
 pointers or sizes. Its elements must remain alive whenever accessed.
 
-`App::ProcessOptions` uses views for URL storage, output storage, and the
+`HttpServer::ProcessOptions` uses views for URL storage, output storage, and the
 contiguous `Request::Header` array. Arrays infer sizes; raw pointers require
 an explicit `{pointer, size}` pair. Request headers borrow their names and
 value buffers as well. Keep all of this storage, and the context, alive until
@@ -1983,7 +2004,7 @@ char url[64];
 uint8_t output[32];
 char authorization[64];
 Request::Header headers[] = { {"Authorization", authorization} };
-App::ProcessOptions options;
+HttpServer::ProcessOptions options;
 options.urlBuffer = url;
 options.writeBuffer = output;
 options.headers = headers;
@@ -1999,7 +2020,7 @@ buffers and positive capacities. Invalid options close the client without
 running handlers or `finally`. Captured values are cleared before and after
 processing. A header view with size zero ignores its pointer and entries;
 negative counts and positive counts with a null array pointer are invalid.
-See [ProcessOptions](#app-process-options) and
+See [ProcessOptions](#httpserver-process-options) and
 [request header capture](#req-header).
 
 <h3 id="storage-streamclient">StreamClient</h3>
@@ -2030,7 +2051,7 @@ connection; `connected()` always returns 1 and boolean conversion returns
 true. `stop()` does nothing. The adapter cannot detect stream disconnection
 or close a serial port.
 
-`App::process(Stream*)` creates a temporary adapter; `req.client()` points to
+`HttpServer::process(Stream*)` creates a temporary adapter; `req.client()` points to
 it only during processing. Never retain that pointer or put it in a channel.
 For a persistent adapter, create one in persistent storage and pass its Client
 pointer explicitly, keeping its wrapped stream alive. Its always-connected
@@ -2051,11 +2072,11 @@ different URL/output capacities for individual requests.
 <h3 id="configuration-namespace">Headers and namespace</h3>
 
 
-All library types are defined in `namespace awot`. `<aWOT.h>` includes App,
+All library types are defined in `namespace awot`. `<aWOT.h>` includes HttpServer,
 Router, Request, Response, StreamClient, and common configuration. It adds
 `using namespace awot;` unless `ENABLE_AWOT_NAMESPACE` is defined. That macro
 controls the convenience using-directive; it does not change where types are
-declared. With it defined, write `awot::App`, `awot::Request`, and so on, or use
+declared. With it defined, write `awot::HttpServer`, `awot::Request`, and so on, or use
 your own selective using-declarations. ArrayView arrives through Request.
 Include `<WsChannel.h>`, `<WsMessage.h>`, or `<SseChannel.h>` explicitly for
 those APIs.
@@ -2069,7 +2090,7 @@ ESP32, or compilers whose `__has_include` finds `<functional>`, unless
 `STD_FUNCTION_MIDDLEWARE` also requires `<functional>`. In that mode, router
 middleware and channel callbacks use `std::function`: free functions, lambdas
 with captures, and supported member bindings are accepted. Captured references
-and bound instances must outlive their registrations. `App::ErrorHandler`
+and bound instances must outlive their registrations. `HttpServer::ErrorHandler`
 always remains a function pointer.
 
 Without std::function, middleware and channel callbacks are function pointers.

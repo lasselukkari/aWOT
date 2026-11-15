@@ -7,31 +7,32 @@ section: "guide"
 
 # Migrating to aWOT 4
 
-Install **aWOT 4.0.0** through Arduino Library Manager and update sketches using
+Install **aWOT 4.0.1** through Arduino Library Manager and update sketches using
 the changes below. The [3.x API](/en/3x/api.html) remains available for existing
 applications; the [current reference](/en/4x/api.html) documents v4. The snippets
 on this page are partial before-and-after examples. Replace the indicated
 declarations, handlers, or call sites in your existing sketch.
 
-<h2 id="app">Application becomes App</h2>
+<span id="app"></span>
+<h2 id="httpserver">Application becomes HttpServer</h2>
 
 
 Keep including `<aWOT.h>`, but rename the application class:
 
 ```cpp
 // 3.x
-Application app;
+Application http;
 ```
 
 ```cpp
 // 4.x
-App app;
+HttpServer http;
 ```
 
-If a helper function takes an app or router by value, change it to a reference:
-for example, `void addRoutes(App& app)` or `void addRoutes(Router& router)`.
+If a helper function takes a server or router by value, change it to a reference:
+for example, `void addRoutes(HttpServer& http)` or `void addRoutes(Router& router)`.
 aWOT 4 rejects copies of these objects because each instance owns its registered
-routes. Sketches that register routes directly on a global app are unaffected.
+routes. Sketches that register routes directly on a global server are unaffected.
 
 The v4 library has multiple source and header files; install the whole library
 instead of copying the old `aWOT.h` and `aWOT.cpp` pair into a sketch.
@@ -72,7 +73,7 @@ Replace application-wide header registration:
 // 3.x: declaration and setup registration
 char authorization[64];
 // Inside setup():
-app.header("Authorization", authorization, sizeof(authorization));
+http.header("Authorization", authorization, sizeof(authorization));
 ```
 
 with caller-owned capture storage for each processing call:
@@ -81,7 +82,7 @@ with caller-owned capture storage for each processing call:
 // 4.x: inside the connected-client branch of loop()
 char authorization[64];
 Request::Header headers[] = { {"Authorization", authorization} };
-app.process(&client, headers);
+http.process(&client, headers);
 client.stop();
 ```
 
@@ -105,18 +106,18 @@ assumes `client` and application context `state` already exist in the caller:
 // 3.x
 char url[64];
 uint8_t output[32];
-app.process(&client, url, sizeof(url), output, sizeof(output), &state);
+http.process(&client, url, sizeof(url), output, sizeof(output), &state);
 ```
 
 ```cpp
 // 4.x
 char url[64];
 uint8_t output[32];
-App::ProcessOptions options;
+HttpServer::ProcessOptions options;
 options.urlBuffer = url;
 options.writeBuffer = output;
 options.context = &state;
-app.process(&client, options);
+http.process(&client, options);
 client.stop();
 ```
 
@@ -156,13 +157,13 @@ Check any mounts that relied on partial names or trailing slashes. See
 <h2 id="connections">Check the processing result</h2>
 
 
-`process()` now returns `App::ProcessResult` instead of `void`. For the common
+`process()` now returns `HttpServer::ProcessResult` instead of `void`. For the common
 close-after-response case, keep an explicit `client.stop()` after processing.
 For an application already managing retained clients, use the result:
 
 ```cpp
 // client is stored outside loop(), or in a persistent client pool.
-App::ProcessResult result = app.process(&client);
+HttpServer::ProcessResult result = http.process(&client);
 if (!result.keepAlive && !result.responseOpen) {
   client.stop();
 }
@@ -212,7 +213,7 @@ an open-response handoff. Malformed chunk framing closes the connection and,
 if no response status was sent when routing finishes, invokes `onError` with
 400; an existing response is not replaced.
 
-`app.onError(handler)` adds a shared parser and missing-route error callback.
+`http.onError(handler)` adds a shared parser and missing-route error callback.
 A custom error response must call `res.end()` to suppress the built-in fallback.
 `finally` runs before response finalization, including after parser errors;
 invalid process options bypass it.
@@ -229,7 +230,7 @@ retained as a compatibility no-op; defaults are chosen when headers are emitted.
 
 Supported platforms now select `std::function` automatically. They accept
 capturing lambdas and member callbacks such as
-`app.get("/count", &counter, &Counter::handle)`. Keep the instance alive while
+`http.get("/count", &counter, &Counter::handle)`. Keep the instance alive while
 registered. Function-pointer builds accept ordinary functions and noncapturing
 lambdas. Apply `AWOT_NO_STD_FUNCTION_MIDDLEWARE` and HTTP layout overrides to
 every library and sketch translation unit, rather than defining them only in

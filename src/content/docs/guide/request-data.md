@@ -69,7 +69,7 @@ The form and echo routes require a known, nonzero Content-Length of at most
 #include <string.h>
 
 WiFiServer server(80);
-App app;
+HttpServer http;
 
 struct RequestState {
   unsigned long started;
@@ -143,10 +143,10 @@ void setup() {
   WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) delay(500);
   Serial.println(WiFi.localIP());
-  app.get("/inspect", inspect);
-  app.post("/form", readForm);
-  app.put("/echo", echo);
-  app.finally(finish);
+  http.get("/inspect", inspect);
+  http.post("/form", readForm);
+  http.put("/echo", echo);
+  http.finally(finish);
   server.begin();
 }
 
@@ -161,12 +161,12 @@ void loop() {
     char url[64];
     uint8_t output[32];
     RequestState state = {millis(), 0};
-    App::ProcessOptions options;
+    HttpServer::ProcessOptions options;
     options.headers = headers;
     options.urlBuffer = url;
     options.writeBuffer = output;
     options.context = &state;
-    app.process(&client, options);
+    http.process(&client, options);
     client.stop();
   }
 }
@@ -239,12 +239,12 @@ and header count:
 ```cpp
 // Inside a caller that owns these pointers and their storage.
 Request::Header capture("X-Label", labelPointer, labelCapacity);
-App::ProcessOptions options;
+HttpServer::ProcessOptions options;
 options.urlBuffer = {urlPointer, urlCapacity};
 options.writeBuffer = {outputPointer, outputCapacity};
 options.headers = {&capture, 1};
 options.context = contextPointer;
-app.process(&client, options);
+http.process(&client, options);
 ```
 
 Null URL or output buffer pointers choose default storage. A custom URL buffer
